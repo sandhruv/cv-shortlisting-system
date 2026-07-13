@@ -131,6 +131,8 @@ function StudentDashboard() {
     );
   });
 
+  const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <header className="bg-white border-b border-[#e9edf4] px-6 py-3 flex items-center justify-between sticky top-0 z-10">
@@ -351,9 +353,9 @@ function StudentDashboard() {
                             <span className={`text-xs px-2 py-0.5 rounded-full ${status === "scheduled" ? "bg-[#d1fae5] text-[#065f46]" : "bg-[#fef3c7] text-[#92400e]"}`}>
                               {status}
                             </span>
-                            {status === "scheduled" && interview.roomName && (
+                            {status === "scheduled" && (
                               <button
-                                onClick={() => setVideoCallRoom(interview.roomName)}
+                                onClick={() => setVideoCallRoom(getInterviewRoom(interview))}
                                 className="mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-xs flex items-center gap-1"
                               >
                                 <FaVideo size={12} /> Join Call

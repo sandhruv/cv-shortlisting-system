@@ -238,6 +238,8 @@ function HRDashboard() {
     }
   };
 
+  const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <header className="bg-white border-b border-[#e9edf4] px-6 py-3 flex items-center justify-between sticky top-0 z-10">
@@ -415,7 +417,7 @@ function HRDashboard() {
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={() => setVideoCallRoom(iv.roomName)}
+                                  onClick={() => setVideoCallRoom(getInterviewRoom(iv))}
                                   className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
                                 >
                                   <FaVideo size={12} /> Join Call
