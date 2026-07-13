@@ -9,7 +9,6 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
 const hpp = require("hpp");
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
@@ -63,7 +62,6 @@ const limiter = rateLimit({
 app.set("trust proxy", 1);
 app.use(helmet());
 app.use(limiter);
-app.use(mongoSanitize());
 app.use(hpp());
 app.use(cors({
   origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
