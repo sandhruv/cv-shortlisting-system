@@ -1,6 +1,8 @@
-﻿require("dotenv").config();
+﻿const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -12,6 +14,7 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
+const clientDistPath = path.join(__dirname, "../client/dist");
 
 connectDB();
 
@@ -31,6 +34,23 @@ app.get("/api/profile", protect, (req, res) => {
     message: "You have access to protected route",
     user: req.user,
   });
+});
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+}
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.get(/^(?!\/api\/).*/, (req, res) => {
+  const indexPath = path.join(clientDistPath, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  res.status(404).send("Frontend build not found. Run npm run build in the client folder.");
 });
 
 const PORT = process.env.PORT || 5000;

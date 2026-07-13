@@ -11,4 +11,8 @@ export default defineConfig({
       clientPort: 5173,
     },
   },
+  preview: {
+    port: 4173,
+    host: true,
+  },
 });
