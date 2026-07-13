@@ -1,5 +1,10 @@
 ﻿const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+const dotenv = require("dotenv");
+const dotenvResult = dotenv.config({ path: path.join(__dirname, ".env") });
+if (dotenvResult.error && dotenvResult.error.code !== "ENOENT") {
+  console.error("❌ Failed to load .env file:", dotenvResult.error.message);
+  process.exit(1);
+}
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -37,6 +42,13 @@ const possibleClientDistPaths = [
   path.join(process.cwd(), "dist"),
 ];
 const clientDistPath = possibleClientDistPaths.find((candidate) => fs.existsSync(candidate)) || possibleClientDistPaths[0];
+
+const requiredEnv = ["MONGO_URI", "JWT_SECRET"];
+const missingEnv = requiredEnv.filter((key) => !process.env[key]);
+if (missingEnv.length > 0) {
+  console.error("❌ Missing required environment variables:", missingEnv.join(", "));
+  process.exit(1);
+}
 
 connectDB();
 
