@@ -5,6 +5,9 @@ const Job = require("../models/Job");
 exports.scheduleInterview = async (req, res) => {
   try {
     const { applicationId, scheduledAt, duration, location, meetingLink, notes } = req.body;
+    if (!applicationId || !scheduledAt) {
+      return res.status(400).json({ message: "applicationId and scheduledAt are required" });
+    }
     const application = await Application.findById(applicationId).populate("job");
     if (!application) return res.status(404).json({ message: "Application not found" });
     const job = await Job.findById(application.job._id);
@@ -121,10 +124,15 @@ exports.getJobInterviews = async (req, res) => {
   }
 };
 
+const VALID_INTERVIEW_STATUSES = ["scheduled", "completed", "cancelled", "rescheduled"];
+
 exports.updateInterviewStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    if (!status || !VALID_INTERVIEW_STATUSES.includes(status)) {
+      return res.status(400).json({ message: "Invalid interview status" });
+    }
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
@@ -144,13 +152,24 @@ exports.addFeedback = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comments, decision } = req.body;
+    const allowedDecisions = ["", "selected", "rejected", "hold"];
+    if (rating !== undefined && (typeof rating !== "number" || rating < 1 || rating > 5)) {
+      return res.status(400).json({ message: "Rating must be a number between 1 and 5" });
+    }
+    if (decision !== undefined && !allowedDecisions.includes(decision)) {
+      return res.status(400).json({ message: "Invalid decision value" });
+    }
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
     if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
       return res.status(403).json({ message: "Not authorized to add feedback." });
     }
-    interview.feedback = { rating, comments, decision: decision || "" };
+    interview.feedback = {
+      rating: rating !== undefined ? rating : interview.feedback?.rating,
+      comments: comments !== undefined ? comments : interview.feedback?.comments,
+      decision: decision !== undefined ? decision : interview.feedback?.decision || "",
+    };
     await interview.save();
     res.json({ message: "Feedback added successfully", interview });
   } catch (err) {

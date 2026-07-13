@@ -17,6 +17,17 @@ exports.getAllUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
+    const validRoles = ["Admin", "HR", "Student"];
+
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ message: "Name, email, password, and role are required" });
+    }
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
     if (role === "Admin") {
       const adminExists = await User.findOne({ role: "Admin" });
       if (adminExists) {
@@ -37,11 +48,15 @@ exports.updateRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
+    const validRoles = ["Admin", "HR", "Student"];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role" });
+    }
     if (role === "Admin") {
       const adminExists = await User.findOne({ role: "Admin" });
       if (adminExists) return res.status(403).json({ message: "An Admin already exists." });
     }
-    const user = await User.findByIdAndUpdate(id, { role }, { new: true }).select("-password");
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true, runValidators: true }).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "Role updated", user });
   } catch (err) {

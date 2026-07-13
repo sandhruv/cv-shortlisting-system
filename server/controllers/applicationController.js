@@ -1,6 +1,8 @@
 ﻿const Application = require("../models/Application");
 const Job = require("../models/Job");
 
+const VALID_APPLICATION_STATUSES = ["pending", "shortlisted", "rejected"];
+
 exports.getApplicants = async (req, res) => {
   try {
     const jobId = req.params.jobId;
@@ -21,6 +23,9 @@ exports.getApplicants = async (req, res) => {
 exports.updateApplicationStatus = async (req, res) => {
   try {
     const { status } = req.body;
+    if (!status || typeof status !== "string" || !VALID_APPLICATION_STATUSES.includes(status)) {
+      return res.status(400).json({ message: "Invalid application status" });
+    }
     const app = await Application.findById(req.params.id).populate("job");
     if (!app) return res.status(404).json({ message: "Application not found" });
     if (app.job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
@@ -39,6 +44,10 @@ exports.applyToJob = async (req, res) => {
     const { jobId } = req.params;
     if (req.user.role !== "Student") {
       return res.status(403).json({ message: "Only students can apply" });
+    }
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
     }
     const existing = await Application.findOne({ job: jobId, student: req.user.id });
     if (existing) {

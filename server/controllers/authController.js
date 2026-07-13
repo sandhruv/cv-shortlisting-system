@@ -8,20 +8,23 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+    if (role && role !== "Student") {
+      return res.status(403).json({ message: "Registration may only create Student accounts" });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "Server misconfiguration: JWT secret not set" });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
-    }
-
-    // Admin restrictions
-    if (role === "Admin") {
-      if (email !== ADMIN_EMAIL) {
-        return res.status(403).json({ message: "You are not authorized to register as Admin" });
-      }
-      const adminExists = await User.findOne({ role: "Admin" });
-      if (adminExists) {
-        return res.status(403).json({ message: "An Admin already exists. Only one admin is allowed." });
-      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -31,7 +34,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "Student",
+      role: "Student",
     });
 
     res.status(201).json({
@@ -58,6 +61,9 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
+    }
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ message: "Server misconfiguration: JWT secret not set" });
     }
     const token = jwt.sign(
       { id: user._id, role: user.role },

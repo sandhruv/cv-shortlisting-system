@@ -104,7 +104,7 @@ exports.uploadCV = async (req, res) => {
 
     const studentId = req.user.id;
     const filePath = req.file.path;
-    const fileName = req.file.originalname;
+    const fileName = path.basename(req.file.originalname).replace(/[^a-zA-Z0-9._-]/g, "_");
 
     let extractedText;
     try {
@@ -159,6 +159,9 @@ exports.getMyResume = async (req, res) => {
 exports.getResumeByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
+    if (req.user.role !== "Admin" && req.user.role !== "HR" && req.user.id !== studentId) {
+      return res.status(403).json({ message: "Not authorized to view this resume" });
+    }
     const resume = await Resume.findOne({ student: studentId }).sort({ createdAt: -1 });
     if (!resume) return res.status(404).json({ message: "No resume found for this student" });
     res.json(resume);

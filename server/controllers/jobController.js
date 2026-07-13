@@ -2,11 +2,11 @@
 const Application = require("../models/Application");
 
 exports.createJob = async (req, res) => {
-  console.log("🔧 createJob called");
-  console.log("req.user:", req.user);
-  console.log("req.body:", req.body);
   try {
     const { title, description, requirements, location } = req.body;
+    if (!title || !description || !location) {
+      return res.status(400).json({ message: "Title, description, and location are required" });
+    }
     const job = await Job.create({
       title,
       description,
@@ -14,7 +14,6 @@ exports.createJob = async (req, res) => {
       location,
       postedBy: req.user.id,
     });
-    console.log("✅ Job created:", job);
     res.status(201).json({ message: "Job created", job });
   } catch (err) {
     console.error("❌ Error in createJob:", err);
@@ -40,7 +39,16 @@ exports.updateJob = async (req, res) => {
     if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
       return res.status(403).json({ message: "Not authorized" });
     }
-    const updated = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { title, description, requirements, location } = req.body;
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (requirements !== undefined) updates.requirements = requirements;
+    if (location !== undefined) updates.location = location;
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No valid fields provided for update" });
+    }
+    const updated = await Job.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
     res.json({ message: "Job updated", job: updated });
   } catch (err) {
     res.status(500).json({ message: err.message });

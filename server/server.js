@@ -2,6 +2,11 @@
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+const hpp = require("hpp");
+const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -20,7 +25,9 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   },
 });
 const possibleClientDistPaths = [
@@ -33,11 +40,26 @@ const clientDistPath = possibleClientDistPaths.find((candidate) => fs.existsSync
 
 connectDB();
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+app.set("trust proxy", 1);
+app.use(helmet());
+app.use(limiter);
+app.use(mongoSanitize());
+app.use(hpp());
 app.use(cors({
   origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
@@ -73,12 +95,25 @@ app.get(/^(?!\/api\/).*/, (req, res) => {
 
 const rooms = new Map();
 
+io.use((socket, next) => {
+  const authHeader = socket.handshake.headers?.authorization;
+  const token = socket.handshake.auth?.token || (typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined);
+  if (!token) return next(new Error("Authentication error"));
+  try {
+    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET not configured");
+    socket.user = jwt.verify(token, process.env.JWT_SECRET);
+    return next();
+  } catch (err) {
+    return next(new Error("Authentication error"));
+  }
+});
+
 io.on("connection", (socket) => {
-  socket.on("join-room", ({ roomId, user }) => {
-    if (!roomId) return;
+  socket.on("join-room", ({ roomId }) => {
+    if (!roomId || !socket.user) return;
     socket.join(roomId);
     const existing = rooms.get(roomId) || [];
-    const members = [...existing.filter((m) => m.socketId !== socket.id), { socketId: socket.id, user }];
+    const members = [...existing.filter((m) => m.socketId !== socket.id), { socketId: socket.id, user: { id: socket.user.id, role: socket.user.role } }];
     rooms.set(roomId, members);
     io.to(roomId).emit("room-users", members);
   });
