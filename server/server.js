@@ -24,7 +24,10 @@ const clientDistPath = possibleClientDistPaths.find((candidate) => fs.existsSync
 
 connectDB();
 
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
