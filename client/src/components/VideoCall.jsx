@@ -20,9 +20,13 @@ const VideoCall = ({ roomId, user, onClose }) => {
     const socket = io(SOCKET_SERVER_URL, { transports: ["websocket"] });
     socketRef.current = socket;
 
+    const isStable = (pc) => pc && pc.signalingState === "stable";
     const createPeerConnection = async (remoteSocketId, createOffer = false) => {
       if (!localStreamRef.current) return null;
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      pc.isMakingOffer = false;
+      pc.isSettingRemoteAnswerPending = false;
+      pc.polite = socket.id > remoteSocketId;
 
       localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
 
@@ -51,16 +55,41 @@ const VideoCall = ({ roomId, user, onClose }) => {
         }
       };
 
+      pc.onnegotiationneeded = async () => {
+        try {
+          if (pc.isMakingOffer) return;
+          pc.isMakingOffer = true;
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit("signal", {
+            roomId,
+            to: remoteSocketId,
+            signal: offer,
+          });
+        } catch (err) {
+          console.error("Negotiation error", err);
+        } finally {
+          pc.isMakingOffer = false;
+        }
+      };
+
       peersRef.current[remoteSocketId] = pc;
 
       if (createOffer) {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socket.emit("signal", {
-          roomId,
-          to: remoteSocketId,
-          signal: offer,
-        });
+        try {
+          pc.isMakingOffer = true;
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit("signal", {
+            roomId,
+            to: remoteSocketId,
+            signal: offer,
+          });
+        } catch (err) {
+          console.error("Offer creation failed", err);
+        } finally {
+          pc.isMakingOffer = false;
+        }
       }
 
       return pc;
@@ -74,13 +103,25 @@ const VideoCall = ({ roomId, user, onClose }) => {
       }
       if (!pc) return;
 
+      const offerCollision = signal.type === "offer" && (pc.isMakingOffer || !isStable(pc));
+      const ignoreOffer = !pc.polite && offerCollision;
+
       try {
         if (signal.type === "offer") {
+          if (ignoreOffer) {
+            console.warn("Ignoring offer collision from", from);
+            return;
+          }
+          pc.isSettingRemoteAnswerPending = signal.type === "answer";
           await pc.setRemoteDescription(new RTCSessionDescription(signal));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.emit("signal", { roomId, to: from, signal: answer });
         } else if (signal.type === "answer") {
+          if (!pc.isMakingOffer && pc.signalingState !== "have-local-offer") {
+            console.warn("Received answer in wrong state", pc.signalingState);
+            return;
+          }
           await pc.setRemoteDescription(new RTCSessionDescription(signal));
         } else if (signal.candidate) {
           await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
