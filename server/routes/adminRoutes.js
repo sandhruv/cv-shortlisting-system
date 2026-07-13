@@ -11,6 +11,7 @@ const {
   getAllJobs,
   getAllApplications,
   getAllResumes,
+  getAllInterviews, // 👈 new
 } = require("../controllers/adminController");
 
 router.use(protect, isAdmin);
@@ -24,5 +25,6 @@ router.get("/stats", getStats);
 router.get("/jobs", getAllJobs);
 router.get("/applications", getAllApplications);
 router.get("/resumes", getAllResumes);
+router.get("/interviews", getAllInterviews); // 👈 new
 
 module.exports = router;

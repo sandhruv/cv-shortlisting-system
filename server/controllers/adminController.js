@@ -2,6 +2,7 @@
 const Job = require("../models/Job");
 const Application = require("../models/Application");
 const Resume = require("../models/Resume");
+const Interview = require("../models/Interview");
 const bcrypt = require("bcrypt");
 
 exports.getAllUsers = async (req, res) => {
@@ -16,26 +17,17 @@ exports.getAllUsers = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already exists" });
+    if (role === "Admin") {
+      const adminExists = await User.findOne({ role: "Admin" });
+      if (adminExists) {
+        return res.status(403).json({ message: "An Admin already exists. Cannot create another Admin." });
+      }
     }
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: "Email already exists" });
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      name,
-      email,
-      role,
-      password: hashed,
-    });
-    res.status(201).json({
-      message: "User created successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    const user = await User.create({ name, email, role, password: hashed });
+    res.status(201).json({ message: "User created successfully", user: { id: user._id, name, email, role } });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -45,11 +37,11 @@ exports.updateRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
-    const user = await User.findByIdAndUpdate(
-      id,
-      { role },
-      { new: true }
-    ).select("-password");
+    if (role === "Admin") {
+      const adminExists = await User.findOne({ role: "Admin" });
+      if (adminExists) return res.status(403).json({ message: "An Admin already exists." });
+    }
+    const user = await User.findByIdAndUpdate(id, { role }, { new: true }).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "Role updated", user });
   } catch (err) {
@@ -117,6 +109,22 @@ exports.getAllResumes = async (req, res) => {
       .populate("student", "name email")
       .sort({ createdAt: -1 });
     res.json(resumes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 👇 NEW: Get all interviews (with feedback)
+exports.getAllInterviews = async (req, res) => {
+  try {
+    const interviews = await Interview.find()
+      .populate("job", "title")
+      .populate({
+        path: "application",
+        populate: { path: "student", select: "name email" }
+      })
+      .sort({ createdAt: -1 });
+    res.json(interviews);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
