@@ -1,16 +1,3 @@
-﻿// Add this BEFORE your app.listen() line
-app.get("/", (req, res) => {
-  res.json({
-    message: "CV Shortlisting System API is running 🚀",
-    available_endpoints: {
-      auth: "/api/auth/login, /api/auth/register",
-      admin: "/api/admin",
-      profile: "/api/profile (requires auth token)",
-    },
-  });
-});
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+﻿// This workspace root file is intentionally left empty.
+// The actual backend entrypoint is server/server.js.
+// Start the app with: node server/server.js

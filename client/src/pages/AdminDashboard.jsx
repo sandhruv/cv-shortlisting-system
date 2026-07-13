@@ -130,7 +130,7 @@ function AdminDashboard() {
 
   const handleStatusUpdate = async (appId, status) => {
     try {
-      await api.put(`/applications/applications/${appId}/status`, { status });
+      await api.put(`/applications/${appId}/status`, { status });
       alert(`Application ${status}`);
       fetchApplications();
       fetchStats();

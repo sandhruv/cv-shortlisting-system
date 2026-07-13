@@ -152,7 +152,7 @@ function HRDashboard() {
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {
-      await api.put(`/applications/applications/${applicationId}/status`, { status });
+      await api.put(`/applications/${applicationId}/status`, { status });
       alert(`Application ${status}`);
       fetchApplicants(selectedJobId);
     } catch (err) {
