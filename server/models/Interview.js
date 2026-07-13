@@ -17,6 +17,7 @@ const interviewSchema = new mongoose.Schema(
       comments: { type: String, default: "" },
       decision: { type: String, enum: ["", "selected", "rejected", "hold"], default: "" },
     },
+    callActive: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

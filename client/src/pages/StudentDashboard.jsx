@@ -25,6 +25,9 @@ function StudentDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [interviews, setInterviews] = useState([]);
   const [videoCallRoom, setVideoCallRoom] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  });
 
   const fetchJobs = async () => {
     try {
@@ -353,14 +356,16 @@ function StudentDashboard() {
                             <span className={`text-xs px-2 py-0.5 rounded-full ${status === "scheduled" ? "bg-[#d1fae5] text-[#065f46]" : "bg-[#fef3c7] text-[#92400e]"}`}>
                               {status}
                             </span>
-                            {status === "scheduled" && (
+                            {status === "scheduled" && interview.callActive ? (
                               <button
-                                onClick={() => setVideoCallRoom(getInterviewRoom(interview))}
+                                onClick={() => setVideoCallRoom(interview._id)}
                                 className="mt-2 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition text-xs flex items-center gap-1"
                               >
                                 <FaVideo size={12} /> Join Call
                               </button>
-                            )}
+                            ) : status === "scheduled" ? (
+                              <p className="mt-2 text-xs text-[#64748b]">Waiting for HR to start the call.</p>
+                            ) : null}
                             {interview.feedback && interview.feedback.decision && (
                               <div className="mt-3 pt-2 border-t border-[#e9edf4]">
                                 <p className="text-sm font-medium">Feedback:</p>
@@ -383,7 +388,7 @@ function StudentDashboard() {
 
       {/* Video Call Modal */}
       {videoCallRoom && (
-        <VideoCall roomName={videoCallRoom} onClose={() => setVideoCallRoom(null)} />
+        <VideoCall roomId={videoCallRoom} user={currentUser} onClose={() => setVideoCallRoom(null)} />
       )}
     </div>
   );

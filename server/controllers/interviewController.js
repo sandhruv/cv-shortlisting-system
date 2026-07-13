@@ -36,10 +36,41 @@ exports.scheduleInterview = async (req, res) => {
   }
 };
 
-// ... (other functions unchanged: getMyInterviews, getJobInterviews, updateInterviewStatus, addFeedback)
-// Keep them as they are – we only override scheduleInterview.
-// But we must re‑write the whole file to avoid missing exports.
-// We'll append the others unchanged.
+exports.startInterviewCall = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const interview = await Interview.findById(id).populate("job");
+    if (!interview) return res.status(404).json({ message: "Interview not found." });
+    const job = await Job.findById(interview.job._id);
+    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Not authorized to start the call." });
+    }
+    interview.callActive = true;
+    await interview.save();
+    res.json({ message: "Interview call started", interview });
+  } catch (err) {
+    console.error("startInterviewCall error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.stopInterviewCall = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const interview = await Interview.findById(id).populate("job");
+    if (!interview) return res.status(404).json({ message: "Interview not found." });
+    const job = await Job.findById(interview.job._id);
+    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Not authorized to stop the call." });
+    }
+    interview.callActive = false;
+    await interview.save();
+    res.json({ message: "Interview call stopped", interview });
+  } catch (err) {
+    console.error("stopInterviewCall error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
 
 exports.getMyInterviews = async (req, res) => {
   try {

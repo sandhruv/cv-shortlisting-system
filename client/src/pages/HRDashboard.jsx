@@ -62,6 +62,9 @@ function HRDashboard() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [videoCallRoom, setVideoCallRoom] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    return JSON.parse(localStorage.getItem("user") || "{}");
+  });
 
   // Feedback states
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -186,6 +189,26 @@ function HRDashboard() {
       fetchHRInterviews();
     } catch (err) {
       alert(err.response?.data?.message || "Update failed");
+    }
+  };
+
+  const handleStartInterviewCall = async (interview) => {
+    try {
+      await api.put(`/interviews/${interview._id}/call/start`);
+      setVideoCallRoom(interview._id);
+      fetchHRInterviews();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to start call");
+    }
+  };
+
+  const handleStopInterviewCall = async (interview) => {
+    try {
+      await api.put(`/interviews/${interview._id}/call/stop`);
+      setVideoCallRoom(null);
+      fetchHRInterviews();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to stop call");
     }
   };
 
@@ -416,12 +439,29 @@ function HRDashboard() {
                                 <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-[#ef4444] text-white px-3 py-1 rounded hover:bg-[#dc2626] transition text-xs">
                                   Cancel
                                 </button>
-                                <button
-                                  onClick={() => setVideoCallRoom(getInterviewRoom(iv))}
-                                  className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
-                                >
-                                  <FaVideo size={12} /> Join Call
-                                </button>
+                                {!iv.callActive ? (
+                                  <button
+                                    onClick={() => handleStartInterviewCall(iv)}
+                                    className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
+                                  >
+                                    <FaVideo size={12} /> Start Call
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => setVideoCallRoom(iv._id)}
+                                      className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
+                                    >
+                                      <FaVideo size={12} /> Join Call
+                                    </button>
+                                    <button
+                                      onClick={() => handleStopInterviewCall(iv)}
+                                      className="bg-[#ef4444] text-white px-3 py-1 rounded hover:bg-[#dc2626] transition text-xs"
+                                    >
+                                      End Call
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )}
                             {status === "completed" && (
@@ -719,7 +759,7 @@ function HRDashboard() {
 
       {/* Video Call Modal */}
       {videoCallRoom && (
-        <VideoCall roomName={videoCallRoom} onClose={() => setVideoCallRoom(null)} />
+        <VideoCall roomId={videoCallRoom} user={currentUser} onClose={() => setVideoCallRoom(null)} />
       )}
     </div>
   );
