@@ -14,7 +14,13 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
-const clientDistPath = path.join(__dirname, "../client/dist");
+const possibleClientDistPaths = [
+  path.join(__dirname, "../client/dist"),
+  path.join(__dirname, "client/dist"),
+  path.join(process.cwd(), "client/dist"),
+  path.join(process.cwd(), "dist"),
+];
+const clientDistPath = possibleClientDistPaths.find((candidate) => fs.existsSync(candidate)) || possibleClientDistPaths[0];
 
 connectDB();
 
