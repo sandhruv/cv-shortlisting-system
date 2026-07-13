@@ -2,7 +2,7 @@
 import { io } from "socket.io-client";
 import { FaTimes } from "react-icons/fa";
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_WEBSOCKET_URL || "http://localhost:5000";
+const SOCKET_SERVER_URL = import.meta.env.VITE_WEBSOCKET_URL || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : window.location.origin);
 const ICE_SERVERS = [{ urls: ["stun:stun.l.google.com:19302"] }];
 
 const VideoCall = ({ roomId, user, onClose }) => {

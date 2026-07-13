@@ -13,6 +13,6 @@ router.use(protect);
 router.get("/me", getMyApplications);
 router.post("/jobs/:jobId/apply", applyToJob);
 router.get("/jobs/:jobId/applicants", getApplicants);
-router.put("/applications/:id/status", updateApplicationStatus);
+router.put("/:id/status", updateApplicationStatus);
 
 module.exports = router;
