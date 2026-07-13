@@ -106,7 +106,11 @@ exports.getJobInterviews = async (req, res) => {
       query.job = { $in: jobs.map(j => j._id) };
     }
     const interviews = await Interview.find(query)
-      .populate("application", "status student")
+      .populate({
+        path: "application",
+        select: "status student",
+        populate: { path: "student", select: "name email" },
+      })
       .populate("job", "title")
       .populate("createdBy", "name")
       .sort({ scheduledAt: -1 });

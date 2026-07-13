@@ -1,9 +1,17 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { FaTimes } from "react-icons/fa";
+import { FaTimes, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash } from "react-icons/fa";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_WEBSOCKET_URL || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : window.location.origin);
-const ICE_SERVERS = [{ urls: ["stun:stun.l.google.com:19302"] }];
+const ICE_SERVERS = [
+  {
+    urls: [
+      "stun:stun.l.google.com:19302",
+      "stun:stun1.l.google.com:19302",
+      "stun:stun2.l.google.com:19302",
+    ],
+  },
+];
 
 const VideoCall = ({ roomId, user, onClose }) => {
   const localVideoRef = useRef(null);
@@ -11,11 +19,45 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const socketRef = useRef(null);
   const peersRef = useRef({});
   const localStreamRef = useRef(null);
+  const timerRef = useRef(null);
   const [status, setStatus] = useState("Connecting to call...");
   const [error, setError] = useState("");
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [callDuration, setCallDuration] = useState(0);
+  const [iceConnectionState, setIceConnectionState] = useState("new");
+  const [participants, setParticipants] = useState(1);
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const secs = (seconds % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
+
+  const updateLocalTrackStates = () => {
+    if (!localStreamRef.current) return;
+    localStreamRef.current.getAudioTracks().forEach((track) => {
+      track.enabled = audioEnabled;
+    });
+    localStreamRef.current.getVideoTracks().forEach((track) => {
+      track.enabled = videoEnabled;
+    });
+  };
+
+  useEffect(() => {
+    updateLocalTrackStates();
+  }, [audioEnabled, videoEnabled]);
+
+  const toggleAudio = () => setAudioEnabled((enabled) => !enabled);
+  const toggleVideo = () => setVideoEnabled((enabled) => !enabled);
 
   useEffect(() => {
     if (!roomId) return;
+
+    setCallDuration(0);
+    setParticipants(1);
+    setStatus("Connecting to call...");
+    setIceConnectionState("new");
 
     const socket = io(SOCKET_SERVER_URL, { transports: ["websocket"] });
     socketRef.current = socket;
@@ -52,6 +94,16 @@ const VideoCall = ({ roomId, user, onClose }) => {
           setStatus("Connected");
         } else if (pc.connectionState === "disconnected") {
           setStatus("Disconnected");
+        } else if (pc.connectionState === "failed") {
+          setStatus("Connection failed");
+          setError("WebRTC connection failed. Please retry.");
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        setIceConnectionState(pc.iceConnectionState);
+        if (pc.iceConnectionState === "failed") {
+          setError("ICE negotiation failed. Check network or browser permissions.");
         }
       };
 
@@ -133,6 +185,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
     const handleRoomUsers = async (members) => {
       const others = (members || []).filter((member) => member.socketId !== socket.id);
+      setParticipants(others.length + 1);
       if (!others.length) {
         setStatus("Waiting for participant...");
       }
@@ -147,8 +200,14 @@ const VideoCall = ({ roomId, user, onClose }) => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localStreamRef.current = stream;
+        updateLocalTrackStates();
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         socket.emit("join-room", { roomId, user });
+        if (!timerRef.current) {
+          timerRef.current = setInterval(() => {
+            setCallDuration((prev) => prev + 1);
+          }, 1000);
+        }
       } catch (err) {
         console.error("media error", err);
         setError("Unable to access camera or microphone. Please allow permissions.");
@@ -161,9 +220,14 @@ const VideoCall = ({ roomId, user, onClose }) => {
     });
     socket.on("room-users", handleRoomUsers);
     socket.on("signal", handleSignal);
+    socket.on("disconnect", (reason) => {
+      setStatus(`Disconnected (${reason})`);
+    });
     socket.on("connect_error", () => setError("Real-time connection failed. Check your network."));
 
     return () => {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
       socket.emit("leave-room", { roomId });
       socket.disconnect();
       Object.values(peersRef.current).forEach((pc) => pc.close());
@@ -176,18 +240,38 @@ const VideoCall = ({ roomId, user, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center px-4 py-6">
       <div className="relative w-full max-w-6xl h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl">
-        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 bg-white/95 border-b border-slate-200 px-4 py-3">
+        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-3 bg-white/95 border-b border-slate-200 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-slate-900">Interview Room</p>
             <p className="text-xs text-slate-600 break-words">{roomId}</p>
             <p className="text-xs text-slate-600">{status}</p>
+            <p className="text-xs text-slate-600">Participants: {participants}</p>
+            <p className="text-xs text-slate-600">ICE state: {iceConnectionState}</p>
+            <p className="text-xs text-slate-600">Duration: {formatDuration(callDuration)}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-white hover:bg-red-600 transition"
-          >
-            <FaTimes /> End Call
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${audioEnabled ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-slate-200 text-slate-700 hover:bg-slate-300"}`}
+            >
+              {audioEnabled ? <FaMicrophone /> : <FaMicrophoneSlash />} {audioEnabled ? "Mute" : "Unmute"}
+            </button>
+            <button
+              type="button"
+              onClick={toggleVideo}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${videoEnabled ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-slate-200 text-slate-700 hover:bg-slate-300"}`}
+            >
+              {videoEnabled ? <FaVideo /> : <FaVideoSlash />} {videoEnabled ? "Stop Video" : "Start Video"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition"
+            >
+              <FaTimes /> End Call
+            </button>
+          </div>
         </div>
 
         <div className="grid h-full gap-4 grid-cols-1 lg:grid-cols-2 p-4 pt-20">
