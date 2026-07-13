@@ -59,7 +59,15 @@ const VideoCall = ({ roomId, user, onClose }) => {
     setStatus("Connecting to call...");
     setIceConnectionState("new");
 
-    const socket = io(SOCKET_SERVER_URL, { transports: ["websocket"] });
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const socket = io(SOCKET_SERVER_URL, {
+      transports: ["websocket", "polling"],
+      auth: token ? { token } : {},
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
     socketRef.current = socket;
 
     const isStable = (pc) => pc && pc.signalingState === "stable";
@@ -223,7 +231,10 @@ const VideoCall = ({ roomId, user, onClose }) => {
     socket.on("disconnect", (reason) => {
       setStatus(`Disconnected (${reason})`);
     });
-    socket.on("connect_error", () => setError("Real-time connection failed. Check your network."));
+    socket.on("connect_error", (err) => {
+      console.error("Socket connect error", err);
+      setError(`Real-time connection failed: ${err.message || "Check your network."}`);
+    });
 
     return () => {
       clearInterval(timerRef.current);
