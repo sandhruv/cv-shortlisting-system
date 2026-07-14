@@ -26,9 +26,24 @@ const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "https://cv-shortlisting-system-2.onrender.com",
+  "https://cv-shortlisting-system-3.onrender.com",
+  "https://cv-shortlisting-system.onrender.com",
+  process.env.CLIENT_ORIGIN,
+].filter(Boolean);
+const corsOriginHandler = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin) || /^https:\/\/.+\.onrender\.com$/.test(origin)) {
+    return callback(null, true);
+  }
+  return callback(new Error("Not allowed by CORS"));
+};
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
+    origin: corsOriginHandler,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -64,7 +79,7 @@ app.use(helmet());
 app.use(limiter);
 app.use(hpp());
 app.use(cors({
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://cv-shortlisting-system-3.onrender.com"],
+  origin: corsOriginHandler,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
