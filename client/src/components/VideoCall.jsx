@@ -51,6 +51,13 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const toggleAudio = () => setAudioEnabled((enabled) => !enabled);
   const toggleVideo = () => setVideoEnabled((enabled) => !enabled);
 
+  const attachRemoteStream = (stream) => {
+    if (!remoteVideoRef.current || !stream) return;
+    remoteVideoRef.current.srcObject = stream;
+    remoteVideoRef.current.muted = false;
+    remoteVideoRef.current.play().catch(() => {});
+  };
+
   useEffect(() => {
     if (!roomId) return;
 
@@ -97,8 +104,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
       };
 
       pc.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
+        const incomingStream = event.streams?.[0] || (event.track ? new MediaStream([event.track]) : null);
+        if (incomingStream) {
+          attachRemoteStream(incomingStream);
           setStatus("Connected");
         }
       };
