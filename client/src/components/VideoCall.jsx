@@ -27,6 +27,8 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const [callDuration, setCallDuration] = useState(0);
   const [iceConnectionState, setIceConnectionState] = useState("new");
   const [participants, setParticipants] = useState(1);
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [usingFallbackMeeting, setUsingFallbackMeeting] = useState(false);
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -65,6 +67,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
     setParticipants(1);
     setStatus("Connecting to call...");
     setIceConnectionState("new");
+    setUsingFallbackMeeting(false);
+    const safeRoomId = String(roomId).replace(/[^a-zA-Z0-9-_]/g, "-");
+    setMeetingUrl(`https://meet.jit.si/${safeRoomId}`);
 
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const socket = io(SOCKET_SERVER_URL, {
@@ -163,22 +168,18 @@ const VideoCall = ({ roomId, user, onClose }) => {
       }
       if (!pc) return;
 
-      const offerCollision = signal.type === "offer" && (pc.isMakingOffer || !isStable(pc));
-      const ignoreOffer = !pc.polite && offerCollision;
-
       try {
         if (signal.type === "offer") {
-          if (ignoreOffer) {
-            console.warn("Ignoring offer collision from", from);
+          if (pc.signalingState !== "stable") {
+            console.warn("Ignoring offer in unstable state", pc.signalingState);
             return;
           }
-          pc.isSettingRemoteAnswerPending = signal.type === "answer";
           await pc.setRemoteDescription(new RTCSessionDescription(signal));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.emit("signal", { roomId, to: from, signal: answer });
         } else if (signal.type === "answer") {
-          if (!pc.isMakingOffer && pc.signalingState !== "have-local-offer") {
+          if (pc.signalingState !== "have-local-offer") {
             console.warn("Received answer in wrong state", pc.signalingState);
             return;
           }
@@ -199,7 +200,8 @@ const VideoCall = ({ roomId, user, onClose }) => {
       }
       for (const member of others) {
         if (!peersRef.current[member.socketId]) {
-          await createPeerConnection(member.socketId, true);
+          const shouldCreateOffer = socket.id < member.socketId;
+          await createPeerConnection(member.socketId, shouldCreateOffer);
         }
       }
     };
@@ -222,6 +224,13 @@ const VideoCall = ({ roomId, user, onClose }) => {
       }
     };
 
+    const fallbackTimer = window.setTimeout(() => {
+      if (!error) {
+        setUsingFallbackMeeting(true);
+        setStatus("Using secure fallback meeting room");
+      }
+    }, 8000);
+
     socket.on("connect", () => {
       setStatus("Connected to signaling server");
       initMedia();
@@ -241,6 +250,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
     return () => {
       clearInterval(timerRef.current);
+      clearTimeout(fallbackTimer);
       timerRef.current = null;
       socket.emit("leave-room", { roomId });
       socket.disconnect();
@@ -288,15 +298,38 @@ const VideoCall = ({ roomId, user, onClose }) => {
           </div>
         </div>
 
-        <div className="grid h-full gap-4 grid-cols-1 lg:grid-cols-2 p-4 pt-20">
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
-            <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">My Camera</div>
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-[calc(100%-48px)] object-cover bg-black" />
-          </div>
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
-            <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">Remote Participant</div>
-            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-[calc(100%-48px)] object-cover bg-black" />
-          </div>
+        <div className="h-full p-4 pt-20">
+          {usingFallbackMeeting && meetingUrl ? (
+            <div className="h-full rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
+              <div className="bg-slate-900 px-4 py-3 text-sm font-semibold flex items-center justify-between">
+                <span>Secure Meeting Room</span>
+                <button
+                  type="button"
+                  onClick={() => window.open(meetingUrl, "_blank", "noopener,noreferrer")}
+                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-100"
+                >
+                  Open in new tab
+                </button>
+              </div>
+              <iframe
+                src={meetingUrl}
+                title="Interview meeting"
+                allow="camera; microphone; fullscreen; display-capture"
+                className="w-full h-[calc(100%-48px)] bg-black"
+              />
+            </div>
+          ) : (
+            <div className="grid h-full gap-4 grid-cols-1 lg:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
+                <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">My Camera</div>
+                <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-[calc(100%-48px)] object-cover bg-black" />
+              </div>
+              <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
+                <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">Remote Participant</div>
+                <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-[calc(100%-48px)] object-cover bg-black" />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
