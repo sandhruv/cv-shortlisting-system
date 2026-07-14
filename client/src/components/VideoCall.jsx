@@ -129,22 +129,8 @@ const VideoCall = ({ roomId, user, onClose }) => {
         }
       };
 
-      pc.onnegotiationneeded = async () => {
-        try {
-          if (pc.isMakingOffer) return;
-          pc.isMakingOffer = true;
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socket.emit("signal", {
-            roomId,
-            to: remoteSocketId,
-            signal: offer,
-          });
-        } catch (err) {
-          console.error("Negotiation error", err);
-        } finally {
-          pc.isMakingOffer = false;
-        }
+      pc.onaddstream = (event) => {
+        attachRemoteStream(event.stream);
       };
 
       peersRef.current[remoteSocketId] = pc;
