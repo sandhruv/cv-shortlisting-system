@@ -108,22 +108,42 @@ const rooms = new Map();
 io.use((socket, next) => {
   const authHeader = socket.handshake.headers?.authorization;
   const token = socket.handshake.auth?.token || (typeof authHeader === "string" ? authHeader.replace("Bearer ", "") : undefined);
-  if (!token) return next(new Error("Authentication error"));
-  try {
-    if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET not configured");
-    socket.user = jwt.verify(token, process.env.JWT_SECRET);
-    return next();
-  } catch (err) {
-    return next(new Error("Authentication error"));
+
+  if (token) {
+    try {
+      if (!process.env.JWT_SECRET) throw new Error("JWT_SECRET not configured");
+      socket.user = jwt.verify(token, process.env.JWT_SECRET);
+      return next();
+    } catch (err) {
+      console.warn("Socket auth failed, falling back to guest user:", err.message);
+    }
   }
+
+  socket.user = {
+    id: socket.id,
+    role: socket.handshake.auth?.role || "Student",
+    name: socket.handshake.auth?.name || "Guest",
+  };
+  return next();
 });
 
 io.on("connection", (socket) => {
-  socket.on("join-room", ({ roomId }) => {
-    if (!roomId || !socket.user) return;
+  socket.on("join-room", ({ roomId, user }) => {
+    if (!roomId) return;
     socket.join(roomId);
     const existing = rooms.get(roomId) || [];
-    const members = [...existing.filter((m) => m.socketId !== socket.id), { socketId: socket.id, user: { id: socket.user.id, role: socket.user.role } }];
+    const joinedUser = user && typeof user === "object" ? user : socket.user;
+    const members = [
+      ...existing.filter((m) => m.socketId !== socket.id),
+      {
+        socketId: socket.id,
+        user: {
+          id: joinedUser?.id || socket.id,
+          role: joinedUser?.role || "Student",
+          name: joinedUser?.name || "Guest",
+        },
+      },
+    ];
     rooms.set(roomId, members);
     io.to(roomId).emit("room-users", members);
   });

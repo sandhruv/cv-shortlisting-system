@@ -62,11 +62,17 @@ const VideoCall = ({ roomId, user, onClose }) => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const socket = io(SOCKET_SERVER_URL, {
       transports: ["websocket", "polling"],
-      auth: token ? { token } : {},
+      auth: {
+        token: token || "",
+        role: user?.role || "Student",
+        name: user?.name || user?.email || "Guest",
+      },
       withCredentials: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 8,
       reconnectionDelay: 1000,
+      timeout: 10000,
+      forceNew: true,
     });
     socketRef.current = socket;
 
@@ -210,7 +216,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
         localStreamRef.current = stream;
         updateLocalTrackStates();
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        socket.emit("join-room", { roomId, user });
+        socket.emit("join-room", { roomId, user: user || { id: "guest", role: "Student", name: "Guest" } });
         if (!timerRef.current) {
           timerRef.current = setInterval(() => {
             setCallDuration((prev) => prev + 1);
@@ -234,6 +240,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
     socket.on("connect_error", (err) => {
       console.error("Socket connect error", err);
       setError(`Real-time connection failed: ${err.message || "Check your network."}`);
+    });
+    socket.on("connect_timeout", () => {
+      setError("Real-time connection timed out. Please refresh and try again.");
     });
 
     return () => {
