@@ -13,6 +13,7 @@ import {
   FaUserGraduate,
   FaCalendarAlt,
 } from "react-icons/fa";
+import { motion } from "framer-motion";
 import api from "../services/api";
 
 function AdminDashboard() {
@@ -140,58 +141,62 @@ function AdminDashboard() {
   };
 
   const renderOverview = () => {
-    if (!stats) return <div className="text-center py-12 text-[#64748b]">Loading stats...</div>;
+    if (!stats) return <div className="text-center py-12 text-white/40">Loading stats...</div>;
     const { totalUsers, totalJobs, totalApplications, totalResumes } = stats.stats;
     return (
       <div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-          <div className="bg-white p-5 rounded-xl border border-[#e9edf4] shadow-sm">
-            <p className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Total Users</p>
-            <p className="text-2xl font-semibold text-[#0f172a] mt-1">{totalUsers}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-[#e9edf4] shadow-sm">
-            <p className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Total Jobs</p>
-            <p className="text-2xl font-semibold text-[#0f172a] mt-1">{totalJobs}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-[#e9edf4] shadow-sm">
-            <p className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Applications</p>
-            <p className="text-2xl font-semibold text-[#0f172a] mt-1">{totalApplications}</p>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-[#e9edf4] shadow-sm">
-            <p className="text-xs font-medium text-[#94a3b8] uppercase tracking-wider">Resumes</p>
-            <p className="text-2xl font-semibold text-[#0f172a] mt-1">{totalResumes}</p>
-          </div>
+          {[
+            { label: "Total Users", value: totalUsers, icon: FaUsers },
+            { label: "Total Jobs", value: totalJobs, icon: FaBriefcase },
+            { label: "Applications", value: totalApplications, icon: FaFileAlt },
+            { label: "Resumes", value: totalResumes, icon: FaFileAlt },
+          ].map((item, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl hover:shadow-2xl hover:border-[#d4af37]/20 transition-all duration-300"
+            >
+              <p className="text-xs font-medium text-white/40 uppercase tracking-wider">{item.label}</p>
+              <p className="text-3xl font-bold text-white mt-1">{item.value}</p>
+              <item.icon className="text-[#d4af37] text-xl mt-2 opacity-60" />
+            </motion.div>
+          ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm p-5">
-            <h4 className="text-sm font-medium text-[#0f172a] mb-3">Recent Jobs</h4>
-            {stats.recentJobs.length === 0 ? <p className="text-sm text-[#94a3b8]">No jobs</p> :
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+            <h4 className="text-sm font-medium text-white/80 mb-3">Recent Jobs</h4>
+            {stats.recentJobs.length === 0 ? <p className="text-sm text-white/30">No jobs</p> :
               stats.recentJobs.map(job => (
-                <div key={job._id} className="border-b border-[#f1f5f9] py-2 text-sm">
-                  <p className="font-medium text-[#0f172a]">{job.title}</p>
-                  <p className="text-[#64748b] text-xs">by {job.postedBy?.name || "Unknown"}</p>
+                <div key={job._id} className="border-b border-white/5 py-2 text-sm">
+                  <p className="font-medium text-white">{job.title}</p>
+                  <p className="text-white/40 text-xs">by {job.postedBy?.name || "Unknown"}</p>
                 </div>
               ))
             }
           </div>
-          <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm p-5">
-            <h4 className="text-sm font-medium text-[#0f172a] mb-3">Recent Applications</h4>
-            {stats.recentApps.length === 0 ? <p className="text-sm text-[#94a3b8]">No applications</p> :
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+            <h4 className="text-sm font-medium text-white/80 mb-3">Recent Applications</h4>
+            {stats.recentApps.length === 0 ? <p className="text-sm text-white/30">No applications</p> :
               stats.recentApps.map(app => (
-                <div key={app._id} className="border-b border-[#f1f5f9] py-2 text-sm">
-                  <p>{app.student?.name} → {app.job?.title}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === "shortlisted" ? "bg-[#d1fae5] text-[#065f46]" : app.status === "rejected" ? "bg-[#fee2e2] text-[#991b1b]" : "bg-[#fef3c7] text-[#92400e]"}`}>{app.status}</span>
+                <div key={app._id} className="border-b border-white/5 py-2 text-sm flex justify-between items-center">
+                  <div>
+                    <p className="text-white">{app.student?.name} → {app.job?.title}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === "shortlisted" ? "bg-[#d4af37]/20 text-[#d4af37]" : app.status === "rejected" ? "bg-rose-500/20 text-rose-300" : "bg-white/10 text-white/50"}`}>{app.status}</span>
+                  </div>
                 </div>
               ))
             }
           </div>
-          <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm p-5">
-            <h4 className="text-sm font-medium text-[#0f172a] mb-3">Recent Resumes</h4>
-            {stats.recentResumes.length === 0 ? <p className="text-sm text-[#94a3b8]">No resumes</p> :
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+            <h4 className="text-sm font-medium text-white/80 mb-3">Recent Resumes</h4>
+            {stats.recentResumes.length === 0 ? <p className="text-sm text-white/30">No resumes</p> :
               stats.recentResumes.map(r => (
-                <div key={r._id} className="border-b border-[#f1f5f9] py-2 text-sm">
-                  <p className="font-medium text-[#0f172a]">{r.student?.name || "Unknown"}</p>
-                  <p className="text-[#64748b] text-xs">{r.fileName}</p>
+                <div key={r._id} className="border-b border-white/5 py-2 text-sm">
+                  <p className="font-medium text-white">{r.student?.name || "Unknown"}</p>
+                  <p className="text-white/40 text-xs">{r.fileName}</p>
                 </div>
               ))
             }
@@ -202,28 +207,28 @@ function AdminDashboard() {
   };
 
   const renderJobs = () => (
-    <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm overflow-hidden">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-[#f8fafc]">
+        <table className="min-w-full divide-y divide-white/10">
+          <thead className="bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Posted By</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Location</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Posted By</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {jobs.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-[#94a3b8]">No jobs found</td></tr> :
+          <tbody className="divide-y divide-white/5">
+            {jobs.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-white/30">No jobs found</td></tr> :
               jobs.map(job => (
-                <tr key={job._id}>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{job.title}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{job.location}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{job.postedBy?.name || "Unknown"}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{new Date(job.createdAt).toLocaleDateString()}</td>
+                <tr key={job._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm text-white">{job.title}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{job.location}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{job.postedBy?.name || "Unknown"}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{new Date(job.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4">
-                    <button onClick={() => handleDeleteJob(job._id)} className="text-[#ef4444] hover:text-[#dc2626] transition"><FaTrash /></button>
+                    <button onClick={() => handleDeleteJob(job._id)} className="text-rose-400 hover:text-rose-300 transition"><FaTrash /></button>
                   </td>
                 </tr>
               ))
@@ -235,31 +240,31 @@ function AdminDashboard() {
   );
 
   const renderApplications = () => (
-    <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm overflow-hidden">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-[#f8fafc]">
+        <table className="min-w-full divide-y divide-white/10">
+          <thead className="bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Student</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Job</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Applied</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Student</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Job</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Applied</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {applications.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-[#94a3b8]">No applications</td></tr> :
+          <tbody className="divide-y divide-white/5">
+            {applications.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-white/30">No applications</td></tr> :
               applications.map(app => (
-                <tr key={app._id}>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{app.student?.name || "Unknown"}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{app.job?.title || "Unknown"}</td>
+                <tr key={app._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm text-white">{app.student?.name || "Unknown"}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{app.job?.title || "Unknown"}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === "shortlisted" ? "bg-[#d1fae5] text-[#065f46]" : app.status === "rejected" ? "bg-[#fee2e2] text-[#991b1b]" : "bg-[#fef3c7] text-[#92400e]"}`}>{app.status}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${app.status === "shortlisted" ? "bg-[#d4af37]/20 text-[#d4af37]" : app.status === "rejected" ? "bg-rose-500/20 text-rose-300" : "bg-white/10 text-white/50"}`}>{app.status}</span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{new Date(app.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{new Date(app.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4 text-sm">
-                    <button onClick={() => handleStatusUpdate(app._id, "shortlisted")} className="bg-[#0f172a] text-white px-3 py-1 rounded mr-2 hover:bg-[#1e293b] text-xs transition">Shortlist</button>
-                    <button onClick={() => handleStatusUpdate(app._id, "rejected")} className="bg-[#ef4444] text-white px-3 py-1 rounded hover:bg-[#dc2626] text-xs transition">Reject</button>
+                    <button onClick={() => handleStatusUpdate(app._id, "shortlisted")} className="bg-[#d4af37] text-[#0d131f] px-3 py-1 rounded mr-2 hover:bg-[#b8860b] transition text-xs font-semibold">Shortlist</button>
+                    <button onClick={() => handleStatusUpdate(app._id, "rejected")} className="bg-rose-500/80 text-white px-3 py-1 rounded hover:bg-rose-600 transition text-xs">Reject</button>
                   </td>
                 </tr>
               ))
@@ -271,33 +276,33 @@ function AdminDashboard() {
   );
 
   const renderResumes = () => (
-    <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm overflow-hidden">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-[#f8fafc]">
+        <table className="min-w-full divide-y divide-white/10">
+          <thead className="bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Student</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">File</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Uploaded</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Details</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Student</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">File</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Uploaded</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Details</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {resumes.length === 0 ? <tr><td colSpan="4" className="px-6 py-4 text-center text-[#94a3b8]">No resumes uploaded</td></tr> :
+          <tbody className="divide-y divide-white/5">
+            {resumes.length === 0 ? <tr><td colSpan="4" className="px-6 py-4 text-center text-white/30">No resumes uploaded</td></tr> :
               resumes.map(r => (
-                <tr key={r._id}>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{r.student?.name || "Unknown"}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{r.fileName}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{new Date(r.createdAt).toLocaleDateString()}</td>
+                <tr key={r._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm text-white">{r.student?.name || "Unknown"}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{r.fileName}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{new Date(r.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4 text-sm">
                     <details>
-                      <summary className="cursor-pointer text-[#0f172a] font-medium hover:underline">View</summary>
-                      <div className="mt-2 bg-[#f8fafc] p-3 rounded-lg text-xs border border-[#e9edf4]">
-                        <p><strong>Email:</strong> {r.extractedData?.email || "N/A"}</p>
-                        <p><strong>Contact:</strong> {r.extractedData?.contact_no || "N/A"}</p>
-                        <p><strong>Skills:</strong> {r.extractedData?.technical_skills || "N/A"}</p>
-                        <p><strong>Projects:</strong> {r.extractedData?.project_details || "N/A"}</p>
-                        <p><strong>Certifications:</strong> {r.extractedData?.certifications || "N/A"}</p>
+                      <summary className="cursor-pointer text-[#d4af37] font-medium hover:underline">View</summary>
+                      <div className="mt-2 bg-white/5 p-3 rounded-lg text-xs border border-white/10">
+                        <p className="text-white/70"><strong>Email:</strong> {r.extractedData?.email || "N/A"}</p>
+                        <p className="text-white/70"><strong>Contact:</strong> {r.extractedData?.contact_no || "N/A"}</p>
+                        <p className="text-white/70"><strong>Skills:</strong> {r.extractedData?.technical_skills || "N/A"}</p>
+                        <p className="text-white/70"><strong>Projects:</strong> {r.extractedData?.project_details || "N/A"}</p>
+                        <p className="text-white/70"><strong>Certifications:</strong> {r.extractedData?.certifications || "N/A"}</p>
                       </div>
                     </details>
                   </td>
@@ -313,31 +318,31 @@ function AdminDashboard() {
   const renderUsers = () => (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={() => setShowUserModal(true)} className="bg-[#0f172a] hover:bg-[#1e293b] text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition">
+        <button onClick={() => setShowUserModal(true)} className="bg-[#d4af37] hover:bg-[#b8860b] text-[#0d131f] px-4 py-2 rounded-xl flex items-center gap-2 text-sm font-semibold transition">
           <FaUserPlus /> Add User
         </button>
       </div>
-      <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm overflow-hidden">
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-[#f8fafc]">
+          <table className="min-w-full divide-y divide-white/10">
+            <thead className="bg-white/5">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-white/5">
               {users.map(user => (
-                <tr key={user._id}>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{user.name}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{user.email}</td>
+                <tr key={user._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm text-white">{user.name}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{user.email}</td>
                   <td className="px-6 py-4">
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                      className="border border-[#e2e8f0] rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
+                      className="bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                     >
                       <option value="Student">Student</option>
                       <option value="HR">HR</option>
@@ -345,7 +350,7 @@ function AdminDashboard() {
                     </select>
                   </td>
                   <td className="px-6 py-4">
-                    <button onClick={() => handleDeleteUser(user._id)} className="text-[#ef4444] hover:text-[#dc2626] transition"><FaTrash /></button>
+                    <button onClick={() => handleDeleteUser(user._id)} className="text-rose-400 hover:text-rose-300 transition"><FaTrash /></button>
                   </td>
                 </tr>
               ))}
@@ -357,42 +362,42 @@ function AdminDashboard() {
   );
 
   const renderInterviews = () => (
-    <div className="bg-white rounded-xl border border-[#e9edf4] shadow-sm overflow-hidden">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-[#f8fafc]">
+        <table className="min-w-full divide-y divide-white/10">
+          <thead className="bg-white/5">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Job</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Student</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Scheduled</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-[#64748b] uppercase tracking-wider">Feedback</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Job</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Student</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Scheduled</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Feedback</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {interviews.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-[#94a3b8]">No interviews found</td></tr> :
+          <tbody className="divide-y divide-white/5">
+            {interviews.length === 0 ? <tr><td colSpan="5" className="px-6 py-4 text-center text-white/30">No interviews found</td></tr> :
               interviews.map(iv => (
-                <tr key={iv._id}>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{iv.job?.title || "Unknown"}</td>
-                  <td className="px-6 py-4 text-sm text-[#0f172a]">{iv.application?.student?.name || "Unknown"}</td>
-                  <td className="px-6 py-4 text-sm text-[#64748b]">{new Date(iv.scheduledAt).toLocaleString()}</td>
+                <tr key={iv._id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 text-sm text-white">{iv.job?.title || "Unknown"}</td>
+                  <td className="px-6 py-4 text-sm text-white">{iv.application?.student?.name || "Unknown"}</td>
+                  <td className="px-6 py-4 text-sm text-white/60">{new Date(iv.scheduledAt).toLocaleString()}</td>
                   <td className="px-6 py-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${iv.status === "scheduled" ? "bg-[#d1fae5] text-[#065f46]" : iv.status === "completed" ? "bg-[#fef3c7] text-[#92400e]" : iv.status === "cancelled" ? "bg-[#fee2e2] text-[#991b1b]" : "bg-[#e2e8f0] text-[#64748b]"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${iv.status === "scheduled" ? "bg-[#d4af37]/20 text-[#d4af37]" : iv.status === "completed" ? "bg-green-500/20 text-green-300" : iv.status === "cancelled" ? "bg-rose-500/20 text-rose-300" : "bg-white/10 text-white/50"}`}>
                       {iv.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm">
                     {iv.feedback && iv.feedback.decision ? (
                       <details>
-                        <summary className="cursor-pointer text-[#0f172a] font-medium hover:underline">View</summary>
-                        <div className="mt-1 bg-[#f8fafc] p-2 rounded text-xs border border-[#e9edf4]">
-                          <p><strong>Rating:</strong> {iv.feedback.rating}/5</p>
-                          <p><strong>Comments:</strong> {iv.feedback.comments || "—"}</p>
-                          <p><strong>Decision:</strong> <span className={`${iv.feedback.decision === "selected" ? "text-green-600" : iv.feedback.decision === "rejected" ? "text-red-600" : "text-yellow-600"}`}>{iv.feedback.decision}</span></p>
+                        <summary className="cursor-pointer text-[#d4af37] font-medium hover:underline">View</summary>
+                        <div className="mt-1 bg-white/5 p-2 rounded text-xs border border-white/10">
+                          <p className="text-white/70"><strong>Rating:</strong> {iv.feedback.rating}/5</p>
+                          <p className="text-white/70"><strong>Comments:</strong> {iv.feedback.comments || "—"}</p>
+                          <p className="text-white/70"><strong>Decision:</strong> <span className={`${iv.feedback.decision === "selected" ? "text-green-400" : iv.feedback.decision === "rejected" ? "text-rose-400" : "text-yellow-400"}`}>{iv.feedback.decision}</span></p>
                         </div>
                       </details>
                     ) : (
-                      <span className="text-[#94a3b8]">No feedback</span>
+                      <span className="text-white/30">No feedback</span>
                     )}
                   </td>
                 </tr>
@@ -405,33 +410,39 @@ function AdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
-      <header className="bg-white border-b border-[#e9edf4] px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f] relative overflow-hidden">
+      {/* Subtle background overlay */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGwxMiAxMi0xMiAxMi0xMi0xMiAxMi0xMnpNMTggMzZsMTIgMTItMTIgMTItMTItMTIgMTItMTJ6IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-20"></div>
+
+      {/* Navbar */}
+      <header className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#0f172a] rounded-lg flex items-center justify-center shadow-sm">
-            <FaBuilding className="text-white text-lg" />
+          <div className="w-9 h-9 bg-gradient-to-br from-[#d4af37] to-[#b8860b] rounded-xl flex items-center justify-center shadow-lg shadow-[#d4af37]/20">
+            <FaBuilding className="text-[#0d131f] text-lg" />
           </div>
-          <span className="text-xl font-semibold text-[#0f172a] tracking-tight">
-            Nexus<span className="text-[#1e293b]">Corp</span>
+          <span className="text-xl font-semibold text-white tracking-tight">
+            Nexus<span className="text-[#d4af37]">Corp</span>
           </span>
-          <span className="ml-3 text-xs font-medium text-[#94a3b8] bg-[#f1f5f9] px-2 py-0.5 rounded-full">Admin</span>
+          <span className="ml-3 text-xs font-medium text-white/40 bg-white/10 px-2 py-0.5 rounded-full">Admin</span>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-[#64748b] hover:text-[#0f172a] transition">
+        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
           <FaSignOutAlt size={16} /> Sign out
         </button>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold text-[#0f172a] mb-6">Dashboard</h1>
+      {/* Main content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+        <h1 className="text-2xl font-semibold text-white mb-6">Dashboard</h1>
 
-        <div className="flex flex-wrap gap-2 mb-6 border-b border-[#e9edf4]">
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-white/10">
           {["overview", "jobs", "applications", "resumes", "users", "interviews"].map((tab) => (
             <button
               key={tab}
               className={`px-4 py-2 text-sm font-medium capitalize transition ${
                 activeTab === tab
-                  ? "border-b-2 border-[#0f172a] text-[#0f172a]"
-                  : "text-[#64748b] hover:text-[#0f172a]"
+                  ? "border-b-2 border-[#d4af37] text-[#d4af37]"
+                  : "text-white/50 hover:text-white/80"
               }`}
               onClick={() => setActiveTab(tab)}
             >
@@ -441,6 +452,7 @@ function AdminDashboard() {
           ))}
         </div>
 
+        {/* Content */}
         {activeTab === "overview" && renderOverview()}
         {activeTab === "jobs" && renderJobs()}
         {activeTab === "applications" && renderApplications()}
@@ -448,10 +460,11 @@ function AdminDashboard() {
         {activeTab === "users" && renderUsers()}
         {activeTab === "interviews" && renderInterviews()}
 
+        {/* Create User Modal – dark themed */}
         {showUserModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-              <h2 className="text-xl font-semibold text-[#0f172a] mb-4">Create New User</h2>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1a2a40] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <h2 className="text-xl font-semibold text-white mb-4">Create New User</h2>
               <form onSubmit={handleCreateUser}>
                 <div className="space-y-4">
                   <input
@@ -460,7 +473,7 @@ function AdminDashboard() {
                     value={newUser.name}
                     onChange={(e) => setNewUser({...newUser, name: e.target.value})}
                     required
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                   />
                   <input
                     type="email"
@@ -468,12 +481,12 @@ function AdminDashboard() {
                     value={newUser.email}
                     onChange={(e) => setNewUser({...newUser, email: e.target.value})}
                     required
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                   />
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                   >
                     <option value="Student">Student</option>
                     <option value="HR">HR</option>
@@ -485,12 +498,12 @@ function AdminDashboard() {
                     value={newUser.password}
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                     required
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0f172a]"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                   />
                 </div>
                 <div className="flex justify-end gap-3 mt-6">
-                  <button type="button" onClick={() => setShowUserModal(false)} className="px-4 py-2 text-sm border border-[#e2e8f0] rounded-lg hover:bg-[#f8fafc] transition">Cancel</button>
-                  <button type="submit" className="px-4 py-2 text-sm bg-[#0f172a] text-white rounded-lg hover:bg-[#1e293b] transition">Create</button>
+                  <button type="button" onClick={() => setShowUserModal(false)} className="px-4 py-2 text-sm border border-white/10 rounded-lg hover:bg-white/5 transition text-white/60">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-[#d4af37] text-[#0d131f] rounded-lg hover:bg-[#b8860b] transition font-semibold">Create</button>
                 </div>
               </form>
             </div>
