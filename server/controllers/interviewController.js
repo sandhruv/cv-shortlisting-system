@@ -1,4 +1,4 @@
-﻿const Interview = require("../models/Interview");
+const Interview = require("../models/Interview");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 
@@ -174,6 +174,85 @@ exports.addFeedback = async (req, res) => {
     res.json({ message: "Feedback added successfully", interview });
   } catch (err) {
     console.error("addFeedback error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const fs = require("fs");
+const Groq = require("groq-sdk");
+
+exports.analyzeAudio = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const interview = await Interview.findById(id).populate("job");
+    if (!interview) return res.status(404).json({ message: "Interview not found." });
+    
+    const job = await Job.findById(interview.job._id);
+    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+      return res.status(403).json({ message: "Not authorized to add analysis." });
+    }
+
+    if (!req.file) return res.status(400).json({ message: "No audio file uploaded" });
+
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ message: "GROQ_API_KEY is not configured on the server." });
+    }
+
+    interview.aiAnalysis.status = "processing";
+    await interview.save();
+
+    res.json({ message: "Audio analysis started", status: "processing" });
+
+    (async () => {
+      try {
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        
+        // 1. Transcribe audio
+        const transcription = await groq.audio.transcriptions.create({
+          file: fs.createReadStream(req.file.path),
+          model: "whisper-large-v3",
+          response_format: "json",
+          language: "en",
+        });
+
+        const transcript = transcription.text;
+        
+        // 2. Analyze with LLM
+        const prompt = `Analyze this interview transcript for a candidate applying for the role of ${job.title}. 
+Job requirements: ${job.requirements}
+Job description: ${job.description}
+
+Transcript:
+${transcript}
+
+Based on the transcript, please provide a concise evaluation of the candidate's personality and their suitability for this job role. Return your answer as a JSON object with two keys: "personalityAnalysis" and "suitability".`;
+
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: "user", content: prompt }],
+          model: "llama-3.1-8b-instant",
+          response_format: { type: "json_object" },
+        });
+
+        const analysis = JSON.parse(completion.choices[0].message.content);
+
+        interview.aiAnalysis = {
+          transcript,
+          personalityAnalysis: analysis.personalityAnalysis || "",
+          suitability: analysis.suitability || "",
+          status: "completed",
+        };
+        await interview.save();
+      } catch (err) {
+        console.error("Groq Analysis Error:", err);
+        interview.aiAnalysis.status = "failed";
+        await interview.save();
+      } finally {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      }
+    })();
+  } catch (err) {
+    console.error("analyzeAudio error:", err);
+    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ message: err.message });
   }
 };

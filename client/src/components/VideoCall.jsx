@@ -34,6 +34,11 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
+  // Audio recording for AI
+  const aiAudioRecorderRef = useRef(null);
+  const aiAudioChunksRef = useRef([]);
+  const aiAudioContextRef = useRef(null);
+
   // Existing states
   const [status, setStatus] = useState("Connecting to call...");
   const [error, setError] = useState("");
@@ -598,6 +603,36 @@ const VideoCall = ({ roomId, user, onClose }) => {
           setStatus("Connected");
           setConnectionReady(true);
           setIsConnecting(false);
+
+          // Start automatic AI audio recording if user is HR or Admin
+          if (user?.role === "HR" || user?.role === "Admin") {
+            try {
+              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              aiAudioContextRef.current = audioCtx;
+              const dest = audioCtx.createMediaStreamDestination();
+
+              if (localStreamRef.current) {
+                const localSource = audioCtx.createMediaStreamSource(localStreamRef.current);
+                localSource.connect(dest);
+              }
+
+              if (incomingStream) {
+                const remoteSource = audioCtx.createMediaStreamSource(incomingStream);
+                remoteSource.connect(dest);
+              }
+
+              aiAudioRecorderRef.current = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
+              aiAudioChunksRef.current = [];
+
+              aiAudioRecorderRef.current.ondataavailable = (e) => {
+                if (e.data.size > 0) aiAudioChunksRef.current.push(e.data);
+              };
+
+              aiAudioRecorderRef.current.start(1000);
+            } catch (err) {
+              console.error("AI Audio recording failed to start:", err);
+            }
+          }
         }
       };
 
@@ -759,6 +794,36 @@ const VideoCall = ({ roomId, user, onClose }) => {
       timerRef.current = null;
       socket.emit("leave-room", { roomId });
       socket.disconnect();
+
+      // Handle AI audio upload
+      if (aiAudioRecorderRef.current && aiAudioRecorderRef.current.state !== "inactive") {
+        aiAudioRecorderRef.current.onstop = async () => {
+          if (aiAudioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(aiAudioChunksRef.current, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "interview-audio.webm");
+            
+            try {
+              const token = localStorage.getItem("token");
+              await fetch(`${SOCKET_SERVER_URL.replace('5000', '5000')}/api/interviews/${roomId}/analyze-audio`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`
+                },
+                body: formData
+              });
+            } catch (err) {
+              console.error("Failed to upload audio for AI analysis:", err);
+            }
+          }
+        };
+        aiAudioRecorderRef.current.stop();
+      }
+
+      if (aiAudioContextRef.current) {
+        aiAudioContextRef.current.close().catch(console.error);
+      }
+
       Object.values(peersRef.current).forEach((pc) => pc.close());
       peersRef.current = {};
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -771,7 +836,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
         cancelAnimationFrame(pipLoopRef.current);
       }
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        audioContextRef.current.close().catch(console.error);
       }
       if (mediaRecorderRef.current) {
         mediaRecorderRef.current.stop();

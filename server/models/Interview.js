@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const interviewSchema = new mongoose.Schema(
   {
@@ -18,6 +18,12 @@ const interviewSchema = new mongoose.Schema(
       decision: { type: String, enum: ["", "selected", "rejected", "hold"], default: "" },
     },
     callActive: { type: Boolean, default: false },
+    aiAnalysis: {
+      transcript: { type: String, default: "" },
+      personalityAnalysis: { type: String, default: "" },
+      suitability: { type: String, default: "" },
+      status: { type: String, enum: ["pending", "processing", "completed", "failed"], default: "pending" }
+    }
   },
   { timestamps: true }
 );

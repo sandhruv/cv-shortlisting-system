@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaPlus,
@@ -790,6 +790,38 @@ function HRDashboard() {
             <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>
               Candidate: <strong style={{ color: theme.text }}>{selectedInterviewForFeedback?.application?.student?.name}</strong>
             </p>
+
+            {selectedInterviewForFeedback?.aiAnalysis?.status === "completed" && (
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2" style={{ color: theme.gold }}>
+                  ✨ AI Interview Analysis
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="text-xs font-medium" style={{ color: theme.textSecondary }}>Personality</h4>
+                    <p className="text-sm mt-1" style={{ color: theme.text }}>{selectedInterviewForFeedback.aiAnalysis.personalityAnalysis}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-medium" style={{ color: theme.textSecondary }}>Job Suitability</h4>
+                    <p className="text-sm mt-1" style={{ color: theme.text }}>{selectedInterviewForFeedback.aiAnalysis.suitability}</p>
+                  </div>
+                  {selectedInterviewForFeedback.aiAnalysis.transcript && (
+                    <div>
+                      <h4 className="text-xs font-medium" style={{ color: theme.textSecondary }}>Transcript Snapshot</h4>
+                      <p className="text-xs mt-1 italic line-clamp-3" style={{ color: theme.textSecondary }}>"{selectedInterviewForFeedback.aiAnalysis.transcript}"</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {selectedInterviewForFeedback?.aiAnalysis?.status === "processing" && (
+              <div className="mb-4 p-4 rounded-lg flex items-center gap-3" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                <div className="w-4 h-4 rounded-full border-2 animate-spin" style={{ borderColor: theme.gold, borderTopColor: 'transparent' }} />
+                <p className="text-sm" style={{ color: theme.gold }}>AI is analyzing the interview audio... Please check back shortly.</p>
+              </div>
+            )}
+
             <form onSubmit={handleAddFeedback} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Rating (1-5)</label>
