@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { FaTimes, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash } from "react-icons/fa";
+import { FaTimes, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaExpand } from "react-icons/fa";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_WEBSOCKET_URL || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : window.location.origin);
 const ICE_SERVERS = [
@@ -19,21 +19,53 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const socketRef = useRef(null);
   const peersRef = useRef({});
   const localStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+  const pipLoopRef = useRef(null);
+  const screenVideoRef = useRef(null);
+  const cameraVideoRef = useRef(null);
+  const canvasStreamRef = useRef(null);
   const timerRef = useRef(null);
+  const containerRef = useRef(null);
   const [status, setStatus] = useState("Connecting to call...");
   const [error, setError] = useState("");
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(true);
+  const [screenSharing, setScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [iceConnectionState, setIceConnectionState] = useState("new");
   const [participants, setParticipants] = useState(1);
   const [connectionReady, setConnectionReady] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
     const secs = (seconds % 60).toString().padStart(2, "0");
     return `${mins}:${secs}`;
   };
+
+  // Full screen handlers
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+        setIsFullScreen(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullScreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullScreenChange);
+    };
+  }, []);
 
   const updateLocalTrackStates = () => {
     if (!localStreamRef.current) return;
@@ -52,6 +84,158 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const toggleAudio = () => setAudioEnabled((enabled) => !enabled);
   const toggleVideo = () => setVideoEnabled((enabled) => !enabled);
 
+  const replaceVideoTrack = (newTrack) => {
+    Object.values(peersRef.current).forEach((pc) => {
+      const senders = pc.getSenders();
+      const sender = senders.find((s) => s.track && s.track.kind === "video");
+      if (sender) {
+        sender.replaceTrack(newTrack).catch((err) => {
+          console.error("Failed to replace track", err);
+        });
+      }
+    });
+  };
+
+  const startScreenShare = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" },
+        audio: false
+      });
+      screenStreamRef.current = screenStream;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const screenVideo = document.createElement("video");
+      screenVideo.srcObject = screenStream;
+      screenVideo.autoplay = true;
+      screenVideo.playsInline = true;
+      screenVideo.muted = true;
+      screenVideoRef.current = screenVideo;
+
+      await new Promise((resolve) => {
+        screenVideo.onloadedmetadata = () => {
+          screenVideo.play().then(resolve);
+        };
+      });
+
+      canvas.width = screenVideo.videoWidth || 1280;
+      canvas.height = screenVideo.videoHeight || 720;
+
+      let cameraVideo = null;
+      if (localStreamRef.current && localStreamRef.current.getVideoTracks().length > 0) {
+        cameraVideo = document.createElement("video");
+        cameraVideo.srcObject = localStreamRef.current;
+        cameraVideo.autoplay = true;
+        cameraVideo.playsInline = true;
+        cameraVideo.muted = true;
+        cameraVideoRef.current = cameraVideo;
+        await new Promise((resolve) => {
+          cameraVideo.onloadedmetadata = () => {
+            cameraVideo.play().then(resolve);
+          };
+        });
+      }
+
+      const drawFrame = () => {
+        if (!screenStream.active) {
+          stopScreenShare();
+          return;
+        }
+
+        ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+
+        if (videoEnabled && cameraVideo && cameraVideo.readyState >= 2) {
+          const pipWidth = canvas.width * 0.22;
+          const pipHeight = (cameraVideo.videoHeight / cameraVideo.videoWidth) * pipWidth;
+          const x = canvas.width - pipWidth - 20;
+          const y = canvas.height - pipHeight - 20;
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+          ctx.fillRect(x - 4, y - 4, pipWidth + 8, pipHeight + 8);
+          ctx.strokeStyle = "#d4a843";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x, y, pipWidth, pipHeight);
+
+          ctx.drawImage(cameraVideo, x, y, pipWidth, pipHeight);
+        }
+
+        pipLoopRef.current = requestAnimationFrame(drawFrame);
+      };
+
+      drawFrame();
+
+      const canvasStream = canvas.captureStream(30);
+      canvasStreamRef.current = canvasStream;
+      const canvasTrack = canvasStream.getVideoTracks()[0];
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = canvasStream;
+      }
+
+      replaceVideoTrack(canvasTrack);
+
+      screenStream.getVideoTracks()[0].onended = () => {
+        stopScreenShare();
+      };
+
+      setScreenSharing(true);
+    } catch (err) {
+      console.error("Error sharing screen:", err);
+      if (err.name !== "NotAllowedError") {
+        setError("Failed to share screen. Make sure permissions are granted.");
+      }
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (pipLoopRef.current) {
+      cancelAnimationFrame(pipLoopRef.current);
+      pipLoopRef.current = null;
+    }
+
+    if (screenVideoRef.current) {
+      screenVideoRef.current.pause();
+      screenVideoRef.current.srcObject = null;
+      screenVideoRef.current = null;
+    }
+
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.pause();
+      cameraVideoRef.current.srcObject = null;
+      cameraVideoRef.current = null;
+    }
+
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    if (canvasStreamRef.current) {
+      canvasStreamRef.current.getTracks().forEach((track) => track.stop());
+      canvasStreamRef.current = null;
+    }
+
+    if (localStreamRef.current) {
+      const cameraTrack = localStreamRef.current.getVideoTracks()[0];
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+      replaceVideoTrack(cameraTrack);
+    }
+
+    setScreenSharing(false);
+  };
+
+  const toggleScreenShare = async () => {
+    if (screenSharing) {
+      stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  };
+
   const attachRemoteStream = (stream) => {
     if (!remoteVideoRef.current || !stream) return;
     remoteVideoRef.current.srcObject = stream;
@@ -67,6 +251,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
     setStatus("Connecting to call...");
     setIceConnectionState("new");
     setConnectionReady(false);
+    setIsConnecting(true);
 
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const socket = io(SOCKET_SERVER_URL, {
@@ -85,7 +270,6 @@ const VideoCall = ({ roomId, user, onClose }) => {
     });
     socketRef.current = socket;
 
-    const isStable = (pc) => pc && pc.signalingState === "stable";
     const createPeerConnection = async (remoteSocketId, createOffer = false) => {
       if (!localStreamRef.current) return null;
       const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -93,7 +277,16 @@ const VideoCall = ({ roomId, user, onClose }) => {
       pc.isSettingRemoteAnswerPending = false;
       pc.polite = socket.id > remoteSocketId;
 
-      localStreamRef.current.getTracks().forEach((track) => pc.addTrack(track, localStreamRef.current));
+      localStreamRef.current.getTracks().forEach((track) => {
+        if (track.kind === "video" && canvasStreamRef.current) {
+          const canvasTrack = canvasStreamRef.current.getVideoTracks()[0];
+          if (canvasTrack && canvasTrack.readyState === "live") {
+            pc.addTrack(canvasTrack, canvasStreamRef.current);
+            return;
+          }
+        }
+        pc.addTrack(track, localStreamRef.current);
+      });
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
@@ -111,12 +304,14 @@ const VideoCall = ({ roomId, user, onClose }) => {
           attachRemoteStream(incomingStream);
           setStatus("Connected");
           setConnectionReady(true);
+          setIsConnecting(false);
         }
       };
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           setStatus("Connected");
+          setIsConnecting(false);
         } else if (pc.connectionState === "disconnected") {
           setStatus("Disconnected");
         } else if (pc.connectionState === "failed") {
@@ -127,6 +322,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
       pc.oniceconnectionstatechange = () => {
         setIceConnectionState(pc.iceConnectionState);
+        if (pc.iceConnectionState === "connected") {
+          setIsConnecting(false);
+        }
         if (pc.iceConnectionState === "failed") {
           setError("ICE negotiation failed. Check network or browser permissions.");
         }
@@ -195,6 +393,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
       setParticipants(others.length + 1);
       if (!others.length) {
         setStatus("Waiting for participant...");
+        setIsConnecting(true);
       }
       for (const member of others) {
         if (!peersRef.current[member.socketId]) {
@@ -222,7 +421,6 @@ const VideoCall = ({ roomId, user, onClose }) => {
       }
     };
 
-
     socket.on("connect", () => {
       setStatus("Connected to signaling server");
       initMedia();
@@ -249,59 +447,133 @@ const VideoCall = ({ roomId, user, onClose }) => {
       peersRef.current = {};
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
+      screenStreamRef.current?.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+      canvasStreamRef.current?.getTracks().forEach((track) => track.stop());
+      canvasStreamRef.current = null;
+      if (pipLoopRef.current) {
+        cancelAnimationFrame(pipLoopRef.current);
+      }
     };
   }, [roomId, user]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center px-4 py-6">
-      <div className="relative w-full max-w-6xl h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl">
-        <div className="absolute inset-x-0 top-0 z-10 flex flex-col gap-3 bg-white/95 border-b border-slate-200 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-slate-900">Interview Room</p>
-            <p className="text-xs text-slate-600 break-words">{roomId}</p>
-            <p className="text-xs text-slate-600">{status}</p>
-            <p className="text-xs text-slate-600">Participants: {participants}</p>
-            <p className="text-xs text-slate-600">ICE state: {iceConnectionState}</p>
-            <p className="text-xs text-slate-600">Duration: {formatDuration(callDuration)}</p>
+    <div 
+      ref={containerRef}
+      className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 px-4 py-6"
+    >
+      <div className={`relative w-full max-w-6xl h-[90vh] bg-[#0d131f] rounded-2xl overflow-hidden shadow-2xl border border-[#d4af37]/20 ${isFullScreen ? 'max-w-full h-full rounded-none border-none' : ''}`}>
+
+        {/* Header */}
+        <div className="absolute top-0 left-0 right-0 z-20 px-6 py-4 bg-gradient-to-b from-black/80 to-transparent flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[#d4af37] shadow-lg shadow-[#d4af37]/20">
+              <FaVideo className="text-[#0d131f] text-sm" />
+            </div>
+            <span className="text-white font-semibold text-sm tracking-wider">Interview Room</span>
+            <span className="text-[#d4af37] text-xs bg-[#d4af37]/10 px-3 py-1 rounded-full border border-[#d4af37]/20 truncate max-w-[150px]">
+              {roomId?.substring(0, 12) || "N/A"}
+            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleAudio}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${audioEnabled ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-slate-200 text-slate-700 hover:bg-slate-300"}`}
-            >
-              {audioEnabled ? <FaMicrophone /> : <FaMicrophoneSlash />} {audioEnabled ? "Mute" : "Unmute"}
-            </button>
-            <button
-              type="button"
-              onClick={toggleVideo}
-              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${videoEnabled ? "bg-slate-900 text-white hover:bg-slate-800" : "bg-slate-200 text-slate-700 hover:bg-slate-300"}`}
-            >
-              {videoEnabled ? <FaVideo /> : <FaVideoSlash />} {videoEnabled ? "Stop Video" : "Start Video"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition"
-            >
-              <FaTimes /> End Call
-            </button>
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-white/60 text-xs">{status}</span>
+            <span className="text-[#d4af37] text-xs bg-[#d4af37]/10 px-3 py-1 rounded-full border border-[#d4af37]/20">
+              👤 {participants}
+            </span>
+            <span className="text-white/40 text-xs">⏱ {formatDuration(callDuration)}</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              iceConnectionState === "connected" ? "text-green-400 bg-green-900/30" :
+              iceConnectionState === "new" ? "text-yellow-400 bg-yellow-900/30" :
+              "text-red-400 bg-red-900/30"
+            }`}>
+              {iceConnectionState}
+            </span>
           </div>
         </div>
 
+        {/* Video Grid */}
         <div className="grid h-full gap-4 grid-cols-1 lg:grid-cols-2 p-4 pt-20">
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
-            <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">My Camera</div>
-            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-[calc(100%-48px)] object-cover bg-black" />
+          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a]">
+            <div className="bg-[#1a1a1a] px-4 py-2 text-xs font-medium text-[#b8a88a] border-b border-[#2a2a2a] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              My Camera
+            </div>
+            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-[calc(100%-40px)] object-cover bg-black" />
           </div>
-          <div className="rounded-xl border border-slate-200 overflow-hidden bg-slate-950 text-white">
-            <div className="bg-slate-900 px-4 py-3 text-sm font-semibold">Remote Participant</div>
-            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-[calc(100%-48px)] object-cover bg-black" />
+          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a]">
+            <div className="bg-[#1a1a1a] px-4 py-2 text-xs font-medium text-[#b8a88a] border-b border-[#2a2a2a] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#d4af43] animate-pulse" />
+              Remote Participant
+            </div>
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-[calc(100%-40px)] object-cover bg-black" />
           </div>
         </div>
 
+        {/* Connecting overlay */}
+        {isConnecting && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0d131f]/90 backdrop-blur-sm">
+            <div className="w-20 h-20 rounded-full border-4 border-[#d4af37]/30 border-t-[#d4af37] animate-spin mb-6" />
+            <h3 className="text-xl font-semibold text-white mb-2">Joining Interview</h3>
+            <p className="text-white/40 text-sm">{status}</p>
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 px-6 py-4 bg-gradient-to-t from-black/90 to-transparent">
+          <div className="flex justify-center items-center gap-3 flex-wrap">
+            <button
+              onClick={toggleAudio}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+                audioEnabled
+                  ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
+                  : "bg-red-500/80 hover:bg-red-600 text-white"
+              }`}
+            >
+              {audioEnabled ? <FaMicrophone size={18} /> : <FaMicrophoneSlash size={18} />}
+            </button>
+
+            <button
+              onClick={toggleVideo}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+                videoEnabled
+                  ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
+                  : "bg-red-500/80 hover:bg-red-600 text-white"
+              }`}
+            >
+              {videoEnabled ? <FaVideo size={18} /> : <FaVideoSlash size={18} />}
+            </button>
+
+            <button
+              onClick={toggleScreenShare}
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
+                screenSharing
+                  ? "bg-red-500/80 hover:bg-red-600 text-white"
+                  : "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
+              }`}
+            >
+              <FaDesktop size={18} />
+            </button>
+
+            <button
+              onClick={toggleFullScreen}
+              className="w-12 h-12 rounded-full flex items-center justify-center bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30 transition-all duration-200"
+              title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
+            >
+              <FaExpand size={18} />
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-14 h-14 rounded-full flex items-center justify-center bg-red-500 hover:bg-red-600 text-white transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 active:scale-95"
+            >
+              <FaTimes size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Error */}
         {error && (
-          <div className="absolute inset-x-0 bottom-0 p-4 bg-red-50 text-red-700 text-sm border-t border-red-200">
+          <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 bg-red-500/90 backdrop-blur-sm text-white px-6 py-2 rounded-full text-sm border border-red-400/30">
             {error}
           </div>
         )}
