@@ -14,6 +14,7 @@ const ICE_SERVERS = [
 ];
 
 const VideoCall = ({ roomId, user, onClose }) => {
+  // Existing refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const socketRef = useRef(null);
@@ -26,6 +27,14 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const canvasStreamRef = useRef(null);
   const timerRef = useRef(null);
   const containerRef = useRef(null);
+  
+  // New refs for added features
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  // Existing states
   const [status, setStatus] = useState("Connecting to call...");
   const [error, setError] = useState("");
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -37,6 +46,21 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const [connectionReady, setConnectionReady] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // New states for added features
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPIP, setIsPIP] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState('good');
+  const [bitrate, setBitrate] = useState(0);
+  const [availableDevices, setAvailableDevices] = useState([]);
+  const [currentDevice, setCurrentDevice] = useState('');
+  const [reactions, setReactions] = useState([]);
+  const [showAudioSettings, setShowAudioSettings] = useState(false);
+  const [useNoiseSuppression, setUseNoiseSuppression] = useState(true);
+  const [useEchoCancellation, setUseEchoCancellation] = useState(true);
+  const [useVirtualBackground, setUseVirtualBackground] = useState(false);
+  const [bgColor, setBgColor] = useState('#1a1a2e');
 
   const formatDuration = (seconds) => {
     const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -66,6 +90,268 @@ const VideoCall = ({ roomId, user, onClose }) => {
       document.removeEventListener("fullscreenchange", handleFullScreenChange);
     };
   }, []);
+
+  // Audio analyzer setup
+  const setupAudioAnalyzer = (stream) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+      
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+      
+      // Start monitoring audio level
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      const updateLevel = () => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          setAudioLevel(average / 255);
+          requestAnimationFrame(updateLevel);
+        }
+      };
+      updateLevel();
+    }
+  };
+
+  // Network quality monitoring
+  const monitorNetworkQuality = () => {
+    const pc = Object.values(peersRef.current)[0];
+    if (!pc) return;
+    
+    pc.getStats().then(stats => {
+      let currentBitrate = 0;
+      
+      stats.forEach(report => {
+        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+          currentBitrate = report.bytesSent / 1000;
+        }
+        
+        if (report.type === 'candidate-pair' && report.nominated) {
+          const rtt = report.currentRoundTripTime * 1000;
+          if (rtt > 300) {
+            setNetworkQuality('poor');
+          } else if (rtt > 150) {
+            setNetworkQuality('fair');
+          } else {
+            setNetworkQuality('good');
+          }
+        }
+      });
+      
+      setBitrate(currentBitrate);
+    });
+  };
+
+  // Get available cameras
+  const getAvailableDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableDevices(videoDevices);
+      if (videoDevices.length > 0 && !currentDevice) {
+        setCurrentDevice(videoDevices[0].deviceId);
+      }
+    } catch (err) {
+      console.error('Error getting devices:', err);
+    }
+  };
+
+  // Switch camera
+  const switchCamera = async (deviceId) => {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } },
+        audio: true
+      });
+      
+      if (localStreamRef.current) {
+        const videoTrack = newStream.getVideoTracks()[0];
+        const oldVideoTrack = localStreamRef.current.getVideoTracks()[0];
+        
+        if (oldVideoTrack) {
+          localStreamRef.current.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        
+        localStreamRef.current.addTrack(videoTrack);
+        
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+        
+        Object.values(peersRef.current).forEach(pc => {
+          const senders = pc.getSenders();
+          const sender = senders.find(s => s.track && s.track.kind === 'video');
+          if (sender) {
+            sender.replaceTrack(videoTrack);
+          }
+        });
+        
+        setCurrentDevice(deviceId);
+      }
+    } catch (err) {
+      console.error('Error switching camera:', err);
+      setError('Failed to switch camera');
+    }
+  };
+
+  // Picture-in-Picture
+  const togglePictureInPicture = async () => {
+    if (!remoteVideoRef.current) return;
+    
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPIP(false);
+      } else {
+        await remoteVideoRef.current.requestPictureInPicture();
+        setIsPIP(true);
+      }
+    } catch (err) {
+      console.error('PIP error:', err);
+    }
+  };
+
+  // Screenshot capture
+  const captureScreenshot = () => {
+    if (!remoteVideoRef.current) return;
+    
+    const video = remoteVideoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.8)';
+    ctx.font = '14px Arial';
+    ctx.fillText(`Interview ${new Date().toLocaleString()}`, 10, 20);
+    
+    canvas.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `screenshot-${new Date().toISOString()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
+  // Recording
+  const toggleRecording = async () => {
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+    
+    try {
+      const combinedStream = new MediaStream();
+      
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => {
+          combinedStream.addTrack(track.clone());
+        });
+      }
+      
+      if (remoteVideoRef.current?.srcObject) {
+        remoteVideoRef.current.srcObject.getTracks().forEach(track => {
+          combinedStream.addTrack(track.clone());
+        });
+      }
+      
+      mediaRecorderRef.current = new MediaRecorder(combinedStream, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+      
+      recordedChunksRef.current = [];
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `call-recording-${new Date().toISOString()}.webm`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+      };
+      
+      mediaRecorderRef.current.start(1000);
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Recording error:', err);
+      setError('Failed to start recording');
+    }
+  };
+
+  // Reactions
+  const sendReaction = (emoji) => {
+    const id = Date.now();
+    setReactions(prev => [...prev, { id, emoji }]);
+    
+    setTimeout(() => {
+      setReactions(prev => prev.filter(r => r.id !== id));
+    }, 3000);
+  };
+
+  // Virtual background (simplified version)
+  const applyVirtualBackground = () => {
+    if (!localStreamRef.current) return;
+    setUseVirtualBackground(!useVirtualBackground);
+    
+    if (!useVirtualBackground) {
+      // Simple color overlay effect
+      const video = document.createElement('video');
+      video.srcObject = localStreamRef.current;
+      video.play();
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      const processFrame = () => {
+        if (!video.videoWidth || !video.videoHeight) {
+          requestAnimationFrame(processFrame);
+          return;
+        }
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw video with some transparency
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1.0;
+        
+        requestAnimationFrame(processFrame);
+      };
+      
+      processFrame();
+      
+      const stream = canvas.captureStream(30);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+    } else {
+      // Restore original stream
+      if (localVideoRef.current && localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+    }
+  };
 
   const updateLocalTrackStates = () => {
     if (!localStreamRef.current) return;
@@ -253,6 +539,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
     setConnectionReady(false);
     setIsConnecting(true);
 
+    // Get available devices
+    getAvailableDevices();
+
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     const socket = io(SOCKET_SERVER_URL, {
       transports: ["websocket", "polling"],
@@ -405,8 +694,18 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
     const initMedia = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: {
+            echoCancellation: useEchoCancellation,
+            noiseSuppression: useNoiseSuppression,
+            autoGainControl: true,
+            sampleRate: 48000,
+            sampleSize: 16
+          }
+        });
         localStreamRef.current = stream;
+        setupAudioAnalyzer(stream);
         updateLocalTrackStates();
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         socket.emit("join-room", { roomId, user: user || { id: "guest", role: "Student", name: "Guest" } });
@@ -415,6 +714,10 @@ const VideoCall = ({ roomId, user, onClose }) => {
             setCallDuration((prev) => prev + 1);
           }, 1000);
         }
+        
+        // Start network monitoring
+        const networkInterval = setInterval(monitorNetworkQuality, 3000);
+        return () => clearInterval(networkInterval);
       } catch (err) {
         console.error("media error", err);
         setError("Unable to access camera or microphone. Please allow permissions.");
@@ -454,8 +757,62 @@ const VideoCall = ({ roomId, user, onClose }) => {
       if (pipLoopRef.current) {
         cancelAnimationFrame(pipLoopRef.current);
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+      }
     };
   }, [roomId, user]);
+
+  // Audio Waveform component
+  const AudioWaveform = () => {
+    const canvasRef = useRef(null);
+    
+    useEffect(() => {
+      if (!analyserRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      
+      const draw = () => {
+        if (!analyserRef.current) return;
+        
+        analyserRef.current.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const barWidth = (canvas.width / dataArray.length) * 2.5;
+        let x = 0;
+        
+        for (let i = 0; i < dataArray.length; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height;
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, '#d4af37');
+          gradient.addColorStop(0.5, '#f0d060');
+          gradient.addColorStop(1, '#ffd700');
+          
+          ctx.fillStyle = gradient;
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+          x += barWidth;
+        }
+        
+        requestAnimationFrame(draw);
+      };
+      
+      draw();
+    }, []);
+    
+    return (
+      <canvas 
+        ref={canvasRef}
+        width={300} 
+        height={60}
+        className="rounded-lg bg-black/50 backdrop-blur-sm"
+      />
+    );
+  };
 
   return (
     <div 
@@ -474,8 +831,33 @@ const VideoCall = ({ roomId, user, onClose }) => {
             <span className="text-[#d4af37] text-xs bg-[#d4af37]/10 px-3 py-1 rounded-full border border-[#d4af37]/20 truncate max-w-[150px]">
               {roomId?.substring(0, 12) || "N/A"}
             </span>
+            
+            {/* Camera selector */}
+            <select
+              onChange={(e) => switchCamera(e.target.value)}
+              value={currentDevice}
+              className="bg-black/50 text-white text-xs px-2 py-1 rounded border border-[#d4af37]/30"
+              onClick={getAvailableDevices}
+            >
+              {availableDevices.map(device => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Camera ${availableDevices.indexOf(device) + 1}`}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-4 flex-wrap">
+            {/* Network quality indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                networkQuality === 'good' ? 'bg-green-400' :
+                networkQuality === 'fair' ? 'bg-yellow-400' : 'bg-red-400'
+              }`} />
+              <span className="text-white/40 text-xs">
+                {bitrate > 0 ? `${(bitrate / 1024).toFixed(1)} Mbps` : '--'}
+              </span>
+            </div>
+            
             <span className="text-white/60 text-xs">{status}</span>
             <span className="text-[#d4af37] text-xs bg-[#d4af37]/10 px-3 py-1 rounded-full border border-[#d4af37]/20">
               👤 {participants}
@@ -488,24 +870,57 @@ const VideoCall = ({ roomId, user, onClose }) => {
             }`}>
               {iceConnectionState}
             </span>
+            
+            {/* Audio level indicator */}
+            {audioLevel > 0 && (
+              <div className="flex items-center gap-1">
+                <div className="w-1 h-4 bg-[#d4af37] rounded-full" style={{ height: `${audioLevel * 20 + 4}px` }} />
+                <div className="w-1 h-4 bg-[#d4af37] rounded-full" style={{ height: `${audioLevel * 30 + 4}px` }} />
+                <div className="w-1 h-4 bg-[#d4af37] rounded-full" style={{ height: `${audioLevel * 40 + 4}px` }} />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Video Grid */}
         <div className="grid h-full gap-4 grid-cols-1 lg:grid-cols-2 p-4 pt-20">
-          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a]">
+          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a] relative">
             <div className="bg-[#1a1a1a] px-4 py-2 text-xs font-medium text-[#b8a88a] border-b border-[#2a2a2a] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               My Camera
+              {useVirtualBackground && (
+                <span className="ml-2 text-[#d4af37] text-[10px]">🎨 BG</span>
+              )}
             </div>
             <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-[calc(100%-40px)] object-cover bg-black" />
+            
+            {/* Audio waveform overlay */}
+            {audioLevel > 0.1 && (
+              <div className="absolute bottom-2 left-2 opacity-50">
+                <AudioWaveform />
+              </div>
+            )}
           </div>
-          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a]">
+          
+          <div className="rounded-xl border border-[#2a2a2a] overflow-hidden bg-[#0a0a0a] relative">
             <div className="bg-[#1a1a1a] px-4 py-2 text-xs font-medium text-[#b8a88a] border-b border-[#2a2a2a] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#d4af43] animate-pulse" />
               Remote Participant
+              {isPIP && (
+                <span className="ml-2 text-blue-400 text-[10px]">📺 PIP</span>
+              )}
             </div>
             <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-[calc(100%-40px)] object-cover bg-black" />
+            
+            {/* Reactions overlay */}
+            {reactions.map((reaction) => (
+              <div
+                key={reaction.id}
+                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl animate-bounce pointer-events-none"
+              >
+                {reaction.emoji}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -518,56 +933,143 @@ const VideoCall = ({ roomId, user, onClose }) => {
           </div>
         )}
 
+        {/* Reaction buttons */}
+        <div className="absolute right-6 bottom-24 z-20 flex gap-2">
+          {['👍', '👏', '💯', '🎉', '🤔'].map(emoji => (
+            <button
+              key={emoji}
+              onClick={() => sendReaction(emoji)}
+              className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-2xl transition-all duration-200 hover:scale-110 backdrop-blur-sm"
+              title={`Send ${emoji}`}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
         {/* Controls */}
         <div className="absolute bottom-0 left-0 right-0 z-20 px-6 py-4 bg-gradient-to-t from-black/90 to-transparent">
-          <div className="flex justify-center items-center gap-3 flex-wrap">
-            <button
-              onClick={toggleAudio}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
-                audioEnabled
-                  ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
-                  : "bg-red-500/80 hover:bg-red-600 text-white"
-              }`}
-            >
-              {audioEnabled ? <FaMicrophone size={18} /> : <FaMicrophoneSlash size={18} />}
-            </button>
+          <div className="flex justify-center items-center gap-2 flex-wrap">
+            {/* Main controls group */}
+            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
+              <button
+                onClick={toggleAudio}
+                className={`p-3 rounded-full transition-all duration-200 ${
+                  audioEnabled
+                    ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37]"
+                    : "bg-red-500/80 hover:bg-red-600 text-white"
+                }`}
+                title={audioEnabled ? "Mute Audio" : "Unmute Audio"}
+              >
+                {audioEnabled ? <FaMicrophone size={16} /> : <FaMicrophoneSlash size={16} />}
+              </button>
 
-            <button
-              onClick={toggleVideo}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
-                videoEnabled
-                  ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
-                  : "bg-red-500/80 hover:bg-red-600 text-white"
-              }`}
-            >
-              {videoEnabled ? <FaVideo size={18} /> : <FaVideoSlash size={18} />}
-            </button>
+              <button
+                onClick={toggleVideo}
+                className={`p-3 rounded-full transition-all duration-200 ${
+                  videoEnabled
+                    ? "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37]"
+                    : "bg-red-500/80 hover:bg-red-600 text-white"
+                }`}
+                title={videoEnabled ? "Turn Off Camera" : "Turn On Camera"}
+              >
+                {videoEnabled ? <FaVideo size={16} /> : <FaVideoSlash size={16} />}
+              </button>
 
-            <button
-              onClick={toggleScreenShare}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
-                screenSharing
-                  ? "bg-red-500/80 hover:bg-red-600 text-white"
-                  : "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30"
-              }`}
-            >
-              <FaDesktop size={18} />
-            </button>
+              <button
+                onClick={toggleScreenShare}
+                className={`p-3 rounded-full transition-all duration-200 ${
+                  screenSharing
+                    ? "bg-red-500/80 hover:bg-red-600 text-white"
+                    : "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37]"
+                }`}
+                title={screenSharing ? "Stop Sharing" : "Share Screen"}
+              >
+                <FaDesktop size={16} />
+              </button>
+            </div>
 
-            <button
-              onClick={toggleFullScreen}
-              className="w-12 h-12 rounded-full flex items-center justify-center bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] border border-[#d4af37]/30 transition-all duration-200"
-              title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
-            >
-              <FaExpand size={18} />
-            </button>
+            {/* Feature controls group */}
+            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
+              <button
+                onClick={toggleRecording}
+                className={`p-3 rounded-full transition-all duration-200 ${
+                  isRecording
+                    ? "bg-red-500 text-white animate-pulse"
+                    : "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37]"
+                }`}
+                title={isRecording ? "Stop Recording" : "Start Recording"}
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M20 12c0-4.4-3.6-8-8-8s-8 3.6-8 8 3.6 8 8 8 8-3.6 8-8z" />
+                </svg>
+              </button>
 
-            <button
-              onClick={onClose}
-              className="w-14 h-14 rounded-full flex items-center justify-center bg-red-500 hover:bg-red-600 text-white transition-all duration-200 shadow-lg shadow-red-500/30 hover:shadow-red-500/50 hover:scale-105 active:scale-95"
-            >
-              <FaTimes size={20} />
-            </button>
+              <button
+                onClick={captureScreenshot}
+                className="p-3 rounded-full bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] transition-all duration-200"
+                title="Take Screenshot"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              <button
+                onClick={togglePictureInPicture}
+                className="p-3 rounded-full bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] transition-all duration-200"
+                title="Picture in Picture"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </button>
+
+              <button
+                onClick={applyVirtualBackground}
+                className={`p-3 rounded-full transition-all duration-200 ${
+                  useVirtualBackground
+                    ? "bg-[#d4af37] text-black"
+                    : "bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37]"
+                }`}
+                title="Virtual Background"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1" />
+                </svg>
+              </button>
+
+              {useVirtualBackground && (
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="w-8 h-8 rounded-full cursor-pointer border-2 border-[#d4af37]/30 p-0"
+                  title="Choose Background Color"
+                />
+              )}
+            </div>
+
+            {/* Utility controls */}
+            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm px-3 py-2 rounded-full">
+              <button
+                onClick={toggleFullScreen}
+                className="p-3 rounded-full bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] transition-all duration-200"
+                title={isFullScreen ? "Exit Full Screen" : "Enter Full Screen"}
+              >
+                <FaExpand size={16} />
+              </button>
+
+              <button
+                onClick={onClose}
+                className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-200 hover:scale-105 active:scale-95"
+                title="End Call"
+              >
+                <FaTimes size={16} />
+              </button>
+            </div>
           </div>
         </div>
 
