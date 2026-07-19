@@ -38,6 +38,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const aiAudioRecorderRef = useRef(null);
   const aiAudioChunksRef = useRef([]);
   const aiAudioContextRef = useRef(null);
+  const aiAudioDestRef = useRef(null);
 
   // Existing states
   const [status, setStatus] = useState("Connecting to call...");
@@ -604,33 +605,13 @@ const VideoCall = ({ roomId, user, onClose }) => {
           setConnectionReady(true);
           setIsConnecting(false);
 
-          // Start automatic AI audio recording if user is HR or Admin
-          if (user?.role === "HR" || user?.role === "Admin") {
+          // Connect remote stream to AI audio destination if available
+          if (aiAudioContextRef.current && aiAudioDestRef.current) {
             try {
-              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-              aiAudioContextRef.current = audioCtx;
-              const dest = audioCtx.createMediaStreamDestination();
-
-              if (localStreamRef.current) {
-                const localSource = audioCtx.createMediaStreamSource(localStreamRef.current);
-                localSource.connect(dest);
-              }
-
-              if (incomingStream) {
-                const remoteSource = audioCtx.createMediaStreamSource(incomingStream);
-                remoteSource.connect(dest);
-              }
-
-              aiAudioRecorderRef.current = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
-              aiAudioChunksRef.current = [];
-
-              aiAudioRecorderRef.current.ondataavailable = (e) => {
-                if (e.data.size > 0) aiAudioChunksRef.current.push(e.data);
-              };
-
-              aiAudioRecorderRef.current.start(1000);
+              const remoteSource = aiAudioContextRef.current.createMediaStreamSource(incomingStream);
+              remoteSource.connect(aiAudioDestRef.current);
             } catch (err) {
-              console.error("AI Audio recording failed to start:", err);
+              console.error("Failed to connect remote audio to AI recorder:", err);
             }
           }
         }
@@ -754,6 +735,32 @@ const VideoCall = ({ roomId, user, onClose }) => {
           }, 1000);
         }
         
+        // Start automatic AI audio recording immediately
+        if (user?.role === "HR" || user?.role === "Admin") {
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            aiAudioContextRef.current = audioCtx;
+            const dest = audioCtx.createMediaStreamDestination();
+            aiAudioDestRef.current = dest;
+
+            if (stream) {
+              const localSource = audioCtx.createMediaStreamSource(stream);
+              localSource.connect(dest);
+            }
+
+            aiAudioRecorderRef.current = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
+            aiAudioChunksRef.current = [];
+
+            aiAudioRecorderRef.current.ondataavailable = (e) => {
+              if (e.data.size > 0) aiAudioChunksRef.current.push(e.data);
+            };
+
+            aiAudioRecorderRef.current.start(1000);
+          } catch (err) {
+            console.error("AI Audio recording failed to start:", err);
+          }
+        }
+
         // Start network monitoring
         const networkInterval = setInterval(monitorNetworkQuality, 3000);
         return () => clearInterval(networkInterval);
@@ -797,26 +804,6 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
       // Handle AI audio upload
       if (aiAudioRecorderRef.current && aiAudioRecorderRef.current.state !== "inactive") {
-        aiAudioRecorderRef.current.onstop = async () => {
-          if (aiAudioChunksRef.current.length > 0) {
-            const audioBlob = new Blob(aiAudioChunksRef.current, { type: 'audio/webm' });
-            const formData = new FormData();
-            formData.append("audio", audioBlob, "interview-audio.webm");
-            
-            try {
-              const token = localStorage.getItem("token");
-              await fetch(`${SOCKET_SERVER_URL.replace('5000', '5000')}/api/interviews/${roomId}/analyze-audio`, {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${token}`
-                },
-                body: formData
-              });
-            } catch (err) {
-              console.error("Failed to upload audio for AI analysis:", err);
-            }
-          }
-        };
         aiAudioRecorderRef.current.stop();
       }
 
@@ -890,6 +877,37 @@ const VideoCall = ({ roomId, user, onClose }) => {
         className="rounded-lg bg-black/50 backdrop-blur-sm"
       />
     );
+  };
+
+  const handleEndCall = async () => {
+    setStatus("Uploading AI Analysis...");
+    if (aiAudioRecorderRef.current && aiAudioRecorderRef.current.state !== "inactive") {
+      await new Promise((resolve) => {
+        aiAudioRecorderRef.current.onstop = async () => {
+          if (aiAudioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(aiAudioChunksRef.current, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "interview-audio.webm");
+            
+            try {
+              const token = localStorage.getItem("token");
+              await fetch(`${SOCKET_SERVER_URL}/api/interviews/${roomId}/analyze-audio`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`
+                },
+                body: formData
+              });
+            } catch (err) {
+              console.error("Failed to upload audio for AI analysis:", err);
+            }
+          }
+          resolve();
+        };
+        aiAudioRecorderRef.current.stop();
+      });
+    }
+    onClose();
   };
 
   return (
@@ -1141,7 +1159,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
               </button>
 
               <button
-                onClick={onClose}
+                onClick={handleEndCall}
                 className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all duration-200 hover:scale-105 active:scale-95"
                 title="End Call"
               >
