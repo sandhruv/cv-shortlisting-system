@@ -539,10 +539,10 @@ function HRDashboard() {
                                   setFeedbackData(iv.feedback || { rating: 3, comments: "", decision: "" });
                                   setShowFeedbackModal(true);
                                 }}
-                                className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs"
+                                className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex"
                                 style={{ backgroundColor: theme.gold }}
                               >
-                                Feedback
+                                ✨ AI Analysis & Feedback
                               </button>
                             )}
                           </td>
