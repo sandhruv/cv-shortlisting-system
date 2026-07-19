@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { FaTimes, FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaExpand } from "react-icons/fa";
 
@@ -299,6 +299,10 @@ const VideoCall = ({ roomId, user, onClose }) => {
   const sendReaction = (emoji) => {
     const id = Date.now();
     setReactions(prev => [...prev, { id, emoji }]);
+    
+    if (socketRef.current) {
+      socketRef.current.emit("reaction", { roomId, emoji });
+    }
     
     setTimeout(() => {
       setReactions(prev => prev.filter(r => r.id !== id));
@@ -730,6 +734,15 @@ const VideoCall = ({ roomId, user, onClose }) => {
     });
     socket.on("room-users", handleRoomUsers);
     socket.on("signal", handleSignal);
+    
+    socket.on("reaction", ({ emoji }) => {
+      const id = Date.now();
+      setReactions(prev => [...prev, { id, emoji }]);
+      setTimeout(() => {
+        setReactions(prev => prev.filter(r => r.id !== id));
+      }, 3000);
+    });
+
     socket.on("disconnect", (reason) => {
       setStatus(`Disconnected (${reason})`);
     });

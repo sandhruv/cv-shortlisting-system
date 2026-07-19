@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 const dotenv = require("dotenv");
 const dotenvResult = dotenv.config({ path: path.join(__dirname, ".env") });
 if (dotenvResult.error && dotenvResult.error.code !== "ENOENT") {
@@ -178,6 +178,11 @@ io.on("connection", (socket) => {
     } else {
       socket.to(roomId).emit("signal", { from: socket.id, signal });
     }
+  });
+
+  socket.on("reaction", ({ roomId, emoji }) => {
+    if (!roomId || !emoji) return;
+    socket.to(roomId).emit("reaction", { emoji });
   });
 
   socket.on("disconnect", () => {
