@@ -6,6 +6,24 @@ const jobSchema = new mongoose.Schema(
     requirements: { type: String, required: true },
     location: { type: String, required: true },
     postedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    allocatedFaculty: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    allocatedStudents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: [],
+      },
+    ],
+    scope: {
+      type: String,
+      enum: ["general", "lpu"],
+      default: "general",
+      index: true,
+    },
   },
   { timestamps: true }
 );

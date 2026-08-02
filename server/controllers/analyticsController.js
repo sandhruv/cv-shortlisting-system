@@ -5,13 +5,15 @@ const Resume = require("../models/Resume");
 
 exports.getHRStats = async (req, res) => {
   try {
-    if (req.user.role !== "HR" && req.user.role !== "Admin") {
+    if (!["HR", "Admin", "LPU Admin", "LPU Faculty"].includes(req.user.role)) {
       return res.status(403).json({ message: "Access denied." });
     }
 
     let jobQuery = {};
     if (req.user.role === "HR") {
       jobQuery.postedBy = req.user.id;
+    } else if (["LPU Admin", "LPU Faculty"].includes(req.user.role)) {
+      jobQuery.scope = "lpu";
     }
     const jobs = await Job.find(jobQuery).select("_id title");
     const jobIds = jobs.map(j => j._id);

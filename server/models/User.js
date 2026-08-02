@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
@@ -11,9 +11,14 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    uid: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     role: {
       type: String,
-      enum: ["Admin", "HR", "Student"],
+      enum: ["Admin", "HR", "Student", "LPU Admin", "LPU Faculty", "LPU Student"],
       default: "Student",
     },
     password: {

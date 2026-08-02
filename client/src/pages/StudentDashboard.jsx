@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaUpload,
@@ -28,24 +28,41 @@ function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
+  const isLpuStudent = currentUser.role === "LPU Student";
 
-  // Golden dark theme colors
-  const theme = {
-    bg: '#0a0a0a',
-    bgSecondary: '#1a1a1a',
-    bgCard: '#1e1e1e',
-    bgInput: '#0d0d0d',
-    border: '#2a2a2a',
-    text: '#f5f0e8',
-    textSecondary: '#b8a88a',
-    gold: '#d4a843',
-    goldLight: '#f0d080',
-    goldDark: '#b8922f',
-    goldGlow: 'rgba(212, 168, 67, 0.15)',
-    green: '#4ade80',
-    red: '#f87171',
-    yellow: '#fbbf24',
-  };
+  const theme = isLpuStudent
+    ? {
+        bg: '#0d131f',
+        bgSecondary: '#111a2a',
+        bgCard: '#152238',
+        bgInput: '#0b1627',
+        border: '#24406b',
+        text: '#f6f7fb',
+        textSecondary: '#9db2d6',
+        gold: '#ff6b2b',
+        goldLight: '#ff8c52',
+        goldDark: '#d95511',
+        goldGlow: 'rgba(255, 107, 43, 0.18)',
+        green: '#4ade80',
+        red: '#f87171',
+        yellow: '#fbbf24',
+      }
+    : {
+        bg: '#0a0a0a',
+        bgSecondary: '#1a1a1a',
+        bgCard: '#1e1e1e',
+        bgInput: '#0d0d0d',
+        border: '#2a2a2a',
+        text: '#f5f0e8',
+        textSecondary: '#b8a88a',
+        gold: '#d4a843',
+        goldLight: '#f0d080',
+        goldDark: '#b8922f',
+        goldGlow: 'rgba(212, 168, 67, 0.15)',
+        green: '#4ade80',
+        red: '#f87171',
+        yellow: '#fbbf24',
+      };
 
   const fetchJobs = async () => {
     try {
@@ -136,6 +153,16 @@ function StudentDashboard() {
     }
   };
 
+  const statusSummary = useMemo(() => {
+    const total = myApps.length;
+    const shortlisted = myApps.filter((app) => app.status === "shortlisted").length;
+    const pending = myApps.filter((app) => app.status === "pending").length;
+    const rejected = myApps.filter((app) => app.status === "rejected").length;
+    const upcoming = interviews.filter((interview) => interview.status === "scheduled").length;
+
+    return { total, shortlisted, pending, rejected, upcoming };
+  }, [myApps, interviews]);
+
   const hasApplied = (jobId) => myApps.some((app) => app.job._id === jobId);
   const getStatus = (jobId) => {
     const app = myApps.find((a) => a.job._id === jobId);
@@ -162,10 +189,10 @@ function StudentDashboard() {
             <FaBuilding className="text-white text-lg" />
           </div>
           <span className="text-xl font-semibold tracking-tight" style={{ color: theme.text }}>
-            Nexus<span style={{ color: theme.gold }}>Corp</span>
+            {isLpuStudent ? "LPU" : "Nexus"}<span style={{ color: theme.gold }}>{isLpuStudent ? "Portal" : "Corp"}</span>
           </span>
           <span className="ml-3 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
-            Student
+            {isLpuStudent ? "LPU Student" : "Student"}
           </span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>
@@ -174,7 +201,51 @@ function StudentDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-semibold mb-6" style={{ color: theme.text }}>Student Dashboard</h1>
+        <h1 className="text-2xl font-semibold mb-6" style={{ color: theme.text }}>{isLpuStudent ? "LPU Student Dashboard" : "Student Dashboard"}</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Applications</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
+          </div>
+          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Shortlisted</div>
+            <div className="text-2xl font-bold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+          </div>
+          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Pending</div>
+            <div className="text-2xl font-bold mt-1 text-amber-300">{statusSummary.pending}</div>
+          </div>
+          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Upcoming Interviews</div>
+            <div className="text-2xl font-bold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+          </div>
+        </div>
+
+        {isLpuStudent && (
+          <div className="rounded-xl border p-5 mb-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+              <h2 className="text-lg font-semibold" style={{ color: theme.text }}>LPU Student Progress Tracker</h2>
+              <span className="text-xs" style={{ color: theme.textSecondary }}>
+                Next step: {statusSummary.upcoming > 0 ? "Attend upcoming interview" : statusSummary.shortlisted > 0 ? "Wait for final feedback" : "Keep applying to assigned jobs"}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+                <div style={{ color: theme.textSecondary }}>Applications Submitted</div>
+                <div className="font-semibold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+                <div style={{ color: theme.textSecondary }}>Shortlisted Stage</div>
+                <div className="font-semibold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+              </div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+                <div style={{ color: theme.textSecondary }}>Interview Readiness</div>
+                <div className="font-semibold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-2 mb-6 border-b" style={{ borderColor: theme.border }}>
           <button
@@ -251,7 +322,16 @@ function StudentDashboard() {
                   const status = getStatus(job._id);
                   return (
                     <div key={job._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                      <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
+                        {isLpuStudent && (
+                          <span className="text-[10px] px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(255, 107, 43, 0.2)', color: theme.gold }}>
+                            {job.allocatedStudents?.some((student) => student?._id === currentUser._id || student?.uid === currentUser.uid)
+                              ? "Assigned to You"
+                              : "LPU Opportunity"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>{job.location}</p>
                       <p className="text-sm mt-2 line-clamp-2" style={{ color: theme.textSecondary }}>{job.description}</p>
                       <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>Requirements: {job.requirements}</p>

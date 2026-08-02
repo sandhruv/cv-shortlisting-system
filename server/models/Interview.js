@@ -20,8 +20,7 @@ const interviewSchema = new mongoose.Schema(
     callActive: { type: Boolean, default: false },
     aiAnalysis: {
       transcript: { type: String, default: "" },
-      personalityAnalysis: { type: String, default: "" },
-      suitability: { type: String, default: "" },
+      feedbackAndSuggestions: { type: String, default: "" },
       status: { type: String, enum: ["pending", "processing", "completed", "failed"], default: "pending" }
     }
   },

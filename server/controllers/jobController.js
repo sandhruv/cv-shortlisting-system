@@ -1,18 +1,25 @@
 ﻿const Job = require("../models/Job");
 const Application = require("../models/Application");
+const User = require("../models/User");
 
 exports.createJob = async (req, res) => {
   try {
-    const { title, description, requirements, location } = req.body;
+    const { title, description, requirements, location, allocatedFaculty, allocatedStudents } = req.body;
     if (!title || !description || !location) {
       return res.status(400).json({ message: "Title, description, and location are required" });
     }
+
+    const scope = ["LPU Admin", "LPU Faculty"].includes(req.user.role) ? "lpu" : "general";
+
     const job = await Job.create({
       title,
       description,
       requirements,
       location,
+      scope,
       postedBy: req.user.id,
+      allocatedFaculty: allocatedFaculty || null,
+      allocatedStudents: Array.isArray(allocatedStudents) ? allocatedStudents : [],
     });
     res.status(201).json({ message: "Job created", job });
   } catch (err) {
@@ -24,8 +31,29 @@ exports.createJob = async (req, res) => {
 exports.getJobs = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role === "HR") query.postedBy = req.user.id;
-    const jobs = await Job.find(query).populate("postedBy", "name email");
+
+    if (req.user.role === "Admin") {
+      query = {};
+    } else if (req.user.role === "HR") {
+      query.postedBy = req.user.id;
+    } else if (req.user.role === "Student") {
+      query.scope = "general";
+    } else if (req.user.role === "LPU Faculty") {
+      query.scope = "lpu";
+      query.allocatedFaculty = req.user.id;
+    } else if (req.user.role === "LPU Student") {
+      query.scope = "lpu";
+      query.allocatedStudents = req.user.id;
+    } else if (req.user.role === "LPU Admin") {
+      query.scope = "lpu";
+    }
+
+    const jobs = await Job.find(query)
+      .populate("postedBy", "name email role")
+      .populate("allocatedFaculty", "name uid role")
+      .populate("allocatedStudents", "name uid role")
+      .sort({ createdAt: -1 });
+
     res.json(jobs);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -36,7 +64,7 @@ exports.updateJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
     if (!job) return res.status(404).json({ message: "Job not found" });
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (job.postedBy.toString() !== req.user.id && !(["Admin", "LPU Admin", "LPU Faculty"].includes(req.user.role))) {
       return res.status(403).json({ message: "Not authorized" });
     }
     const { title, description, requirements, location } = req.body;
@@ -59,7 +87,7 @@ exports.deleteJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
     if (!job) return res.status(404).json({ message: "Job not found" });
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (job.postedBy.toString() !== req.user.id && !(["Admin", "LPU Admin", "LPU Faculty"].includes(req.user.role))) {
       return res.status(403).json({ message: "Not authorized" });
     }
     await job.deleteOne();

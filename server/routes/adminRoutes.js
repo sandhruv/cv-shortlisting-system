@@ -1,7 +1,9 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
 const { protect } = require("../middleware/authMiddleware");
-const { isAdmin } = require("../middleware/adminMiddleware");
+const { isAdmin, isMainOrLpuAdmin } = require("../middleware/adminMiddleware");
 const {
   getAllUsers,
   createUser,
@@ -11,8 +13,11 @@ const {
   getAllJobs,
   getAllApplications,
   getAllResumes,
-  getAllInterviews, // 👈 new
+  getAllInterviews,
+  bulkUploadLpu,
 } = require("../controllers/adminController");
+
+router.post("/bulk-upload-lpu", protect, isMainOrLpuAdmin, upload.single("file"), bulkUploadLpu);
 
 router.use(protect, isAdmin);
 

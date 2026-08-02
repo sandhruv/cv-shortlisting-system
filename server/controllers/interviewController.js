@@ -2,6 +2,23 @@ const Interview = require("../models/Interview");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 
+const ALLOWED_INTERVIEW_ROLES = ["Admin", "LPU Admin", "HR", "LPU Faculty"];
+
+const canManageInterview = (req, job) => {
+  if (!job) return false;
+
+  const isAssignedFaculty =
+    req.user.role === "LPU Faculty" &&
+    job.allocatedFaculty &&
+    job.allocatedFaculty.toString() === req.user.id;
+
+  return (
+    job.postedBy.toString() === req.user.id ||
+    ALLOWED_INTERVIEW_ROLES.includes(req.user.role) ||
+    isAssignedFaculty
+  );
+};
+
 exports.scheduleInterview = async (req, res) => {
   try {
     const { applicationId, scheduledAt, duration, location, meetingLink, notes } = req.body;
@@ -12,7 +29,7 @@ exports.scheduleInterview = async (req, res) => {
     if (!application) return res.status(404).json({ message: "Application not found" });
     const job = await Job.findById(application.job._id);
     if (!job) return res.status(404).json({ message: "Job not found." });
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to schedule for this job." });
     }
 
@@ -45,7 +62,7 @@ exports.startInterviewCall = async (req, res) => {
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to start the call." });
     }
     interview.callActive = true;
@@ -63,7 +80,7 @@ exports.stopInterviewCall = async (req, res) => {
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to stop the call." });
     }
     interview.callActive = false;
@@ -77,7 +94,7 @@ exports.stopInterviewCall = async (req, res) => {
 
 exports.getMyInterviews = async (req, res) => {
   try {
-    if (req.user.role !== "Student") return res.status(403).json({ message: "Access denied." });
+    if (!["Student", "LPU Student"].includes(req.user.role)) return res.status(403).json({ message: "Access denied." });
     const applications = await Application.find({ student: req.user.id }).select("_id");
     const appIds = applications.map(a => a._id);
     if (appIds.length === 0) return res.json([]);
@@ -99,15 +116,20 @@ exports.getJobInterviews = async (req, res) => {
   try {
     const { jobId } = req.params;
     let query = {};
-    if (jobId) { query.job = jobId; }
-    else {
+
+    if (jobId) {
+      query.job = jobId;
+    } else if (req.user.role === "LPU Faculty") {
+      const jobs = await Job.find({ scope: "lpu", allocatedFaculty: req.user.id }).select("_id");
+      query.job = { $in: jobs.map(j => j._id) };
+    } else if (["Admin", "LPU Admin"].includes(req.user.role)) {
+      const jobs = await Job.find({ scope: "lpu" }).select("_id");
+      query.job = { $in: jobs.map(j => j._id) };
+    } else {
       const jobs = await Job.find({ postedBy: req.user.id }).select("_id");
       query.job = { $in: jobs.map(j => j._id) };
     }
-    if (req.user.role !== "Admin") {
-      const jobs = await Job.find({ postedBy: req.user.id }).select("_id");
-      query.job = { $in: jobs.map(j => j._id) };
-    }
+
     const interviews = await Interview.find(query)
       .populate({
         path: "application",
@@ -136,7 +158,7 @@ exports.updateInterviewStatus = async (req, res) => {
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to update this interview." });
     }
     interview.status = status;
@@ -162,7 +184,7 @@ exports.addFeedback = async (req, res) => {
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     const job = await Job.findById(interview.job._id);
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to add feedback." });
     }
     interview.feedback = {
@@ -188,7 +210,7 @@ exports.analyzeAudio = async (req, res) => {
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     
     const job = await Job.findById(interview.job._id);
-    if (job.postedBy.toString() !== req.user.id && req.user.role !== "Admin") {
+    if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to add analysis." });
     }
 
@@ -225,7 +247,7 @@ Job description: ${job.description}
 Transcript:
 ${transcript}
 
-Based on the transcript, please provide a concise evaluation of the candidate's personality and their suitability for this job role. Return your answer as a JSON object with two keys: "personalityAnalysis" and "suitability".`;
+Based on the transcript, please provide a concise evaluation of the candidate. Provide constructive feedback and suggestions, and recommend a rating out of 5 and a decision (selected, rejected, pending). Return your answer as a JSON object with keys: "feedbackAndSuggestions", "rating" (number), and "decision" (string).`;
 
         const completion = await groq.chat.completions.create({
           messages: [{ role: "user", content: prompt }],
@@ -237,10 +259,17 @@ Based on the transcript, please provide a concise evaluation of the candidate's 
 
         interview.aiAnalysis = {
           transcript,
-          personalityAnalysis: analysis.personalityAnalysis || "",
-          suitability: analysis.suitability || "",
+          feedbackAndSuggestions: analysis.feedbackAndSuggestions || JSON.stringify(analysis) || "",
           status: "completed",
         };
+        // Pre-fill the feedback form with AI suggestions if empty
+        if (!interview.feedback || !interview.feedback.comments) {
+          interview.feedback = {
+            rating: analysis.rating || 3,
+            comments: analysis.feedbackAndSuggestions || "AI Analysis completed.",
+            decision: analysis.decision || "pending"
+          };
+        }
         await interview.save();
       } catch (err) {
         console.error("Groq Analysis Error:", err);

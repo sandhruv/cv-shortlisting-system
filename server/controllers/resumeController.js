@@ -94,7 +94,7 @@ ${text}`;
 
 exports.uploadCV = async (req, res) => {
   try {
-    if (req.user.role !== "Student") {
+    if (!["Student", "LPU Student"].includes(req.user.role)) {
       return res.status(403).json({ message: "Only students can upload CV" });
     }
 
@@ -159,7 +159,7 @@ exports.getMyResume = async (req, res) => {
 exports.getResumeByStudent = async (req, res) => {
   try {
     const { studentId } = req.params;
-    if (req.user.role !== "Admin" && req.user.role !== "HR" && req.user.id !== studentId) {
+    if (!["Admin", "LPU Admin", "HR", "LPU Faculty"].includes(req.user.role) && req.user.id !== studentId) {
       return res.status(403).json({ message: "Not authorized to view this resume" });
     }
     const resume = await Resume.findOne({ student: studentId }).sort({ createdAt: -1 });

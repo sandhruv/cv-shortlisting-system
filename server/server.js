@@ -76,14 +76,14 @@ const limiter = rateLimit({
 
 app.set("trust proxy", 1);
 app.use(helmet());
-app.use(limiter);
-app.use(hpp());
 app.use(cors({
   origin: corsOriginHandler,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
+app.use(limiter);
+app.use(hpp());
 app.use(express.json({ limit: "10kb" }));
 
 app.use("/api/auth", authRoutes);

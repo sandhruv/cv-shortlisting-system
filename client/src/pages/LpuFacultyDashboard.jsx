@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaPlus,
@@ -32,7 +32,7 @@ import {
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 
-function HRDashboard() {
+function LpuFacultyDashboard() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
@@ -65,6 +65,39 @@ function HRDashboard() {
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
+
+  const assignedJobs = useMemo(() => {
+    return jobs.filter((job) => job.allocatedFaculty?._id === currentUser._id || job.allocatedFaculty?.uid === currentUser.uid);
+  }, [jobs, currentUser]);
+
+  const assignedStudentsCount = useMemo(() => {
+    return assignedJobs.reduce((sum, job) => sum + (job.allocatedStudents?.length || 0), 0);
+  }, [assignedJobs]);
+
+  const pendingAssignedApplicants = useMemo(() => {
+    return applications.filter((app) => app.status === "pending").length;
+  }, [applications]);
+
+  const scheduledInterviewsCount = useMemo(() => {
+    return hrInterviews.filter((interview) => interview.status === "scheduled").length;
+  }, [hrInterviews]);
+
+  const theme = {
+    bg: '#0d131f',
+    bgSecondary: '#111a2a',
+    bgCard: '#152238',
+    bgInput: '#0b1627',
+    border: '#24406b',
+    text: '#f6f7fb',
+    textSecondary: '#9db2d6',
+    gold: '#ff6b2b',
+    goldLight: '#ff8c52',
+    goldDark: '#d95511',
+    goldGlow: 'rgba(255, 107, 43, 0.18)',
+    green: '#4ade80',
+    red: '#f87171',
+    yellow: '#fbbf24',
+  };
 
   // Feedback states
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -263,19 +296,6 @@ function HRDashboard() {
 
   const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
 
-  // Golden theme colors
-  const theme = {
-    bg: '#0a0a0a',
-    bgSecondary: '#1a1a1a',
-    bgCard: '#1e1e1e',
-    border: '#2a2a2a',
-    text: '#f5f0e8',
-    textSecondary: '#b8a88a',
-    gold: '#d4a843',
-    goldLight: '#f0d080',
-    goldDark: '#b8922f',
-    goldGlow: 'rgba(212, 168, 67, 0.2)',
-  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
@@ -304,7 +324,7 @@ function HRDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold" style={{ color: theme.text }}>HR Dashboard</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">LPU Faculty Dashboard</h1>
           <button 
             onClick={() => setShowModal(true)} 
             className="text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition"
@@ -318,20 +338,38 @@ function HRDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
           <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Total Jobs</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{stats.totalJobs}</p>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Assigned Jobs</p>
+            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{assignedJobs.length}</p>
           </div>
           <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Total Applicants</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{stats.totalApplicants}</p>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Assigned Students</p>
+            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{assignedStudentsCount}</p>
           </div>
           <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Shortlisted</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.gold }}>{stats.shortlisted}</p>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Pending Applicants</p>
+            <p className="text-2xl font-semibold mt-1" style={{ color: theme.gold }}>{pendingAssignedApplicants}</p>
           </div>
           <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Pending</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: '#f0a030' }}>{stats.pending}</p>
+            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Scheduled Interviews</p>
+            <p className="text-2xl font-semibold mt-1" style={{ color: '#f0a030' }}>{scheduledInterviewsCount}</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/10 p-5 mb-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold" style={{ color: theme.text }}>Assigned Student Queue</h2>
+            <span className="text-xs" style={{ color: theme.textSecondary }}>{assignedJobs.length} jobs currently linked to you</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {assignedJobs.map((job) => (
+              <div key={job._id} className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+                <div className="font-semibold text-sm" style={{ color: theme.text }}>{job.title}</div>
+                <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                  {job.allocatedStudents?.length || 0} students assigned • {job.location}
+                </div>
+              </div>
+            ))}
+            {assignedJobs.length === 0 && <div className="text-sm" style={{ color: theme.textSecondary }}>No assigned jobs available yet.</div>}
           </div>
         </div>
 
@@ -385,6 +423,14 @@ function HRDashboard() {
                 <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
                 <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>{job.location}</p>
                 <p className="text-sm mt-2 line-clamp-2" style={{ color: theme.textSecondary }}>{job.description}</p>
+                <p className="text-xs mt-2" style={{ color: theme.textSecondary }}>
+                  Assigned Students: {job.allocatedStudents?.length || 0}
+                </p>
+                <div className="text-xs mt-2" style={{ color: theme.textSecondary }}>
+                  {job.allocatedStudents?.length > 0
+                    ? `Students: ${job.allocatedStudents.map((student) => student.name).join(", ")}`
+                    : "No students assigned by LPU admin yet."}
+                </div>
                 <div className="flex justify-between items-center mt-4">
                   <button onClick={() => fetchApplicants(job._id)} className="text-sm hover:underline flex items-center gap-1" style={{ color: theme.gold }}>
                     <FaEye size={14} /> View Applicants
@@ -943,4 +989,4 @@ function HRDashboard() {
   );
 }
 
-export default HRDashboard;
+export default LpuFacultyDashboard;

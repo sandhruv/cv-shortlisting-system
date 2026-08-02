@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaUsers,
@@ -347,6 +347,9 @@ function AdminDashboard() {
                       <option value="Student">Student</option>
                       <option value="HR">HR</option>
                       <option value="Admin">Admin</option>
+                      <option value="LPU Admin">LPU Admin</option>
+                      <option value="LPU Faculty">LPU Faculty</option>
+                      <option value="LPU Student">LPU Student</option>
                     </select>
                   </td>
                   <td className="px-6 py-4">
@@ -475,14 +478,25 @@ function AdminDashboard() {
                     required
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
                   />
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                    required
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-                  />
+                  {newUser.role.startsWith("LPU") ? (
+                    <input
+                      type="text"
+                      placeholder="University UID"
+                      value={newUser.uid || ""}
+                      onChange={(e) => setNewUser({...newUser, uid: e.target.value})}
+                      required
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                    />
+                  ) : (
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={newUser.email || ""}
+                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                      required
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                    />
+                  )}
                   <select
                     value={newUser.role}
                     onChange={(e) => setNewUser({...newUser, role: e.target.value})}
@@ -491,6 +505,9 @@ function AdminDashboard() {
                     <option value="Student">Student</option>
                     <option value="HR">HR</option>
                     <option value="Admin">Admin</option>
+                    <option value="LPU Admin">LPU Admin</option>
+                    <option value="LPU Faculty">LPU Faculty</option>
+                    <option value="LPU Student">LPU Student</option>
                   </select>
                   <input
                     type="password"

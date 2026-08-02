@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaBuilding } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -234,6 +234,16 @@ function Login() {
                   Create one
                 </Link>
               </p>
+              
+              <div className="mt-4 text-center">
+                <Link 
+                  to="/lpu-login" 
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-[#d4af37]/30 bg-[#d4af37]/5 text-[#d4af37] font-medium hover:bg-[#d4af37]/10 hover:border-[#d4af37]/50 transition-all duration-300"
+                >
+                  <FaBuilding className="text-sm" />
+                  LPU Login
+                </Link>
+              </div>
             </form>
           </div>
 
