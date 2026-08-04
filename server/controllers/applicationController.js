@@ -1,7 +1,7 @@
-﻿const Application = require("../models/Application");
+const Application = require("../models/Application");
 const Job = require("../models/Job");
 
-const VALID_APPLICATION_STATUSES = ["pending", "shortlisted", "rejected"];
+const VALID_APPLICATION_STATUSES = ["pending", "shortlisted", "coding_test_assigned", "coding_test_submitted", "coding_test_passed", "coding_test_failed", "rejected"];
 const ALLOWED_JOB_MANAGEMENT_ROLES = ["Admin", "LPU Admin", "HR", "LPU Faculty"];
 
 const canManageJob = (req, job) => {

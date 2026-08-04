@@ -117,6 +117,17 @@ function AdminDashboard() {
     }
   };
 
+  const handleSubscriptionChange = async (id, plan) => {
+    try {
+      await api.put(`/admin/users/${id}/subscription`, { plan });
+      alert("HR plan updated");
+      fetchUsers();
+      fetchStats();
+    } catch (err) {
+      alert(err.response?.data?.message || "Subscription update failed");
+    }
+  };
+
   const handleDeleteJob = async (id) => {
     if (!window.confirm("Delete this job?")) return;
     try {
@@ -330,6 +341,7 @@ function AdminDashboard() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">HR Plan</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -351,6 +363,22 @@ function AdminDashboard() {
                       <option value="LPU Faculty">LPU Faculty</option>
                       <option value="LPU Student">LPU Student</option>
                     </select>
+                  </td>
+                  <td className="px-6 py-4">
+                    {user.role === "HR" ? (
+                      <select
+                        value={user.subscriptionPlan || "trial"}
+                        onChange={(e) => handleSubscriptionChange(user._id, e.target.value)}
+                        className="bg-white/10 border border-white/10 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                      >
+                        <option value="trial">Trial (3 days)</option>
+                        <option value="monthly">Monthly (₹200)</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    ) : (
+                      <span className="text-white/40 text-xs">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <button onClick={() => handleDeleteUser(user._id)} className="text-rose-400 hover:text-rose-300 transition"><FaTrash /></button>

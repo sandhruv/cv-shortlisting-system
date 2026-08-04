@@ -1,4 +1,4 @@
-﻿const Job = require("../models/Job");
+const Job = require("../models/Job");
 const Application = require("../models/Application");
 const User = require("../models/User");
 
@@ -37,13 +37,25 @@ exports.getJobs = async (req, res) => {
     } else if (req.user.role === "HR") {
       query.postedBy = req.user.id;
     } else if (req.user.role === "Student") {
-      query.scope = "general";
+      const hrUsers = await User.find({ role: "HR" }).select("_id");
+      const hrUserIds = hrUsers.map((u) => u._id);
+      query = {
+        $or: [
+          { postedBy: { $in: hrUserIds } },
+          { scope: "general" },
+          { scope: { $ne: "lpu" } },
+          { scope: { $exists: false } },
+          { scope: null }
+        ]
+      };
+    } else if (req.user.role === "LPU Student") {
+      query = {
+        scope: "lpu",
+        allocatedStudents: req.user.id
+      };
     } else if (req.user.role === "LPU Faculty") {
       query.scope = "lpu";
       query.allocatedFaculty = req.user.id;
-    } else if (req.user.role === "LPU Student") {
-      query.scope = "lpu";
-      query.allocatedStudents = req.user.id;
     } else if (req.user.role === "LPU Admin") {
       query.scope = "lpu";
     }

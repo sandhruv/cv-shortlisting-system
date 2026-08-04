@@ -25,6 +25,19 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    subscriptionPlan: {
+      type: String,
+      enum: ["trial", "monthly", "yearly", "inactive"],
+      default: "trial",
+    },
+    trialEndsAt: {
+      type: Date,
+      default: null,
+    },
+    planEndsAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

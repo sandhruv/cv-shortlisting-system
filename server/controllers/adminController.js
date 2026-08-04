@@ -30,8 +30,11 @@ exports.createUser = async (req, res) => {
       }
     }
     
-    // Assign a dummy email if an LPU role provides a UID without an email
     const finalEmail = email || (role.startsWith("LPU") && uid ? `${uid}@lpu.edu.dummy` : null);
+    const isHr = role === "HR";
+    const subscriptionPlan = isHr ? "trial" : "inactive";
+    const trialEndsAt = isHr ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) : null;
+    const planEndsAt = null;
 
     if (finalEmail) {
       const existing = await User.findOne({ email: finalEmail });
@@ -43,8 +46,29 @@ exports.createUser = async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email: finalEmail, uid, role, password: hashed });
-    res.status(201).json({ message: "User created successfully", user: { id: user._id, name, email: finalEmail, uid, role } });
+    const user = await User.create({
+      name,
+      email: finalEmail,
+      uid,
+      role,
+      password: hashed,
+      subscriptionPlan,
+      trialEndsAt,
+      planEndsAt,
+    });
+    res.status(201).json({
+      message: "User created successfully",
+      user: {
+        id: user._id,
+        name,
+        email: finalEmail,
+        uid,
+        role,
+        subscriptionPlan,
+        trialEndsAt,
+        planEndsAt,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -65,6 +89,63 @@ exports.updateRole = async (req, res) => {
     const user = await User.findByIdAndUpdate(id, { role }, { new: true, runValidators: true }).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json({ message: "Role updated", user });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSubscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { plan } = req.body;
+    const validPlans = ["trial", "monthly", "yearly", "inactive"];
+
+    if (!plan || !validPlans.includes(plan)) {
+      return res.status(400).json({ message: "Invalid subscription plan" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.role !== "HR") {
+      return res.status(400).json({ message: "Subscription plan can only be managed for HR users" });
+    }
+
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const oneMonthEndsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const oneYearEndsAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    if (plan === "trial") {
+      user.subscriptionPlan = "trial";
+      user.trialEndsAt = trialEndsAt;
+      user.planEndsAt = null;
+    } else if (plan === "monthly") {
+      user.subscriptionPlan = "monthly";
+      user.trialEndsAt = null;
+      user.planEndsAt = oneMonthEndsAt;
+    } else if (plan === "yearly") {
+      user.subscriptionPlan = "yearly";
+      user.trialEndsAt = null;
+      user.planEndsAt = oneYearEndsAt;
+    } else {
+      user.subscriptionPlan = "inactive";
+      user.trialEndsAt = null;
+      user.planEndsAt = null;
+    }
+
+    await user.save();
+    res.json({
+      message: "Subscription updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        subscriptionPlan: user.subscriptionPlan,
+        trialEndsAt: user.trialEndsAt,
+        planEndsAt: user.planEndsAt,
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

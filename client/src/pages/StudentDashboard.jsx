@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaUpload,
@@ -10,9 +10,11 @@ import {
   FaClock,
   FaMapMarkerAlt,
   FaVideo,
+  FaCode,
 } from "react-icons/fa";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
+import CodingTestView from "../components/CodingTestView";
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ function StudentDashboard() {
   const [activeTab, setActiveTab] = useState("jobs");
   const [searchTerm, setSearchTerm] = useState("");
   const [interviews, setInterviews] = useState([]);
+  const [codingTests, setCodingTests] = useState([]);
+  const [activeTestId, setActiveTestId] = useState(null);
   const [videoCallRoom, setVideoCallRoom] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
@@ -100,11 +104,21 @@ function StudentDashboard() {
     }
   };
 
+  const fetchMyCodingTests = async () => {
+    try {
+      const res = await api.get("/coding-tests/my-tests");
+      setCodingTests(res.data);
+    } catch (err) {
+      // No tests yet
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
     fetchMyApps();
     fetchMyResume();
     fetchMyInterviews();
+    fetchMyCodingTests();
   }, []);
 
   const handleLogout = () => {
@@ -287,6 +301,16 @@ function StudentDashboard() {
             onClick={() => setActiveTab("interviews")}
           >
             My Interviews
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "coding_tests" ? "border-b-2" : ""}`}
+            style={{ 
+              color: activeTab === "coding_tests" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "coding_tests" ? theme.gold : 'transparent'
+            }}
+            onClick={() => setActiveTab("coding_tests")}
+          >
+            <FaCode className="inline mr-1" /> Coding Assessments {codingTests.length > 0 && `(${codingTests.length})`}
           </button>
         </div>
 
@@ -534,7 +558,85 @@ function StudentDashboard() {
             )}
           </div>
         )}
+
+        {activeTab === "coding_tests" && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Assigned Coding Assessments</h2>
+            {codingTests.length === 0 ? (
+              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+                No coding assessments assigned to you yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {codingTests.map((t) => (
+                  <div key={t._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition space-y-3" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{t.title}</h3>
+                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30">
+                        {t.language}
+                      </span>
+                    </div>
+
+                    <p className="text-xs" style={{ color: theme.textSecondary }}>
+                      Job Role: <strong style={{ color: theme.text }}>{t.job?.title || "Position"}</strong>
+                    </p>
+
+                    <div className="flex items-center gap-4 text-xs" style={{ color: theme.textSecondary }}>
+                      <span><FaClock className="inline mr-1 text-purple-400" /> {t.durationMinutes} Mins Limit</span>
+                      <span>Assigned by: {t.createdBy?.name || "HR"}</span>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t" style={{ borderColor: theme.border }}>
+                      <div>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                          t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
+                          t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
+                          t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
+                          "bg-purple-900/40 text-purple-300 border border-purple-500/30"
+                        }`}>
+                          {t.status}
+                        </span>
+                        {t.verdict && (
+                          <span className={`ml-2 text-xs px-2 py-0.5 rounded font-bold uppercase ${
+                            t.verdict === "passed" ? "text-green-400" : "text-red-400"
+                          }`}>
+                            ({t.verdict})
+                          </span>
+                        )}
+                      </div>
+
+                      {t.status !== "submitted" && t.status !== "reviewed" ? (
+                        <button
+                          onClick={() => setActiveTestId(t._id)}
+                          className="px-4 py-1.5 rounded-lg text-white font-semibold text-xs flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md transition"
+                        >
+                          <FaCode size={12} /> {t.status === "in_progress" ? "Continue Test" : "Start Test (Full Screen)"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                          ✓ Test Completed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Full-Screen Coding Assessment Environment Modal */}
+      {activeTestId && (
+        <CodingTestView
+          testId={activeTestId}
+          onClose={() => setActiveTestId(null)}
+          onSubmitted={() => {
+            fetchMyCodingTests();
+            fetchMyApps();
+          }}
+        />
+      )}
 
       {/* Video Call Modal */}
       {videoCallRoom && (

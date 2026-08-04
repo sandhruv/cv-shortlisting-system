@@ -14,8 +14,10 @@ exports.register = async (req, res) => {
     if (password.length < 8) {
       return res.status(400).json({ message: "Password must be at least 8 characters" });
     }
-    if (role && role !== "Student") {
-      return res.status(403).json({ message: "Registration may only create Student accounts" });
+
+    const allowedRole = role === "HR" ? "HR" : "Student";
+    if (role && !["Student", "HR"].includes(role)) {
+      return res.status(403).json({ message: "Registration may only create Student or HR accounts" });
     }
 
     if (!process.env.JWT_SECRET) {
@@ -30,12 +32,21 @@ exports.register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await User.create({
+    const userPayload = {
       name,
       email,
       password: hashedPassword,
-      role: "Student",
-    });
+      role: allowedRole,
+    };
+
+    if (allowedRole === "HR") {
+      userPayload.subscriptionPlan = "trial";
+      userPayload.trialEndsAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    } else {
+      userPayload.subscriptionPlan = "inactive";
+    }
+
+    const user = await User.create(userPayload);
 
     res.status(201).json({
       message: "Registration Successful",
@@ -44,6 +55,8 @@ exports.register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        subscriptionPlan: user.subscriptionPlan,
+        trialEndsAt: user.trialEndsAt,
       },
     });
   } catch (err) {
@@ -62,6 +75,31 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
+
+    if (user.role === "HR") {
+      const now = new Date();
+      const trialEndsAt = user.trialEndsAt ? new Date(user.trialEndsAt) : null;
+      const planEndsAt = user.planEndsAt ? new Date(user.planEndsAt) : null;
+
+      if (!user.subscriptionPlan || user.subscriptionPlan === "trial") {
+        if (!trialEndsAt || now > trialEndsAt) {
+          return res.status(403).json({
+            message: "Your 3-day trial has ended. Please contact the main admin to activate a monthly or yearly plan.",
+          });
+        }
+      } else if (["monthly", "yearly"].includes(user.subscriptionPlan)) {
+        if (!planEndsAt || now > planEndsAt) {
+          return res.status(403).json({
+            message: "Your HR plan has expired. Please contact the main admin to renew it.",
+          });
+        }
+      } else if (user.subscriptionPlan === "inactive") {
+        return res.status(403).json({
+          message: "Your HR account is inactive. Please contact the main admin to activate a plan.",
+        });
+      }
+    }
+
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({ message: "Server misconfiguration: JWT secret not set" });
     }
@@ -78,6 +116,9 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        subscriptionPlan: user.subscriptionPlan,
+        trialEndsAt: user.trialEndsAt,
+        planEndsAt: user.planEndsAt,
       },
     });
   } catch (err) {

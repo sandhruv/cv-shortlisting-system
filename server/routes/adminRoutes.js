@@ -8,6 +8,7 @@ const {
   getAllUsers,
   createUser,
   updateRole,
+  updateSubscription,
   deleteUser,
   getStats,
   getAllJobs,
@@ -24,6 +25,7 @@ router.use(protect, isAdmin);
 router.get("/users", getAllUsers);
 router.post("/users", createUser);
 router.put("/users/:id/role", updateRole);
+router.put("/users/:id/subscription", updateSubscription);
 router.delete("/users/:id", deleteUser);
 
 router.get("/stats", getStats);
