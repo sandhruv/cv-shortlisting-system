@@ -15,6 +15,7 @@ import {
   FaSync,
   FaChartBar,
   FaVideo,
+  FaCode,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -31,6 +32,8 @@ import {
 } from "recharts";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
+import CompilerEmbed from "../components/CompilerEmbed";
+import ProctoringViewer from "../components/ProctoringViewer";
 
 function LpuFacultyDashboard() {
   const navigate = useNavigate();
@@ -50,6 +53,9 @@ function LpuFacultyDashboard() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [selectedResume, setSelectedResume] = useState(null);
   const [loadingResume, setLoadingResume] = useState(false);
+  const [resumeJobCtx, setResumeJobCtx] = useState({ title: "", description: "" });
+  const [aiInterviewQs, setAiInterviewQs] = useState([]);
+  const [loadingAiQs, setLoadingAiQs] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [interviewData, setInterviewData] = useState({
@@ -108,6 +114,29 @@ function LpuFacultyDashboard() {
     decision: "",
   });
 
+  // Coding Test States
+  const [codingTests, setCodingTests] = useState([]);
+  const [loadingCodingTests, setLoadingCodingTests] = useState(false);
+  const [showCodingTestModal, setShowCodingTestModal] = useState(false);
+  const [selectedAppForTest, setSelectedAppForTest] = useState(null);
+  const [codingTestForm, setCodingTestForm] = useState({
+    title: "",
+    description: "",
+    language: "python",
+    durationMinutes: 30,
+    testCases: [{ input: "Sample input", expectedOutput: "Sample output", description: "Test Case 1" }],
+  });
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showCompilerPreview, setShowCompilerPreview] = useState(false);
+  const [selectedTestForReview, setSelectedTestForReview] = useState(null);
+  const [reviewFormData, setReviewFormData] = useState({
+    score: 100,
+    hrFeedback: "",
+    verdict: "passed",
+  });
+  const [showProctoringViewer, setShowProctoringViewer] = useState(false);
+  const [proctoringTest, setProctoringTest] = useState(null);
+
   const fetchJobs = async () => {
     try {
       const res = await api.get("/jobs");
@@ -116,6 +145,92 @@ function LpuFacultyDashboard() {
       alert("Failed to fetch jobs");
     }
   };
+
+  const fetchHRCodingTests = async () => {
+    setLoadingCodingTests(true);
+    try {
+      const res = await api.get("/coding-tests/hr-tests");
+      setCodingTests(res.data);
+    } catch (err) {
+      alert("Failed to load coding tests");
+    } finally {
+      setLoadingCodingTests(false);
+    }
+  };
+
+  const openCodingTestModal = (app) => {
+    setSelectedAppForTest(app);
+    setCodingTestForm({
+      title: `${app.job?.title || "Role"} - Coding Assessment`,
+      description: "Write code to solve the problem requirements. Test cases are provided below.",
+      language: "python",
+      durationMinutes: 30,
+      testCases: [{ input: "Sample input", expectedOutput: "Sample output", description: "Test Case 1" }],
+    });
+    setShowCodingTestModal(true);
+  };
+
+  const handleCreateCodingTest = async (e) => {
+    e.preventDefault();
+    if (!selectedAppForTest) return;
+    try {
+      await api.post("/coding-tests", {
+        applicationId: selectedAppForTest._id,
+        ...codingTestForm,
+      });
+      alert("Coding test assigned to candidate successfully!");
+      setShowCodingTestModal(false);
+      setSelectedAppForTest(null);
+      if (selectedJobId) fetchApplicants(selectedJobId);
+      fetchHRCodingTests();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to assign coding test");
+    }
+  };
+
+  const openReviewModal = (test) => {
+    setSelectedTestForReview(test);
+    setReviewFormData({
+      score: test.score !== null ? test.score : 100,
+      hrFeedback: test.hrFeedback || "",
+      verdict: test.verdict || "passed",
+    });
+    setShowReviewModal(true);
+  };
+
+  const handleReviewCodingTest = async (e) => {
+    e.preventDefault();
+    if (!selectedTestForReview) return;
+    try {
+      await api.put(`/coding-tests/${selectedTestForReview._id}/review`, reviewFormData);
+      alert("Coding test reviewed and status updated!");
+      setShowReviewModal(false);
+      setSelectedTestForReview(null);
+      fetchHRCodingTests();
+      if (selectedJobId) fetchApplicants(selectedJobId);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to review coding test");
+    }
+  };
+
+  const addTestCaseRow = () => {
+    setCodingTestForm((prev) => ({
+      ...prev,
+      testCases: [...prev.testCases, { input: "", expectedOutput: "", description: "" }],
+    }));
+  };
+
+  const removeTestCaseRow = (index) => {
+    setCodingTestForm((prev) => ({
+      ...prev,
+      testCases: prev.testCases.filter((_, i) => i !== index),
+    }));
+  };
+
+  useEffect(() => {
+    fetchJobs();
+    fetchHRCodingTests();
+  }, []);
 
   const fetchApplicants = async (jobId) => {
     try {
@@ -280,9 +395,11 @@ function LpuFacultyDashboard() {
     fetchApplicants(selectedJobId || jobs[0]._id);
   };
 
-  const viewResume = async (studentId) => {
+  const viewResume = async (studentId, jobTitle = "", jobDescription = "") => {
     setLoadingResume(true);
     setShowResumeModal(true);
+    setAiInterviewQs([]);
+    setResumeJobCtx({ title: jobTitle, description: jobDescription });
     try {
       const res = await api.get(`/resume/student/${studentId}`);
       setSelectedResume(res.data);
@@ -291,6 +408,24 @@ function LpuFacultyDashboard() {
       setShowResumeModal(false);
     } finally {
       setLoadingResume(false);
+    }
+  };
+
+  const generateInterviewQs = async () => {
+    if (!selectedResume) return;
+    setLoadingAiQs(true);
+    setAiInterviewQs([]);
+    try {
+      const res = await api.post("/resume/interview-questions", {
+        resumeData: selectedResume.extractedData,
+        jobTitle: resumeJobCtx.title,
+        jobDescription: resumeJobCtx.description,
+      });
+      setAiInterviewQs(res.data.questions || []);
+    } catch (err) {
+      alert("AI generation failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoadingAiQs(false);
     }
   };
 
@@ -405,6 +540,16 @@ function LpuFacultyDashboard() {
             My Interviews
           </button>
           <button 
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "coding_tests" ? "border-b-2" : ""}`}
+            style={{ 
+              color: activeTab === "coding_tests" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "coding_tests" ? theme.gold : 'transparent'
+            }}
+            onClick={() => { setActiveTab("coding_tests"); fetchHRCodingTests(); }}
+          >
+            <FaCode className="inline mr-1" /> Coding Assessments {codingTests.length > 0 && `(${codingTests.length})`}
+          </button>
+          <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "analytics" ? "border-b-2" : ""}`}
             style={{ 
               color: activeTab === "analytics" ? theme.text : theme.textSecondary,
@@ -463,28 +608,48 @@ function LpuFacultyDashboard() {
                       <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{app.student?.name || "Unknown"}</td>
                       <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.student?.email || ""}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          app.status === "shortlisted" ? "bg-green-900/30 text-green-400" : 
-                          app.status === "rejected" ? "bg-red-900/30 text-red-400" : 
-                          "bg-yellow-900/30 text-yellow-400"
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                          app.status === "shortlisted" || app.status === "coding_test_passed" ? "bg-green-900/40 text-green-400 border border-green-500/30" : 
+                          app.status === "rejected" || app.status === "coding_test_failed" ? "bg-red-900/40 text-red-400 border border-red-500/30" : 
+                          app.status === "coding_test_assigned" ? "bg-purple-900/40 text-purple-300 border border-purple-500/30 animate-pulse" :
+                          app.status === "coding_test_submitted" ? "bg-blue-900/40 text-blue-300 border border-blue-500/30" :
+                          "bg-yellow-900/30 text-yellow-400 border border-yellow-500/30"
                         }`}>
-                          {app.status}
+                          {app.status === "coding_test_assigned" ? "Coding Test Assigned" :
+                           app.status === "coding_test_submitted" ? "Coding Test Submitted" :
+                           app.status === "coding_test_passed" ? "Coding Test Passed ✓" :
+                           app.status === "coding_test_failed" ? "Coding Test Failed" :
+                           app.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <button onClick={() => viewResume(app.student._id)} className="hover:underline flex items-center gap-1" style={{ color: theme.gold }}>
+                        <button
+                          onClick={() => viewResume(
+                            app.student._id,
+                            app.job?.title || "",
+                            app.job?.description || ""
+                          )}
+                          className="hover:underline flex items-center gap-1"
+                          style={{ color: theme.gold }}
+                        >
                           <FaFileAlt size={14} /> View
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-6 py-4 text-sm flex items-center gap-2 flex-wrap">
                         {app.status === "shortlisted" && (
-                          <button onClick={() => openInterviewModal(app)} className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
+                          <button onClick={() => openInterviewModal(app)} className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
                             <FaCalendarAlt size={12} /> Schedule
                           </button>
                         )}
+                        <button
+                          onClick={() => openCodingTestModal(app)}
+                          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 transition text-xs flex items-center gap-1"
+                        >
+                          <FaCode size={12} /> Assign Test
+                        </button>
                         <button 
                           onClick={() => handleStatusUpdate(app._id, "shortlisted")} 
-                          className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs"
+                          className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs"
                           style={{ backgroundColor: theme.gold }}
                         >
                           Shortlist
@@ -691,28 +856,485 @@ function LpuFacultyDashboard() {
 
       {/* Resume Modal */}
       {showResumeModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: '1px solid' }}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Resume Details</h2>
-              <button onClick={() => { setShowResumeModal(false); setSelectedResume(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>✕</button>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" style={{ backdropFilter: "blur(4px)" }}>
+          <div className="rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+
+            {/* Header */}
+            <div className="flex justify-between items-center p-5 border-b" style={{ borderColor: theme.border }}>
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                  <FaFileAlt style={{ color: theme.gold }} /> Resume Details
+                </h2>
+                {resumeJobCtx.title && (
+                  <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>Job: {resumeJobCtx.title}</p>
+                )}
+              </div>
+              <button
+                onClick={() => { setShowResumeModal(false); setSelectedResume(null); setAiInterviewQs([]); }}
+                className="hover:opacity-70 text-xl"
+                style={{ color: theme.textSecondary }}
+              >✕</button>
             </div>
-            {loadingResume ? (
-              <p style={{ color: theme.textSecondary }}>Loading...</p>
-            ) : selectedResume ? (
-              <div className="space-y-2 text-sm">
-                <p><strong style={{ color: theme.gold }}>File:</strong> <span style={{ color: theme.text }}>{selectedResume.fileName}</span></p>
-                <p><strong style={{ color: theme.gold }}>Uploaded:</strong> <span style={{ color: theme.text }}>{new Date(selectedResume.createdAt).toLocaleString()}</span></p>
-                <p><strong style={{ color: theme.gold }}>Email:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.email || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Contact:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.contact_no || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Skills:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.technical_skills || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Projects:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.project_details || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Certifications:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.certifications || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Other Info:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.other_info || "Not found"}</span></p>
+
+            <div className="p-5">
+              {loadingResume ? (
+                <p className="text-center py-8" style={{ color: theme.textSecondary }}>Loading resume…</p>
+              ) : selectedResume ? (
+                <>
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-5">
+                    {[
+                      ["📄 File", selectedResume.fileName],
+                      ["📅 Uploaded", new Date(selectedResume.createdAt).toLocaleString()],
+                      ["📧 Email", selectedResume.extractedData?.email],
+                      ["📞 Contact", selectedResume.extractedData?.contact_no],
+                      ["🛠 Skills", selectedResume.extractedData?.technical_skills],
+                      ["🏆 Certifications", selectedResume.extractedData?.certifications],
+                    ].map(([label, val]) => val && val !== "Not found" && (
+                      <div key={label} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                        <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>{label}</div>
+                        <div className="text-xs" style={{ color: theme.text }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedResume.extractedData?.project_details && selectedResume.extractedData.project_details !== "Not found" && (
+                    <div className="rounded-lg p-3 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                      <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>🗂 Projects</div>
+                      <div className="text-xs" style={{ color: theme.text }}>{selectedResume.extractedData.project_details}</div>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: theme.text }}>🤖 AI Interview Questions</p>
+                        <p className="text-xs" style={{ color: theme.textSecondary }}>Auto-generated from CV + Job profile via Groq AI</p>
+                      </div>
+                      <button
+                        onClick={generateInterviewQs}
+                        disabled={loadingAiQs}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-85 disabled:opacity-50"
+                        style={{
+                          background: "linear-gradient(135deg, #5b21b6, #7c3aed)",
+                          color: "#fff",
+                          boxShadow: "0 2px 12px rgba(91,33,182,0.35)",
+                        }}
+                      >
+                        {loadingAiQs ? (
+                          <>
+                            <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                            Generating…
+                          </>
+                        ) : (
+                          <>🤖 Generate 10 Interview Q&amp;As</>
+                        )}
+                      </button>
+                    </div>
+
+                    {aiInterviewQs.length > 0 && (
+                      <div className="space-y-3 mt-3">
+                        {aiInterviewQs.map((q, i) => (
+                          <div key={i} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.border}` }}>
+                            <div className="flex items-start gap-3 p-3" style={{ background: "rgba(91,33,182,0.12)" }}>
+                              <span className="text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shrink-0" style={{ background: theme.gold, color: "#000" }}>{q.no || i + 1}</span>
+                              <div className="flex-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full font-semibold mr-2" style={{
+                                  background: q.type === "Technical" ? "#1e3a5f" : q.type === "Behavioral" ? "#1a3a1a" : "#3a1a3a",
+                                  color: q.type === "Technical" ? "#60a5fa" : q.type === "Behavioral" ? "#4ade80" : "#c084fc",
+                                }}>{q.type}</span>
+                                <p className="text-sm font-semibold mt-1" style={{ color: theme.text }}>{q.question}</p>
+                              </div>
+                            </div>
+                            <div className="p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+                              <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>✅ Model Answer</p>
+                              <p className="text-xs leading-relaxed" style={{ color: theme.textSecondary }}>{q.answer}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-center py-8" style={{ color: theme.textSecondary }}>No resume data found.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+        {activeTab === "coding_tests" && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                  <FaCode className="text-purple-400" /> Faculty Coding Assessments Management
+                </h2>
+                <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                  Assign technical coding challenges to LPU students, view submission progress, and evaluate candidate solutions.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCompilerPreview(true)}
+                className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition flex items-center gap-2 shrink-0 shadow"
+              >
+                <FaCode size={14} /> Open Live Code Sandbox
+              </button>
+            </div>
+
+            {loadingCodingTests ? (
+              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>Loading coding assessments...</div>
+            ) : codingTests.length === 0 ? (
+              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+                No coding tests assigned yet. Select a student in the <strong>Applicants</strong> tab and click <strong>Assign Test</strong>.
               </div>
             ) : (
-              <p style={{ color: theme.textSecondary }}>No resume data</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {codingTests.map((t) => (
+                  <div key={t._id} className="rounded-xl border shadow-sm p-5 space-y-3 relative hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-lg" style={{ color: theme.text }}>{t.title}</h3>
+                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30">
+                        {t.language}
+                      </span>
+                    </div>
+
+                    <p className="text-xs" style={{ color: theme.textSecondary }}>
+                      Candidate: <strong style={{ color: theme.text }}>{t.student?.name || "Student"}</strong> ({t.student?.email})
+                    </p>
+
+                    <p className="text-xs" style={{ color: theme.textSecondary }}>
+                      Job Role: <strong style={{ color: theme.text }}>{t.job?.title || "Role"}</strong>
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2 border-t text-xs" style={{ borderColor: theme.border }}>
+                      <div>
+                        <span className={`px-2.5 py-0.5 rounded-full font-medium ${
+                          t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
+                          t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
+                          t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
+                          "bg-purple-900/40 text-purple-300 border border-purple-500/30"
+                        }`}>
+                          {t.status}
+                        </span>
+                        {t.verdict && (
+                          <span className={`ml-2 font-bold uppercase ${t.verdict === "passed" ? "text-emerald-400" : "text-red-400"}`}>
+                            ({t.verdict})
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
+                        <button
+                          onClick={() => openReviewModal(t)}
+                          className="px-3.5 py-1.5 rounded-lg text-white font-semibold text-xs bg-purple-600 hover:bg-purple-700 transition flex items-center gap-1 shadow"
+                        >
+                          <FaEye size={12} /> {t.status === "submitted" || t.status === "reviewed" ? "Review Submission" : "View Details"}
+                        </button>
+                        <button
+                          onClick={() => { setProctoringTest(t); setShowProctoringViewer(true); }}
+                          className="px-3.5 py-1.5 rounded-lg text-white font-semibold text-xs transition flex items-center gap-1 shadow"
+                          style={{ background: t.status === "in_progress" ? "#15803d" : "#1e3a5f" }}
+                          title={t.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
+                        >
+                          📷 {t.status === "in_progress" ? "🔴 Live Cam" : `Snaps (${(t.proctorSnapshots || []).length})`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
+          </div>
+        )}
+
+      {/* Assign Coding Test Modal */}
+      {showCodingTestModal && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="rounded-2xl p-6 w-full max-w-2xl shadow-2xl my-8 border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                <FaCode className="text-purple-400" /> Assign Technical Coding Assessment
+              </h2>
+              <button onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+            </div>
+
+            <p className="text-xs mb-4 p-2.5 rounded-lg bg-purple-950/30 border border-purple-800/40 text-purple-200">
+              Assigning test to candidate: <strong>{selectedAppForTest?.student?.name}</strong> ({selectedAppForTest?.student?.email}) for role <strong>{selectedAppForTest?.job?.title}</strong>
+            </p>
+
+            <form onSubmit={handleCreateCodingTest} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-slate-300">Assessment Title</label>
+                <input
+                  type="text"
+                  required
+                  value={codingTestForm.title}
+                  onChange={(e) => setCodingTestForm({ ...codingTestForm, title: e.target.value })}
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-slate-300">Problem Description & Requirements</label>
+                <textarea
+                  rows="4"
+                  required
+                  value={codingTestForm.description}
+                  onChange={(e) => setCodingTestForm({ ...codingTestForm, description: e.target.value })}
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                  style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-slate-300">Primary Programming Language</label>
+                  <div className="flex gap-2">
+                  <select
+                    value={codingTestForm.language}
+                    onChange={(e) => setCodingTestForm({ ...codingTestForm, language: e.target.value })}
+                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500 font-semibold"
+                    style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
+                  >
+                    <option value="python">Python 3</option>
+                    <option value="javascript">JavaScript (Node.js)</option>
+                    <option value="java">Java 17</option>
+                    <option value="cpp">C++ (GCC)</option>
+                    <option value="c">C Language</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCompilerPreview(true)}
+                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition whitespace-nowrap"
+                    title="Preview student compiler"
+                  >
+                    Preview IDE
+                  </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-slate-300">Timer Limit (Minutes)</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="180"
+                    required
+                    value={codingTestForm.durationMinutes}
+                    onChange={(e) => setCodingTestForm({ ...codingTestForm, durationMinutes: parseInt(e.target.value) || 30 })}
+                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500"
+                    style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
+                  />
+                </div>
+              </div>
+
+              {/* TEST CASES MANAGEMENT */}
+              <div className="border pt-3 p-3.5 rounded-xl space-y-3" style={{ borderColor: theme.border, backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-purple-300">Sample Test Cases (Input & Expected Output)</label>
+                  <button
+                    type="button"
+                    onClick={addTestCaseRow}
+                    className="text-xs text-purple-400 hover:underline font-semibold"
+                  >
+                    + Add Test Case
+                  </button>
+                </div>
+
+                {codingTestForm.testCases.map((tc, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border space-y-2 relative" style={{ borderColor: theme.border, backgroundColor: theme.bg }}>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] font-semibold text-slate-400">Test Case #{idx + 1}</span>
+                      {codingTestForm.testCases.length > 1 && (
+                        <button type="button" onClick={() => removeTestCaseRow(idx)} className="text-red-400 text-xs hover:underline">
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Input (e.g. [1, 2, 3])"
+                        value={tc.input}
+                        onChange={(e) => {
+                          const updated = [...codingTestForm.testCases];
+                          updated[idx].input = e.target.value;
+                          setCodingTestForm({ ...codingTestForm, testCases: updated });
+                        }}
+                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border border-slate-700 text-slate-200"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Expected Output (e.g. 6)"
+                        value={tc.expectedOutput}
+                        onChange={(e) => {
+                          const updated = [...codingTestForm.testCases];
+                          updated[idx].expectedOutput = e.target.value;
+                          setCodingTestForm({ ...codingTestForm, testCases: updated });
+                        }}
+                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border border-slate-700 text-slate-200"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-3 border-t" style={{ borderColor: theme.border }}>
+                <button
+                  type="button"
+                  onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }}
+                  className="px-4 py-2 text-xs rounded-xl transition"
+                  style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-purple-600 hover:bg-purple-700 transition"
+                >
+                  Send Coding Test
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Proctoring Viewer Modal */}
+      {showProctoringViewer && proctoringTest && (
+        <ProctoringViewer
+          test={proctoringTest}
+          onClose={() => { setShowProctoringViewer(false); setProctoringTest(null); }}
+        />
+      )}
+
+      {/* Review Coding Test Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="rounded-2xl p-6 w-full max-w-3xl shadow-2xl my-8 border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                <FaCode className="text-emerald-400" /> Review Candidate's Code Submission
+              </h2>
+              <button onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-4 bg-black/30 p-3 rounded-xl border border-slate-800">
+                <div>
+                  <span className="text-slate-400 block">Candidate:</span>
+                  <span className="font-semibold text-white text-sm">{selectedTestForReview?.student?.name}</span>
+                  <span className="block text-slate-400">{selectedTestForReview?.student?.email}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">Assessment:</span>
+                  <span className="font-semibold text-white text-sm">{selectedTestForReview?.title}</span>
+                  <span className="block text-purple-300 uppercase font-mono">{selectedTestForReview?.language}</span>
+                </div>
+              </div>
+
+              {/* SUBMITTED CODE DISPLAY */}
+              <div>
+                <label className="block text-xs font-bold text-emerald-400 mb-1">Candidate's Submitted Code Solution:</label>
+                {selectedTestForReview?.submittedCode ? (
+                  <pre className="p-4 rounded-xl bg-[#0d0d18] border border-[#2d2d48] text-emerald-300 font-mono text-xs overflow-x-auto max-h-64 whitespace-pre-wrap">
+                    {selectedTestForReview.submittedCode}
+                  </pre>
+                ) : (
+                  <div className="p-4 rounded-xl bg-red-950/20 border border-red-800/40 text-red-300 italic text-center">
+                    No code solution submitted yet.
+                  </div>
+                )}
+              </div>
+
+              {selectedTestForReview?.submissionNotes && (
+                <div>
+                  <span className="text-slate-400 block font-semibold">Candidate Notes:</span>
+                  <p className="p-2.5 rounded-lg bg-black/30 text-slate-200">{selectedTestForReview.submissionNotes}</p>
+                </div>
+              )}
+
+              {/* HR REVIEW FORM */}
+              <form onSubmit={handleReviewCodingTest} className="space-y-4 pt-3 border-t border-slate-800">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-slate-300">Score (0 - 100)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={reviewFormData.score}
+                      onChange={(e) => setReviewFormData({ ...reviewFormData, score: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold mb-1 text-slate-300">Verdict & Shortlist Action</label>
+                    <select
+                      value={reviewFormData.verdict}
+                      onChange={(e) => setReviewFormData({ ...reviewFormData, verdict: e.target.value })}
+                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white font-semibold"
+                    >
+                      <option value="passed">✅ PASSED (Shortlist for Interview)</option>
+                      <option value="failed">❌ FAILED</option>
+                      <option value="resubmit">🔄 Request Resubmission</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1 text-slate-300">Faculty Review Feedback / Notes</label>
+                  <textarea
+                    rows="3"
+                    placeholder="Feedback comments for candidate performance..."
+                    value={reviewFormData.hrFeedback}
+                    onChange={(e) => setReviewFormData({ ...reviewFormData, hrFeedback: e.target.value })}
+                    className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }}
+                    className="px-4 py-2 text-xs rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 transition"
+                  >
+                    Save Review & Update Candidate
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Embedded Live Code IDE Modal */}
+      {showCompilerPreview && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-5xl h-[85vh] rounded-2xl flex flex-col overflow-hidden border shadow-2xl" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="px-5 py-3 border-b flex justify-between items-center bg-black/40" style={{ borderColor: theme.border }}>
+              <div className="flex items-center gap-2">
+                <FaCode className="text-purple-400 text-lg" />
+                <h3 className="font-bold text-sm text-white">Faculty Live Code Compiler & Assessment Playground</h3>
+              </div>
+              <button onClick={() => setShowCompilerPreview(false)} className="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+            <div className="flex-1 p-3 overflow-hidden">
+              <CompilerEmbed
+                language="python"
+                title="Faculty Coding Playground"
+                subtitle="Live Environment Sandbox"
+                hrName={currentUser?.name || "LPU Faculty"}
+                iframeHeight={540}
+              />
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-﻿const Resume = require("../models/Resume");
+const Resume = require("../models/Resume");
 const User = require("../models/User");
 const fs = require("fs");
 const path = require("path");
@@ -167,5 +167,91 @@ exports.getResumeByStudent = async (req, res) => {
     res.json(resume);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Generate AI Interview Questions from Resume + Job Profile ───────────────
+exports.generateInterviewQuestions = async (req, res) => {
+  try {
+    const { resumeData, jobTitle, jobDescription } = req.body;
+
+    if (!resumeData) {
+      return res.status(400).json({ message: "resumeData is required" });
+    }
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) {
+      return res.status(500).json({ message: "GROQ_API_KEY not configured on server" });
+    }
+
+    // Build rich context from extracted resume fields
+    const cvContext = [
+      resumeData.technical_skills && `Technical Skills: ${resumeData.technical_skills}`,
+      resumeData.project_details  && `Projects: ${resumeData.project_details}`,
+      resumeData.certifications   && `Certifications: ${resumeData.certifications}`,
+      resumeData.other_info       && `Other Info: ${resumeData.other_info}`,
+    ].filter(Boolean).join("\n");
+
+    const jobContext = [
+      jobTitle       && `Job Title: ${jobTitle}`,
+      jobDescription && `Job Description: ${jobDescription}`,
+    ].filter(Boolean).join("\n");
+
+    const prompt = `You are an expert technical interviewer at a top tech company.
+
+Based on the candidate's CV and the job profile below, generate exactly 10 insightful interview questions with model answers.
+
+Mix behavioral (2-3), technical skill-based (4-5), and project-based (2-3) questions. Make questions specific to the candidate's actual skills and the job requirements.
+
+CV Summary:
+${cvContext || "General software engineering background"}
+
+Job Profile:
+${jobContext || "Software Engineering role"}
+
+Return ONLY valid JSON in this exact format (no markdown, no extra text):
+{
+  "questions": [
+    {
+      "no": 1,
+      "type": "Technical",
+      "question": "...",
+      "answer": "..."
+    }
+  ]
+}`;
+
+    const response = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert interviewer. Return ONLY valid JSON arrays of interview questions and answers. No markdown, no extra text.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.6,
+        max_tokens: 3000,
+        response_format: { type: "json_object" },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 30000,
+      }
+    );
+
+    const content = response.data.choices[0].message.content;
+    const jsonStr = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const parsed = JSON.parse(jsonStr);
+
+    res.json({ questions: parsed.questions || [] });
+  } catch (err) {
+    console.error("❌ Interview Q generation error:", err?.response?.data || err.message);
+    res.status(500).json({ message: "AI generation failed: " + (err?.response?.data?.error?.message || err.message) });
   }
 };

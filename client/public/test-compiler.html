@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Compiler · Test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(160deg, #1e1e2f 0%, #0b0b12 50%, #1a1020 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+    }
+    .page-header {
+      width: 100%;
+      max-width: 1100px;
+      margin-bottom: 20px;
+      color: #f0f0ff;
+    }
+    .page-header .eyebrow {
+      color: #a78bfa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .page-header h1 { font-size: 24px; font-weight: 600; margin-top: 6px; }
+    .page-header p { color: #8888a8; font-size: 13px; margin-top: 8px; line-height: 1.6; max-width: 640px; }
+    .compiler-card {
+      width: 100%;
+      max-width: 1100px;
+      background: #2d2d44;
+      border-radius: 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+    .compiler-card:hover { box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7); }
+    .compiler-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      background: #25253a;
+      border-bottom: 1px solid #3e3e5a;
+      gap: 12px;
+    }
+    .compiler-header h2 {
+      color: #f0f0ff;
+      font-weight: 500;
+      font-size: 22px;
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .compiler-header h2 i { color: #a78bfa; font-size: 24px; }
+    .meta { font-size: 12px; color: #9696b0; margin-top: 6px; }
+    .lang-selector { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .lang-selector label { color: #b0b0d0; font-weight: 400; font-size: 14px; }
+    .lang-selector select {
+      background: #1e1e32;
+      color: #e8e8ff;
+      border: 1px solid #4a4a6a;
+      border-radius: 40px;
+      padding: 10px 40px 10px 18px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a78bfa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    .lang-selector select:hover { border-color: #7c6df0; }
+    .lang-selector select:focus {
+      border-color: #a78bfa;
+      box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+    }
+    .reload-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid #4a4a6a; background: #1e1e32; color: #a78bfa;
+      cursor: pointer;
+    }
+    .iframe-wrapper { padding: 12px; background: #1a1a2b; }
+    .compiler-iframe {
+      width: 100%;
+      height: 560px;
+      border: none;
+      border-radius: 16px;
+      background: #0f0f1a;
+      display: block;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+    .compiler-footer {
+      padding: 14px 28px 20px;
+      background: #25253a;
+      border-top: 1px solid #3a3a52;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .compiler-footer .hint {
+      color: #9696b0;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: 520px;
+      line-height: 1.45;
+    }
+    .compiler-footer .hint i { color: #7c6df0; font-size: 15px; }
+    .badge {
+      background: #3a3a5a;
+      color: #d0d0f0;
+      padding: 6px 16px;
+      border-radius: 60px;
+      font-size: 13px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge i { color: #a78bfa; font-size: 14px; }
+    @media (max-width: 640px) {
+      body { padding: 12px; }
+      .compiler-header { flex-direction: column; align-items: stretch; padding: 18px; }
+      .compiler-iframe { height: 420px; }
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #1e1e30; }
+    ::-webkit-scrollbar-thumb { background: #5a5a82; border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">CV Shortlisting System</div>
+  <h1>Code Compiler · Test</h1>
+  <p>Standalone preview for HR and students. Language changes reload the OneCompiler embed instantly.</p>
+</div>
+
+<div class="compiler-card">
+  <div class="compiler-header">
+    <div>
+      <h2><i class="fas fa-terminal"></i> Code Compiler</h2>
+      <div class="meta"><i class="fas fa-user-tie"></i> HR preview · <i class="fas fa-graduation-cap"></i> Student sandbox</div>
+    </div>
+    <div class="lang-selector">
+      <label for="compilerLang"><i class="fas fa-code"></i> Language</label>
+      <select id="compilerLang" onchange="changeCompilerLanguage(this.value)">
+        <option value="python">Python</option>
+        <option value="java">Java</option>
+        <option value="cpp">C++</option>
+        <option value="javascript">JavaScript</option>
+        <option value="c">C</option>
+        <option value="go">Go</option>
+        <option value="rust">Rust</option>
+        <option value="php">PHP</option>
+        <option value="ruby">Ruby</option>
+        <option value="swift">Swift</option>
+        <option value="kotlin">Kotlin</option>
+        <option value="typescript">TypeScript</option>
+      </select>
+      <button type="button" class="reload-btn" onclick="reloadCompiler()" title="Reload"><i class="fas fa-rotate-right"></i></button>
+    </div>
+  </div>
+
+  <div class="iframe-wrapper">
+    <iframe id="compilerIframe" class="compiler-iframe" src="https://onecompiler.com/embed/python" title="Online Compiler"></iframe>
+  </div>
+
+  <div class="compiler-footer">
+    <span class="hint">
+      <i class="fas fa-play-circle"></i>
+      Write & run your code — results appear instantly. Copy final solution into the assessment submission panel for HR.
+    </span>
+    <span class="badge"><i class="fas fa-rotate-right"></i> onecompiler.com</span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const iframe = document.getElementById('compilerIframe');
+    const langSelect = document.getElementById('compilerLang');
+    let currentLang = 'python';
+
+    window.changeCompilerLanguage = function(lang) {
+      if (!lang || lang === currentLang) return;
+      currentLang = lang;
+      iframe.src = 'https://onecompiler.com/embed/' + lang;
+    };
+
+    window.reloadCompiler = function() {
+      iframe.src = 'https://onecompiler.com/embed/' + currentLang + '?t=' + Date.now();
+    };
+
+    const initialLang = langSelect.value || 'python';
+    if (initialLang !== 'python') {
+      iframe.src = 'https://onecompiler.com/embed/' + initialLang;
+      currentLang = initialLang;
+    }
+
+    iframe.addEventListener('error', function() {
+      console.warn('Compiler iframe failed to load. Check network.');
+    });
+  })();
+</script>
+
+</body>
+</html>

@@ -407,23 +407,49 @@ function StudentDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Location</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Applied On</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions / Assessment</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: theme.border }}>
-                  {myApps.map((app) => (
-                    <tr key={app._id}>
-                      <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{app.job.title}</td>
-                      <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.job.location}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          app.status === "shortlisted" ? "bg-green-900/30 text-green-400" : 
-                          app.status === "rejected" ? "bg-red-900/30 text-red-400" : 
-                          "bg-yellow-900/30 text-yellow-400"
-                        }`}>{app.status}</span>
-                      </td>
-                      <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(app.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
+                  {myApps.map((app) => {
+                    const assignedTest = codingTests.find((t) => t.application === app._id || t.application?._id === app._id);
+                    return (
+                      <tr key={app._id}>
+                        <td className="px-6 py-4 text-sm font-medium" style={{ color: theme.text }}>{app.job?.title || "Role"}</td>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.job?.location || "Remote"}</td>
+                        <td className="px-6 py-4">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                            app.status === "shortlisted" || app.status === "coding_test_passed" ? "bg-green-900/40 text-green-400 border border-green-500/30" : 
+                            app.status === "rejected" || app.status === "coding_test_failed" ? "bg-red-900/40 text-red-400 border border-red-500/30" : 
+                            app.status === "coding_test_assigned" ? "bg-purple-900/40 text-purple-300 border border-purple-500/30 animate-pulse" :
+                            app.status === "coding_test_submitted" ? "bg-blue-900/40 text-blue-300 border border-blue-500/30" :
+                            "bg-yellow-900/30 text-yellow-400 border border-yellow-500/30"
+                          }`}>
+                            {app.status === "coding_test_assigned" ? "Coding Test Assigned" :
+                             app.status === "coding_test_submitted" ? "Coding Test Submitted" :
+                             app.status === "coding_test_passed" ? "Coding Test Passed ✓" :
+                             app.status === "coding_test_failed" ? "Coding Test Failed" :
+                             app.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(app.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-right">
+                          {app.status === "coding_test_assigned" && assignedTest ? (
+                            <button
+                              onClick={() => {
+                                setActiveTestId(assignedTest._id);
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-white font-medium text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow transition flex items-center gap-1.5 ml-auto"
+                            >
+                              <FaCode size={12} /> Start Assessment
+                            </button>
+                          ) : (
+                            <span className="text-xs" style={{ color: theme.textSecondary }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -561,7 +587,22 @@ function StudentDashboard() {
 
         {activeTab === "coding_tests" && (
           <div>
-            <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Assigned Coding Assessments</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 p-4 rounded-xl border bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-transparent" style={{ borderColor: theme.border }}>
+              <div>
+                <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: theme.text }}>
+                  <FaCode className="text-purple-400" /> Assigned Coding Assessments
+                </h2>
+                <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>
+                  Complete technical coding tests assigned by your LPU Faculty or HR recruiters.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/test-compiler")}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 transition shadow flex items-center gap-2 shrink-0"
+              >
+                <FaCode size={14} /> Open Practice Code Sandbox
+              </button>
+            </div>
             {codingTests.length === 0 ? (
               <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
                 No coding assessments assigned to you yet.

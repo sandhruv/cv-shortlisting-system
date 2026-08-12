@@ -33,6 +33,8 @@ import {
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 import RazorpayCheckout from "../components/RazorpayCheckout";
+import CompilerEmbed from "../components/CompilerEmbed";
+import ProctoringViewer from "../components/ProctoringViewer";
 
 function HRDashboard() {
   const navigate = useNavigate();
@@ -52,6 +54,9 @@ function HRDashboard() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [selectedResume, setSelectedResume] = useState(null);
   const [loadingResume, setLoadingResume] = useState(false);
+  const [resumeJobCtx, setResumeJobCtx] = useState({ title: "", description: "" });
+  const [aiInterviewQs, setAiInterviewQs] = useState([]);
+  const [loadingAiQs, setLoadingAiQs] = useState(false);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [interviewData, setInterviewData] = useState({
@@ -77,12 +82,15 @@ function HRDashboard() {
     testCases: [{ input: "", expectedOutput: "", description: "" }],
   });
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showCompilerPreview, setShowCompilerPreview] = useState(false);
   const [selectedTestForReview, setSelectedTestForReview] = useState(null);
   const [reviewFormData, setReviewFormData] = useState({
     score: 100,
     hrFeedback: "",
     verdict: "passed",
   });
+  const [showProctoringViewer, setShowProctoringViewer] = useState(false);
+  const [proctoringTest, setProctoringTest] = useState(null);
   const [videoCallRoom, setVideoCallRoom] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
@@ -358,9 +366,11 @@ function HRDashboard() {
     fetchApplicants(selectedJobId || jobs[0]._id);
   };
 
-  const viewResume = async (studentId) => {
+  const viewResume = async (studentId, jobTitle = "", jobDescription = "") => {
     setLoadingResume(true);
     setShowResumeModal(true);
+    setAiInterviewQs([]);
+    setResumeJobCtx({ title: jobTitle, description: jobDescription });
     try {
       const res = await api.get(`/resume/student/${studentId}`);
       setSelectedResume(res.data);
@@ -369,6 +379,24 @@ function HRDashboard() {
       setShowResumeModal(false);
     } finally {
       setLoadingResume(false);
+    }
+  };
+
+  const generateInterviewQs = async () => {
+    if (!selectedResume) return;
+    setLoadingAiQs(true);
+    setAiInterviewQs([]);
+    try {
+      const res = await api.post("/resume/interview-questions", {
+        resumeData: selectedResume.extractedData,
+        jobTitle: resumeJobCtx.title,
+        jobDescription: resumeJobCtx.description,
+      });
+      setAiInterviewQs(res.data.questions || []);
+    } catch (err) {
+      alert("AI generation failed: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoadingAiQs(false);
     }
   };
 
@@ -580,7 +608,15 @@ function HRDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <button onClick={() => viewResume(app.student._id)} className="hover:underline flex items-center gap-1" style={{ color: theme.gold }}>
+                        <button
+                          onClick={() => viewResume(
+                            app.student._id,
+                            app.job?.title || "",
+                            app.job?.description || ""
+                          )}
+                          className="hover:underline flex items-center gap-1"
+                          style={{ color: theme.gold }}
+                        >
                           <FaFileAlt size={14} /> View
                         </button>
                       </td>
@@ -784,13 +820,21 @@ function HRDashboard() {
                             <span className="text-xs text-gray-500">Pending Review</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm">
+                        <td className="px-6 py-4 text-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                           <button
                             onClick={() => openReviewModal(t)}
                             className="text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium"
                             style={{ backgroundColor: theme.gold }}
                           >
-                            <FaEye size={12} /> Review Code Solution
+                            <FaEye size={12} /> Review Code
+                          </button>
+                          <button
+                            onClick={() => { setProctoringTest(t); setShowProctoringViewer(true); }}
+                            className="text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium"
+                            style={{ background: t.status === "in_progress" ? "#15803d" : "#1e3a5f" }}
+                            title={t.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
+                          >
+                            📷 {t.status === "in_progress" ? "🔴 Live" : `Snaps (${(t.proctorSnapshots || []).length})`}
                           </button>
                         </td>
                       </tr>
@@ -891,28 +935,114 @@ function HRDashboard() {
 
       {/* Resume Modal */}
       {showResumeModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: '1px solid' }}>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Resume Details</h2>
-              <button onClick={() => { setShowResumeModal(false); setSelectedResume(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>✕</button>
-            </div>
-            {loadingResume ? (
-              <p style={{ color: theme.textSecondary }}>Loading...</p>
-            ) : selectedResume ? (
-              <div className="space-y-2 text-sm">
-                <p><strong style={{ color: theme.gold }}>File:</strong> <span style={{ color: theme.text }}>{selectedResume.fileName}</span></p>
-                <p><strong style={{ color: theme.gold }}>Uploaded:</strong> <span style={{ color: theme.text }}>{new Date(selectedResume.createdAt).toLocaleString()}</span></p>
-                <p><strong style={{ color: theme.gold }}>Email:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.email || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Contact:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.contact_no || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Skills:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.technical_skills || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Projects:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.project_details || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Certifications:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.certifications || "Not found"}</span></p>
-                <p><strong style={{ color: theme.gold }}>Other Info:</strong> <span style={{ color: theme.text }}>{selectedResume.extractedData?.other_info || "Not found"}</span></p>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" style={{ backdropFilter: "blur(4px)" }}>
+          <div className="rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+
+            {/* Header */}
+            <div className="flex justify-between items-center p-5 border-b" style={{ borderColor: theme.border }}>
+              <div>
+                <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
+                  <FaFileAlt style={{ color: theme.gold }} /> Resume Details
+                </h2>
+                {resumeJobCtx.title && (
+                  <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>Job: {resumeJobCtx.title}</p>
+                )}
               </div>
-            ) : (
-              <p style={{ color: theme.textSecondary }}>No resume data</p>
-            )}
+              <button
+                onClick={() => { setShowResumeModal(false); setSelectedResume(null); setAiInterviewQs([]); }}
+                className="hover:opacity-70 text-xl"
+                style={{ color: theme.textSecondary }}
+              >✕</button>
+            </div>
+
+            <div className="p-5">
+              {loadingResume ? (
+                <p className="text-center py-8" style={{ color: theme.textSecondary }}>Loading resume…</p>
+              ) : selectedResume ? (
+                <>
+                  {/* CV Data */}
+                  <div className="grid grid-cols-2 gap-3 text-sm mb-5">
+                    {[
+                      ["📄 File", selectedResume.fileName],
+                      ["📅 Uploaded", new Date(selectedResume.createdAt).toLocaleString()],
+                      ["📧 Email", selectedResume.extractedData?.email],
+                      ["📞 Contact", selectedResume.extractedData?.contact_no],
+                      ["🛠 Skills", selectedResume.extractedData?.technical_skills],
+                      ["🏆 Certifications", selectedResume.extractedData?.certifications],
+                    ].map(([label, val]) => val && val !== "Not found" && (
+                      <div key={label} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                        <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>{label}</div>
+                        <div className="text-xs" style={{ color: theme.text }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {selectedResume.extractedData?.project_details && selectedResume.extractedData.project_details !== "Not found" && (
+                    <div className="rounded-lg p-3 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                      <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>🗂 Projects</div>
+                      <div className="text-xs" style={{ color: theme.text }}>{selectedResume.extractedData.project_details}</div>
+                    </div>
+                  )}
+
+                  {/* AI Interview Questions Button */}
+                  <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: theme.text }}>🤖 AI Interview Questions</p>
+                        <p className="text-xs" style={{ color: theme.textSecondary }}>Generated from CV + Job profile via Groq AI</p>
+                      </div>
+                      <button
+                        onClick={generateInterviewQs}
+                        disabled={loadingAiQs}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-85 disabled:opacity-50"
+                        style={{
+                          background: `linear-gradient(135deg, #8B1A1A, #c4831a)`,
+                          color: "#fff",
+                          boxShadow: "0 2px 12px rgba(139,26,26,0.35)",
+                        }}
+                      >
+                        {loadingAiQs ? (
+                          <>
+                            <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                            Generating…
+                          </>
+                        ) : (
+                          <>
+                            🤖 Generate 10 Interview Q&amp;As
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Questions List */}
+                    {aiInterviewQs.length > 0 && (
+                      <div className="space-y-3 mt-3">
+                        {aiInterviewQs.map((q, i) => (
+                          <div key={i} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.border}` }}>
+                            <div className="flex items-start gap-3 p-3" style={{ background: "rgba(139,26,26,0.12)" }}>
+                              <span className="text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shrink-0" style={{ background: theme.gold, color: "#000" }}>{q.no || i + 1}</span>
+                              <div className="flex-1">
+                                <span className="text-xs px-2 py-0.5 rounded-full font-semibold mr-2" style={{
+                                  background: q.type === "Technical" ? "#1e3a5f" : q.type === "Behavioral" ? "#1a3a1a" : "#3a1a3a",
+                                  color: q.type === "Technical" ? "#60a5fa" : q.type === "Behavioral" ? "#4ade80" : "#c084fc",
+                                }}>{q.type}</span>
+                                <p className="text-sm font-semibold mt-1" style={{ color: theme.text }}>{q.question}</p>
+                              </div>
+                            </div>
+                            <div className="p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+                              <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>✅ Model Answer</p>
+                              <p className="text-xs leading-relaxed" style={{ color: theme.textSecondary }}>{q.answer}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-center py-8" style={{ color: theme.textSecondary }}>No resume data found.</p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1224,10 +1354,11 @@ function HRDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold mb-1 text-slate-300">Programming Language</label>
+                  <div className="flex gap-2">
                   <select
                     value={codingTestForm.language}
                     onChange={(e) => setCodingTestForm({ ...codingTestForm, language: e.target.value })}
-                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500 capitalize"
+                    className="flex-1 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500 capitalize"
                     style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                   >
                     <option value="python">Python</option>
@@ -1243,6 +1374,15 @@ function HRDashboard() {
                     <option value="kotlin">Kotlin</option>
                     <option value="typescript">TypeScript</option>
                   </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCompilerPreview(true)}
+                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition whitespace-nowrap"
+                    title="Preview student compiler"
+                  >
+                    Preview IDE
+                  </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1 text-slate-300">Timer Limit (Minutes)</label>
@@ -1329,6 +1469,14 @@ function HRDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Proctoring Viewer Modal */}
+      {showProctoringViewer && proctoringTest && (
+        <ProctoringViewer
+          test={proctoringTest}
+          onClose={() => { setShowProctoringViewer(false); setProctoringTest(null); }}
+        />
       )}
 
       {/* Review Coding Test Modal */}
@@ -1433,6 +1581,41 @@ function HRDashboard() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Compiler preview (student view) */}
+      {showCompilerPreview && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4 overflow-y-auto">
+          <div className="w-full max-w-5xl my-6">
+            <div className="flex justify-between items-center mb-3 px-1">
+              <div>
+                <h3 className="text-lg font-bold text-white">Student Compiler Preview</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Language: <span className="text-purple-300 font-mono uppercase">{codingTestForm.language}</span>
+                  {selectedAppForTest?.student?.name && (
+                    <> · Candidate: <span className="text-slate-200">{selectedAppForTest.student.name}</span></>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCompilerPreview(false)}
+                className="text-slate-400 hover:text-white text-xl px-2"
+              >
+                ✕
+              </button>
+            </div>
+            <CompilerEmbed
+              language={codingTestForm.language}
+              onLanguageChange={(lang) => setCodingTestForm((prev) => ({ ...prev, language: lang }))}
+              title="Code Compiler"
+              subtitle={codingTestForm.title || "Preview before sending assessment"}
+              hrName={currentUser?.name || "HR"}
+              candidateName={selectedAppForTest?.student?.name}
+              iframeHeight={520}
+            />
           </div>
         </div>
       )}

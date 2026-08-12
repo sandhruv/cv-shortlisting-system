@@ -24,6 +24,7 @@ const resumeRoutes = require("./routes/resumeRoutes");
 const interviewRoutes = require("./routes/interviewRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const codingTestRoutes = require("./routes/codingTestRoutes");
+const compileRoutes    = require("./routes/compileRoutes");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
@@ -86,8 +87,9 @@ app.use(cors({
 }));
 app.use(limiter);
 app.use(hpp());
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "10mb" }));
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentRoutes);
@@ -97,6 +99,7 @@ app.use("/api/resume", resumeRoutes);
 app.use("/api/interviews", interviewRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/coding-tests", codingTestRoutes);
+app.use("/api/compile",      compileRoutes);
 
 app.get("/api/profile", protect, (req, res) => {
   res.json({
@@ -111,6 +114,18 @@ if (fs.existsSync(clientDistPath)) {
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
+});
+
+app.head("/api/health", (req, res) => {
+  res.status(200).end();
+});
+
+app.head("/api/head", (req, res) => {
+  res.status(200).end();
+});
+
+app.get("/api/head", (req, res) => {
+  res.json({ status: "ok", message: "HEAD route active" });
 });
 
 app.get(/^(?!\/api\/).*/, (req, res) => {
@@ -187,6 +202,17 @@ io.on("connection", (socket) => {
   socket.on("reaction", ({ roomId, emoji }) => {
     if (!roomId || !emoji) return;
     socket.to(roomId).emit("reaction", { emoji });
+  });
+
+  // Live camera proctoring
+  socket.on("join-proctor", ({ testId }) => {
+    if (!testId) return;
+    socket.join(`proctor-${testId}`);
+  });
+
+  socket.on("proctor-frame", ({ testId, frame }) => {
+    if (!testId || !frame) return;
+    socket.to(`proctor-${testId}`).emit("proctor-frame", { testId, frame, timestamp: Date.now() });
   });
 
   socket.on("disconnect", () => {

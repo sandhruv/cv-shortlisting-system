@@ -1,4 +1,4 @@
-﻿const express = require("express");
+const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
 const multer = require("multer");
@@ -32,6 +32,7 @@ const {
   uploadCV,
   getMyResume,
   getResumeByStudent,
+  generateInterviewQuestions,
 } = require("../controllers/resumeController");
 
 router.use(protect);
@@ -39,5 +40,6 @@ router.use(protect);
 router.post("/upload", upload.single("resume"), uploadCV);
 router.get("/me", getMyResume);
 router.get("/student/:studentId", getResumeByStudent);
+router.post("/interview-questions", generateInterviewQuestions);
 
 module.exports = router;

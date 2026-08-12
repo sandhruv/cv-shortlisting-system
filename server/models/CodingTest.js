@@ -26,6 +26,12 @@ const codingTestSchema = new mongoose.Schema(
     submissionNotes: { type: String, default: "" },
     startedAt: { type: Date, default: null },
     submittedAt: { type: Date, default: null },
+    proctorSnapshots: [
+      {
+        imagePath: { type: String, required: true },
+        capturedAt: { type: Date, default: Date.now },
+      },
+    ],
     score: { type: Number, default: null },
     hrFeedback: { type: String, default: "" },
     verdict: {

@@ -10,6 +10,7 @@ const {
   startTest,
   submitTest,
   reviewTest,
+  uploadSnapshot,
 } = require("../controllers/codingTestController");
 
 router.use(protect);
@@ -21,5 +22,6 @@ router.get("/:id", getTestById);
 router.put("/:id/start", startTest);
 router.put("/:id/submit", submitTest);
 router.put("/:id/review", isHRorAdmin, reviewTest);
+router.put("/:id/snapshot", uploadSnapshot);
 
 module.exports = router;

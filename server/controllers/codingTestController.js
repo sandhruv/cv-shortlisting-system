@@ -193,3 +193,44 @@ exports.reviewTest = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// Upload periodic proctoring camera snapshot
+exports.uploadSnapshot = async (req, res) => {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const { imageBase64 } = req.body;
+
+    const test = await CodingTest.findById(req.params.id);
+    if (!test) return res.status(404).json({ message: "Test not found" });
+
+    if (!imageBase64) {
+      return res.status(400).json({ message: "No image data provided" });
+    }
+
+    const uploadsDir = path.join(__dirname, "../uploads/proctoring", req.params.id);
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+    const filename = `snapshot_${Date.now()}.jpg`;
+    const filePath = path.join(uploadsDir, filename);
+
+    fs.writeFileSync(filePath, buffer);
+
+    const relativePath = `/uploads/proctoring/${req.params.id}/${filename}`;
+    test.proctorSnapshots.push({
+      imagePath: relativePath,
+      capturedAt: new Date(),
+    });
+
+    await test.save();
+
+    res.json({ message: "Snapshot saved", relativePath, totalSnapshots: test.proctorSnapshots.length });
+  } catch (err) {
+    console.error("❌ Error saving snapshot:", err);
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -9,6 +9,7 @@ import LpuLogin from "./pages/LpuLogin";
 import LpuAdminDashboard from "./pages/LpuAdminDashboard";
 import LpuFacultyDashboard from "./pages/LpuFacultyDashboard";
 import LpuStudentDashboard from "./pages/LpuStudentDashboard";
+import TestCompilerPage from "./pages/TestCompilerPage";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/lpu-admin" element={<LpuAdminDashboard />} />
         <Route path="/lpu-faculty" element={<LpuFacultyDashboard />} />
         <Route path="/lpu-student" element={<LpuStudentDashboard />} />
+        <Route path="/test-compiler" element={<TestCompilerPage />} />
       </Routes>
     </BrowserRouter>
   );
