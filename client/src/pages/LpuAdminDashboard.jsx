@@ -248,8 +248,8 @@ function LpuAdminDashboard() {
       <div className="max-w-6xl mx-auto">
         <header className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-3">
-            <FaBuilding className="text-3xl text-[#ff6b2b]" />
-            <h1 className="text-3xl font-bold">LPU Admin Dashboard</h1>
+            <img src="/vettora-logo.png" alt="Vettora Logo" className="h-10 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+            <span className="text-[#ff6b2b] text-xl font-bold">LPU Admin</span>
           </div>
           <button onClick={handleLogout} className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20">
             Logout

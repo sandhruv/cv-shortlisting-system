@@ -448,13 +448,8 @@ function AdminDashboard() {
       {/* Navbar */}
       <header className="relative z-10 bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-[#d4af37] to-[#b8860b] rounded-xl flex items-center justify-center shadow-lg shadow-[#d4af37]/20">
-            <FaBuilding className="text-[#0d131f] text-lg" />
-          </div>
-          <span className="text-xl font-semibold text-white tracking-tight">
-            Nexus<span className="text-[#d4af37]">Corp</span>
-          </span>
-          <span className="ml-3 text-xs font-medium text-white/40 bg-white/10 px-2 py-0.5 rounded-full">Admin</span>
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+          <span className="ml-2 text-xs font-medium text-white/40 bg-white/10 px-2 py-0.5 rounded-full">Admin</span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
           <FaSignOutAlt size={16} /> Sign out

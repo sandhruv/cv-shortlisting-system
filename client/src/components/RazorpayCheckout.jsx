@@ -28,7 +28,7 @@ function RazorpayCheckout({ user, plan, amount, onSuccess, onCancel }) {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
         amount: data.order.amount,
         currency: data.order.currency,
-        name: "NexusCorp HR Subscription",
+        name: "Vettora HR Subscription",
         description: `${plan === "yearly" ? "Yearly" : "Monthly"} HR plan`,
         order_id: data.order.id,
         handler: async function (paymentResponse) {

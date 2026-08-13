@@ -199,14 +199,9 @@ function StudentDashboard() {
     <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
       <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm" style={{ backgroundColor: theme.gold }}>
-            <FaBuilding className="text-white text-lg" />
-          </div>
-          <span className="text-xl font-semibold tracking-tight" style={{ color: theme.text }}>
-            {isLpuStudent ? "LPU" : "Nexus"}<span style={{ color: theme.gold }}>{isLpuStudent ? "Portal" : "Corp"}</span>
-          </span>
-          <span className="ml-3 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
-            {isLpuStudent ? "LPU Student" : "Student"}
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+          <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
+            LPU Student
           </span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>

@@ -57,13 +57,9 @@ function LpuLogin() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border border-white/5 rounded-full blur-2xl" />
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-20">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#ff6b2b] to-[#ff8c52] rounded-xl flex items-center justify-center shadow-2xl shadow-[#ff6b2b]/20 border border-white/10">
-              <FaBuilding className="text-[#0d131f] text-2xl" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">
-              LPU<span className="text-[#ff6b2b]">Portal</span>
-            </span>
+          <div className="flex items-center gap-3 mb-14">
+            <img src="/vettora-logo.png" alt="Vettora Logo" className="h-16 object-contain rounded-xl border border-white/10 p-1 bg-black/40" />
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#ff6b2b]/20 text-[#ff8c52] border border-[#ff6b2b]/30">LPU Campus Portal</span>
           </div>
 
           <h2 className="text-5xl font-bold text-white leading-[1.15] tracking-tight mb-6">

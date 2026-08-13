@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaEnvelope, FaLock, FaUserTag, FaBuilding } from "react-icons/fa";
 import api from "../services/api";
@@ -54,13 +54,8 @@ function Register() {
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: theme.bg }}>
       <div className="w-full max-w-[420px]">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: theme.gold }}>
-              <FaBuilding className="text-white text-xl" />
-            </div>
-            <span className="text-2xl font-semibold tracking-tight" style={{ color: theme.text }}>
-              Nexus<span style={{ color: theme.gold }}>Corp</span>
-            </span>
+          <div className="flex items-center justify-center mb-4">
+            <img src="/vettora-logo.png" alt="Vettora Logo" className="h-16 object-contain rounded-xl shadow-lg border border-white/10 p-1 bg-black/40" />
           </div>
           <p className="text-xs font-medium uppercase tracking-widest" style={{ color: theme.textSecondary }}>
             Create your account
@@ -215,7 +210,7 @@ function Register() {
 
         <div className="text-center mt-6">
           <p className="text-xs tracking-wide" style={{ color: theme.textSecondary }}>
-            &copy; {new Date().getFullYear()} NexusCorp. All rights reserved.
+            &copy; {new Date().getFullYear()} Vettora. All rights reserved.
           </p>
         </div>
       </div>
