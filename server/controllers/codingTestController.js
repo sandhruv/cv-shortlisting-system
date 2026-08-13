@@ -2,6 +2,11 @@ const CodingTest = require("../models/CodingTest");
 const Application = require("../models/Application");
 const Job = require("../models/Job");
 
+// ── Rate limiting map for submissions (in-memory) ───────────────
+const submissionAttempts = new Map();
+const SUBMISSION_COOLDOWN_MS = 10000; // 10 seconds between submissions
+const MAX_SUBMISSIONS_PER_TEST = 5;   // Max submission attempts per test
+
 // HR creates & assigns a coding test to a student application
 exports.createCodingTest = async (req, res) => {
   try {
@@ -105,7 +110,7 @@ exports.getTestById = async (req, res) => {
   }
 };
 
-// Student starts the test
+// Student starts the test — records IP address
 exports.startTest = async (req, res) => {
   try {
     const test = await CodingTest.findById(req.params.id);
@@ -114,6 +119,15 @@ exports.startTest = async (req, res) => {
     if (test.student.toString() !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
+
+    // Prevent re-starting a submitted or reviewed test
+    if (test.status === "submitted" || test.status === "reviewed") {
+      return res.status(400).json({ message: "Test already submitted" });
+    }
+
+    // Record IP address for security tracking
+    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+    test.ipAddress = ipAddress;
 
     if (!test.startedAt) {
       test.startedAt = new Date();
@@ -127,10 +141,10 @@ exports.startTest = async (req, res) => {
   }
 };
 
-// Student submits code solution
+// Student submits code solution — with comprehensive security validation
 exports.submitTest = async (req, res) => {
   try {
-    const { submittedCode, submissionNotes } = req.body;
+    const { submittedCode, submissionNotes, antiCheatLog, browserFingerprint, sessionDuration } = req.body;
     const test = await CodingTest.findById(req.params.id);
 
     if (!test) return res.status(404).json({ message: "Test not found" });
@@ -138,10 +152,106 @@ exports.submitTest = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Prevent double submission
+    if (test.status === "submitted" || test.status === "reviewed") {
+      return res.status(400).json({ message: "Test already submitted" });
+    }
+
+    // ── Server-side time validation ──────────────────────────────
+    if (test.startedAt) {
+      const elapsed = (Date.now() - new Date(test.startedAt).getTime()) / 1000;
+      const minTimeSec = 30; // Minimum 30 seconds for a valid submission
+      if (elapsed < minTimeSec) {
+        return res.status(400).json({
+          message: `Test must be attempted for at least ${minTimeSec} seconds before submission`,
+        });
+      }
+    }
+
+    // ── Submission rate limiting ─────────────────────────────────
+    const rateKey = `${test._id}_${req.user.id}`;
+    const lastAttempt = submissionAttempts.get(rateKey);
+    const now = Date.now();
+    if (lastAttempt && (now - lastAttempt.time) < SUBMISSION_COOLDOWN_MS) {
+      const waitSec = Math.ceil((SUBMISSION_COOLDOWN_MS - (now - lastAttempt.time)) / 1000);
+      return res.status(429).json({
+        message: `Please wait ${waitSec} seconds before submitting again`,
+      });
+    }
+    if (lastAttempt && lastAttempt.count >= MAX_SUBMISSIONS_PER_TEST) {
+      return res.status(429).json({
+        message: `Maximum submission attempts (${MAX_SUBMISSIONS_PER_TEST}) reached for this test`,
+      });
+    }
+    submissionAttempts.set(rateKey, {
+      time: now,
+      count: (lastAttempt?.count || 0) + 1,
+    });
+
+    // ── Store IP address ─────────────────────────────────────────
+    const ipAddress = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+
+    // ── Calculate total violations ───────────────────────────────
+    let totalViolations = 0;
+    if (antiCheatLog) {
+      totalViolations = (antiCheatLog.warnings || 0)
+        + (antiCheatLog.tabSwitches || 0)
+        + (antiCheatLog.rightClickAttempts || 0)
+        + (antiCheatLog.clipboardAttempts || 0)
+        + (antiCheatLog.devToolsOpened || 0)
+        + (antiCheatLog.keyboardBlockAttempts || 0)
+        + (antiCheatLog.mouseLeaveCount || 0)
+        + (antiCheatLog.screenshotAttempts || 0);
+    }
+
+    // ── Update test record ───────────────────────────────────────
     test.submittedCode = submittedCode || test.submittedCode || "";
     test.submissionNotes = submissionNotes || "";
     test.submittedAt = new Date();
     test.status = "submitted";
+    test.ipAddress = test.ipAddress || ipAddress;
+
+    // Store comprehensive anti-cheat data
+    if (antiCheatLog) {
+      test.antiCheatLog = {
+        warnings: antiCheatLog.warnings || 0,
+        tabSwitches: antiCheatLog.tabSwitches || 0,
+        rightClickAttempts: antiCheatLog.rightClickAttempts || 0,
+        clipboardAttempts: antiCheatLog.clipboardAttempts || 0,
+        devToolsOpened: antiCheatLog.devToolsOpened || 0,
+        keyboardBlockAttempts: antiCheatLog.keyboardBlockAttempts || 0,
+        mouseLeaveCount: antiCheatLog.mouseLeaveCount || 0,
+        focusLossCount: antiCheatLog.focusLossCount || 0,
+        codePasteCount: antiCheatLog.codePasteCount || 0,
+        fullscreenExits: antiCheatLog.fullscreenExits || 0,
+        screenshotAttempts: antiCheatLog.screenshotAttempts || 0,
+        violationTimestamps: antiCheatLog.violationTimestamps || [],
+        events: antiCheatLog.events || [],
+      };
+      test.violationCount = totalViolations;
+    }
+
+    // Store browser fingerprint
+    if (browserFingerprint) {
+      test.browserFingerprint = {
+        userAgent: browserFingerprint.userAgent || "",
+        screenResolution: browserFingerprint.screenResolution || "",
+        timezone: browserFingerprint.timezone || "",
+        language: browserFingerprint.language || "",
+        platform: browserFingerprint.platform || "",
+        cookieEnabled: browserFingerprint.cookieEnabled || false,
+        doNotTrack: browserFingerprint.doNotTrack || "",
+        hardwareConcurrency: browserFingerprint.hardwareConcurrency || 0,
+        deviceMemory: browserFingerprint.deviceMemory || 0,
+        colorDepth: browserFingerprint.colorDepth || 0,
+      };
+    }
+
+    // Store session duration
+    if (sessionDuration) {
+      test.sessionDuration = sessionDuration;
+    }
+
     await test.save();
 
     // Update application status
@@ -149,8 +259,18 @@ exports.submitTest = async (req, res) => {
       status: "coding_test_submitted",
     });
 
+    // ── Log security summary ─────────────────────────────────────
+    console.log(`📝 Test ${test._id} submitted by ${req.user.id}`);
+    console.log(`   IP: ${ipAddress}`);
+    console.log(`   Violations: ${totalViolations}`);
+    console.log(`   Session: ${sessionDuration || "N/A"}s`);
+    if (totalViolations > 10) {
+      console.log(`   ⚠️ HIGH VIOLATION COUNT — Test ${test._id} flagged for review`);
+    }
+
     res.json({ message: "Test submitted successfully", test });
   } catch (err) {
+    console.error("❌ Error in submitTest:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -204,8 +324,22 @@ exports.uploadSnapshot = async (req, res) => {
     const test = await CodingTest.findById(req.params.id);
     if (!test) return res.status(404).json({ message: "Test not found" });
 
+    // Only the assigned student can upload snapshots
+    if (test.student.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
     if (!imageBase64) {
       return res.status(400).json({ message: "No image data provided" });
+    }
+
+    // Rate limit snapshots: max 1 per 30 seconds
+    const lastSnapshot = test.proctorSnapshots[test.proctorSnapshots.length - 1];
+    if (lastSnapshot) {
+      const timeSinceLast = Date.now() - new Date(lastSnapshot.capturedAt).getTime();
+      if (timeSinceLast < 30000) {
+        return res.status(429).json({ message: "Snapshot rate limited" });
+      }
     }
 
     const uploadsDir = path.join(__dirname, "../uploads/proctoring", req.params.id);

@@ -13,7 +13,17 @@ const {
 } = require("../controllers/interviewController");
 
 const multer = require("multer");
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("audio/") || file.mimetype === "video/webm") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only audio files are allowed"));
+    }
+  },
+});
 
 router.use(protect);
 

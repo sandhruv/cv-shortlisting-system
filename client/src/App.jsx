@@ -5,6 +5,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import HRDashboard from "./pages/HRDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentProfile from "./pages/StudentProfile";
+import JobDetail from "./pages/JobDetail";
 import LpuLogin from "./pages/LpuLogin";
 import LpuAdminDashboard from "./pages/LpuAdminDashboard";
 import LpuFacultyDashboard from "./pages/LpuFacultyDashboard";
@@ -23,6 +25,8 @@ function App() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/hr" element={<HRDashboard />} />
         <Route path="/student" element={<StudentDashboard />} />
+        <Route path="/profile" element={<StudentProfile />} />
+        <Route path="/job/:id" element={<JobDetail />} />
         <Route path="/lpu-admin" element={<LpuAdminDashboard />} />
         <Route path="/lpu-faculty" element={<LpuFacultyDashboard />} />
         <Route path="/lpu-student" element={<LpuStudentDashboard />} />

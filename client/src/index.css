@@ -1,1 +1,229 @@
 @import "tailwindcss";
+
+/* ════════════════════════════════════════════════════════════════
+   Vettora Animated Logo Loader — Styles
+════════════════════════════════════════════════════════════════ */
+
+/* ── Overlay ──────────────────────────────────────────────────── */
+.vettora-loader-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: #080c14;
+}
+
+.vettora-loader-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+}
+
+/* ── Ambient glow blobs ───────────────────────────────────────── */
+.vettora-loader-glow {
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212,175,55,0.10) 0%, rgba(139,26,26,0.05) 40%, transparent 70%);
+  filter: blur(70px);
+  animation: vglow 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.vettora-loader-glow-2 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(139,26,26,0.08) 0%, rgba(212,175,55,0.04) 40%, transparent 70%);
+  animation-delay: 1.2s;
+  animation-duration: 4s;
+}
+
+@keyframes vglow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.12); }
+}
+
+/* ── Content container ────────────────────────────────────────── */
+.vettora-loader-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ANIMATED LOGO LETTERS
+═════════════════════════════════════════════════════════════════ */
+.vettora-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.vettora-letter {
+  display: inline-block;
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  line-height: 1;
+}
+
+.vettora-letter-inner {
+  display: inline-block;
+  background: linear-gradient(
+    160deg,
+    #f3e5ab 0%,
+    #d4af37 30%,
+    #c5a059 60%,
+    #d4af37 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Underline accent ─────────────────────────────────────────── */
+.vettora-underline {
+  width: 120px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  margin-top: 10px;
+  border-radius: 2px;
+  transform-origin: center;
+  position: relative;
+  z-index: 2;
+}
+
+/* ── Tagline ──────────────────────────────────────────────────── */
+.vettora-tagline {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(212,175,55,0.45);
+  margin-top: 14px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ORBITING RINGS
+═════════════════════════════════════════════════════════════════ */
+.vettora-orbit-wrap {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  z-index: 1;
+}
+
+.vettora-orbit-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(212,175,55,0.08);
+}
+
+.vettora-orbit-1 {
+  animation: vorbit-spin 8s linear infinite;
+  border-color: rgba(212,175,55,0.12);
+}
+
+.vettora-orbit-2 {
+  inset: 15px;
+  animation: vorbit-spin 6s linear infinite reverse;
+  border-color: rgba(212,175,55,0.08);
+  border-style: dashed;
+}
+
+.vettora-orbit-3 {
+  inset: 30px;
+  animation: vorbit-spin 10s linear infinite;
+  border-color: rgba(212,175,55,0.06);
+}
+
+.vettora-orbit-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: #d4af37;
+  border-radius: 50%;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(212,175,55,0.6), 0 0 20px rgba(212,175,55,0.3);
+  animation: vorbit-spin 8s linear infinite;
+  transform-origin: 50% 112px;
+}
+
+@keyframes vorbit-spin {
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LOADING BAR
+═════════════════════════════════════════════════════════════════ */
+.vettora-loader-bar-wrap {
+  margin-top: 30px;
+  position: relative;
+  z-index: 2;
+}
+
+.vettora-loader-bar {
+  width: 160px;
+  height: 2px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.vettora-loader-bar-fill {
+  width: 35%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  animation: vbar 1.3s ease-in-out infinite;
+}
+
+@keyframes vbar {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ── Message ──────────────────────────────────────────────────── */
+.vettora-loader-message {
+  margin-top: 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 2;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INLINE BUTTON SPINNER (reusable)
+═════════════════════════════════════════════════════════════════ */
+.vettora-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: vspin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes vspin {
+  to { transform: rotate(360deg); }
+}

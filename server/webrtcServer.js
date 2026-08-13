@@ -5,9 +5,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:3000",
+      "https://cv-shortlisting-system.onrender.com",
+      "https://cv-shortlisting-system-2.onrender.com",
+      "https://cv-shortlisting-system-3.onrender.com",
+    ],
     methods: ["GET", "POST"],
   },
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 const rooms = new Map();

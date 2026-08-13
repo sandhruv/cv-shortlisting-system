@@ -11,13 +11,18 @@ import {
   FaMapMarkerAlt,
   FaVideo,
   FaCode,
+  FaDownload,
+  FaMagic,
+  FaSpinner,
 } from "react-icons/fa";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 import CodingTestView from "../components/CodingTestView";
+import Toast, { useToast } from "../components/Toast";
 
 function StudentDashboard() {
   const navigate = useNavigate();
+  const { toasts, add: toast, remove: removeToast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [myApps, setMyApps] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -29,6 +34,13 @@ function StudentDashboard() {
   const [codingTests, setCodingTests] = useState([]);
   const [activeTestId, setActiveTestId] = useState(null);
   const [videoCallRoom, setVideoCallRoom] = useState(null);
+  const [atsGenerating, setAtsGenerating] = useState(false);
+  const [atsResume, setAtsResume] = useState(null);
+  const [showAtsPreview, setShowAtsPreview] = useState(false);
+  const [hrUsers, setHrUsers] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [selectedHrId, setSelectedHrId] = useState("");
+  const [sendMsg, setSendMsg] = useState("");
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
@@ -73,7 +85,7 @@ function StudentDashboard() {
       const res = await api.get("/jobs");
       setJobs(res.data);
     } catch (err) {
-      alert("Failed to load jobs");
+      toast("Failed to load jobs", "error");
     }
   };
 
@@ -82,7 +94,7 @@ function StudentDashboard() {
       const res = await api.get("/applications/me");
       setMyApps(res.data);
     } catch (err) {
-      alert("Failed to load applications");
+      toast("Failed to load applications", "error");
     }
   };
 
@@ -90,6 +102,7 @@ function StudentDashboard() {
     try {
       const res = await api.get("/resume/me");
       setMyResume(res.data);
+      setAtsResume(res.data.atsResume || null);
     } catch (err) {
       // No resume uploaded yet
     }
@@ -113,12 +126,48 @@ function StudentDashboard() {
     }
   };
 
+  const fetchHRUsers = async () => {
+    try {
+      const res = await api.get("/profile-submissions/hr-users");
+      setHrUsers(res.data);
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const fetchMySubmissions = async () => {
+    try {
+      const res = await api.get("/profile-submissions/mine");
+      setSubmissions(res.data);
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const handleSendProfile = async () => {
+    if (!selectedHrId) {
+      toast("Please select an HR user", "error");
+      return;
+    }
+    try {
+      await api.post("/profile-submissions/send", { hrId: selectedHrId, message: sendMsg });
+      toast("Profile sent to HR!");
+      setSelectedHrId("");
+      setSendMsg("");
+      fetchMySubmissions();
+    } catch (err) {
+      toast(err.response?.data?.message || "Failed to send profile", "error");
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
     fetchMyApps();
     fetchMyResume();
     fetchMyInterviews();
     fetchMyCodingTests();
+    fetchHRUsers();
+    fetchMySubmissions();
   }, []);
 
   const handleLogout = () => {
@@ -133,12 +182,12 @@ function StudentDashboard() {
       const validExts = [".pdf", ".doc", ".docx"];
       const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
       if (!validExts.includes(ext)) {
-        alert("Only PDF, DOC, DOCX allowed");
+        toast("Only PDF, DOC, DOCX allowed", "error");
         e.target.value = "";
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert("File must be less than 5MB");
+        toast("File must be less than 5MB", "error");
         e.target.value = "";
         return;
       }
@@ -159,11 +208,40 @@ function StudentDashboard() {
       setSelectedFile(null);
       document.getElementById("fileInput").value = "";
       fetchMyResume();
-      alert("CV uploaded and processed successfully!");
+      toast("CV uploaded and processed successfully!");
     } catch (err) {
-      alert(err.response?.data?.message || "Upload failed");
+      toast(err.response?.data?.message || "Upload failed", "error");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerateATS = async () => {
+    setAtsGenerating(true);
+    try {
+      const res = await api.post("/resume/generate-ats");
+      setAtsResume(res.data.atsResume);
+      toast("ATS-friendly resume generated!");
+    } catch (err) {
+      toast(err.response?.data?.message || "ATS generation failed", "error");
+    } finally {
+      setAtsGenerating(false);
+    }
+  };
+
+  const handleDownloadATS = async () => {
+    try {
+      const res = await api.get("/resume/download-ats", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "ATS_Resume.html");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast(err.response?.data?.message || "Download failed", "error");
     }
   };
 
@@ -197,6 +275,7 @@ function StudentDashboard() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+      <Toast toasts={toasts} remove={removeToast} />
       <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
         <div className="flex items-center gap-3">
           <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
@@ -307,6 +386,16 @@ function StudentDashboard() {
           >
             <FaCode className="inline mr-1" /> Coding Assessments {codingTests.length > 0 && `(${codingTests.length})`}
           </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "send_profile" ? "border-b-2" : ""}`}
+            style={{ 
+              color: activeTab === "send_profile" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "send_profile" ? theme.gold : 'transparent'
+            }}
+            onClick={() => setActiveTab("send_profile")}
+          >
+            <FaUpload className="inline mr-1" /> Send Profile to HR
+          </button>
         </div>
 
         {activeTab === "jobs" && (
@@ -365,15 +454,15 @@ function StudentDashboard() {
                           <button
                             onClick={async () => {
                               if (!myResume) {
-                                alert("Please upload your resume first (go to My Resume tab)");
+                                toast("Please upload your resume first (go to My Resume tab)", "error");
                                 return;
                               }
                               try {
                                 await api.post(`/applications/jobs/${job._id}/apply`);
-                                alert("Application submitted!");
+                                toast("Application submitted!");
                                 fetchMyApps();
                               } catch (err) {
-                                alert(err.response?.data?.message || "Application failed");
+                                toast(err.response?.data?.message || "Application failed", "error");
                               }
                             }}
                             className="text-white px-4 py-1 rounded text-sm transition hover:opacity-80"
@@ -480,6 +569,80 @@ function StudentDashboard() {
                     <p><strong style={{ color: theme.gold }}>Other Info:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.other_info || "Not found"}</span></p>
                   </div>
                 </details>
+
+                {/* ── ATS Resume Generator ── */}
+                <div className="mt-4 p-4 rounded-xl border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FaMagic style={{ color: theme.gold }} />
+                    <h4 className="font-semibold text-sm" style={{ color: theme.text }}>AI ATS Resume Generator</h4>
+                  </div>
+                  <p className="text-xs mb-3" style={{ color: theme.textSecondary }}>
+                    Generate an ATS-optimized version of your resume that passes automated screening systems.
+                  </p>
+
+                  {atsResume?.html ? (
+                    <div className="space-y-2">
+                      <p className="text-xs" style={{ color: theme.green }}>
+                        ✓ ATS resume generated on {new Date(atsResume.generatedAt).toLocaleString()}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowAtsPreview(!showAtsPreview)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80"
+                          style={{ backgroundColor: theme.gold, color: '#fff' }}
+                        >
+                          <FaFileAlt size={11} /> {showAtsPreview ? "Hide Preview" : "Preview"}
+                        </button>
+                        <button
+                          onClick={handleDownloadATS}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
+                          style={{ borderColor: theme.gold, color: theme.gold, backgroundColor: 'transparent' }}
+                        >
+                          <FaDownload size={11} /> Download HTML
+                        </button>
+                        <button
+                          onClick={handleGenerateATS}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
+                          style={{ borderColor: theme.border, color: theme.textSecondary, backgroundColor: 'transparent' }}
+                        >
+                          <FaMagic size={11} /> Regenerate
+                        </button>
+                      </div>
+
+                      {showAtsPreview && (
+                        <div className="mt-3 rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
+                          <div className="p-2 text-xs font-medium border-b flex items-center justify-between" style={{ backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textSecondary }}>
+                            <span>ATS Resume Preview</span>
+                            <span className="text-[10px] opacity-60">HTML format</span>
+                          </div>
+                          <div
+                            className="p-4 bg-white text-black text-xs overflow-auto max-h-[400px]"
+                            dangerouslySetInnerHTML={{ __html: atsResume.html }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleGenerateATS}
+                      disabled={atsGenerating}
+                      className={`px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
+                        atsGenerating ? "opacity-60 cursor-not-allowed" : "text-white hover:opacity-80"
+                      }`}
+                      style={{ backgroundColor: atsGenerating ? theme.border : theme.gold }}
+                    >
+                      {atsGenerating ? (
+                        <>
+                          <FaSpinner className="animate-spin" size={12} /> Generating ATS Resume…
+                        </>
+                      ) : (
+                        <>
+                          <FaMagic size={12} /> Generate ATS Resume
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -617,6 +780,90 @@ function StudentDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "send_profile" && (
+          <div className="space-y-6">
+            <div className="rounded-xl border shadow-sm p-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+              <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Send Your Profile to HR</h2>
+              <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>Select an HR user to send your profile for review and approval.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Select HR</label>
+                  <select
+                    value={selectedHrId}
+                    onChange={(e) => setSelectedHrId(e.target.value)}
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                    style={{ backgroundColor: theme.bgInput, border: `1px solid ${theme.border}`, color: theme.text }}
+                  >
+                    <option value="">-- Choose HR --</option>
+                    {hrUsers.map((hr) => (
+                      <option key={hr._id} value={hr._id}>{hr.name} ({hr.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Message (optional)</label>
+                  <textarea
+                    rows="2"
+                    placeholder="Add a note for the HR..."
+                    value={sendMsg}
+                    onChange={(e) => setSendMsg(e.target.value)}
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                    style={{ backgroundColor: theme.bgInput, border: `1px solid ${theme.border}`, color: theme.text }}
+                  />
+                </div>
+                <button
+                  onClick={handleSendProfile}
+                  disabled={!selectedHrId}
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition ${
+                    !selectedHrId ? "opacity-50 cursor-not-allowed" : "text-white hover:opacity-80"
+                  }`}
+                  style={{ backgroundColor: !selectedHrId ? theme.border : theme.gold }}
+                >
+                  Send Profile
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+              <div className="p-4 border-b" style={{ borderColor: theme.border }}>
+                <h3 className="text-lg font-semibold" style={{ color: theme.text }}>My Submissions</h3>
+              </div>
+              {submissions.length === 0 ? (
+                <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No submissions yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
+                    <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>HR</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Comment</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y" style={{ borderColor: theme.border }}>
+                      {submissions.map((sub) => (
+                        <tr key={sub._id}>
+                          <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{sub.hr?.name || "HR"}</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              sub.status === "approved" ? "bg-green-900/30 text-green-400" :
+                              sub.status === "rejected" ? "bg-red-900/30 text-red-400" :
+                              "bg-yellow-900/30 text-yellow-400"
+                            }`}>{sub.status}</span>
+                          </td>
+                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.hrComment || sub.message || "-"}</td>
+                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(sub.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

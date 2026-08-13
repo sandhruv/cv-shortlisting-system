@@ -25,6 +25,8 @@ const interviewRoutes = require("./routes/interviewRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const codingTestRoutes = require("./routes/codingTestRoutes");
 const compileRoutes    = require("./routes/compileRoutes");
+const profileRoutes    = require("./routes/profileRoutes");
+const profileSubmissionRoutes = require("./routes/profileSubmissionRoutes");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
@@ -39,7 +41,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN,
 ].filter(Boolean);
 const corsOriginHandler = (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin) || /^https:\/\/.+\.onrender\.com$/.test(origin)) {
+  if (!origin || allowedOrigins.includes(origin)) {
     return callback(null, true);
   }
   return callback(new Error("Not allowed by CORS"));
@@ -47,10 +49,12 @@ const corsOriginHandler = (origin, callback) => {
 const io = new Server(server, {
   cors: {
     origin: corsOriginHandler,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   },
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 const possibleClientDistPaths = [
   path.join(__dirname, "../client/dist"),
@@ -71,14 +75,37 @@ connectDB();
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: "Too many requests from this IP, please try again later.",
 });
 
+const signalingLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many signaling requests.",
+});
+
 app.set("trust proxy", 1);
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "ws:", "wss:", "http:", "https:", "stun:", "turn:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      mediaSrc: ["'self'", "blob:", "data:", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      frameSrc: ["'self'", "https:"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 app.use(cors({
   origin: corsOriginHandler,
   credentials: true,
@@ -100,6 +127,8 @@ app.use("/api/interviews", interviewRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/coding-tests", codingTestRoutes);
 app.use("/api/compile",      compileRoutes);
+app.use("/api/profile",     profileRoutes);
+app.use("/api/profile-submissions", profileSubmissionRoutes);
 
 app.get("/api/profile", protect, (req, res) => {
   res.json({
@@ -138,6 +167,7 @@ app.get(/^(?!\/api\/).*/, (req, res) => {
 });
 
 const rooms = new Map();
+const proctorFrameTimestamps = new Map();
 
 io.use((socket, next) => {
   const authHeader = socket.handshake.headers?.authorization;
@@ -210,12 +240,24 @@ io.on("connection", (socket) => {
     socket.join(`proctor-${testId}`);
   });
 
+  // Rate-limited proctor frame handling
   socket.on("proctor-frame", ({ testId, frame }) => {
     if (!testId || !frame) return;
+
+    // Rate limit: max 1 frame per 2 seconds per socket
+    const now = Date.now();
+    const lastFrame = proctorFrameTimestamps.get(socket.id) || 0;
+    if (now - lastFrame < 2000) return; // Silently drop excess frames
+    proctorFrameTimestamps.set(socket.id, now);
+
+    // Validate frame size (reject oversized frames to prevent abuse)
+    if (frame.length > 500000) return; // ~500KB max frame size
+
     socket.to(`proctor-${testId}`).emit("proctor-frame", { testId, frame, timestamp: Date.now() });
   });
 
   socket.on("disconnect", () => {
+    proctorFrameTimestamps.delete(socket.id);
     for (const [roomId, members] of rooms.entries()) {
       const updated = members.filter((u) => u.socketId !== socket.id);
       if (updated.length !== members.length) {

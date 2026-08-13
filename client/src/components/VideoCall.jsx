@@ -9,7 +9,18 @@ const ICE_SERVERS = [
       "stun:stun.l.google.com:19302",
       "stun:stun1.l.google.com:19302",
       "stun:stun2.l.google.com:19302",
+      "stun:stun3.l.google.com:19302",
     ],
+  },
+  {
+    urls: "turn:openrelay.metered.ca:80",
+    username: "openrelayproject",
+    credential: "openrelayproject",
+  },
+  {
+    urls: "turn:openrelay.metered.ca:443",
+    username: "openrelayproject",
+    credential: "openrelayproject",
   },
 ];
 
@@ -269,9 +280,14 @@ const VideoCall = ({ roomId, user, onClose }) => {
         });
       }
       
-      mediaRecorderRef.current = new MediaRecorder(combinedStream, {
-        mimeType: 'video/webm;codecs=vp9'
-      });
+      const videoMimeTypes = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=h264",
+        "video/webm",
+      ];
+      const supportedVideoMime = videoMimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || "";
+      mediaRecorderRef.current = new MediaRecorder(combinedStream, supportedVideoMime ? { mimeType: supportedVideoMime } : {});
       
       recordedChunksRef.current = [];
       
@@ -631,11 +647,43 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
       pc.oniceconnectionstatechange = () => {
         setIceConnectionState(pc.iceConnectionState);
-        if (pc.iceConnectionState === "connected") {
+        if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
           setIsConnecting(false);
         }
         if (pc.iceConnectionState === "failed") {
-          setError("ICE negotiation failed. Check network or browser permissions.");
+          console.warn("ICE failed, attempting ICE restart...");
+          pc.restartIce();
+          pc.createOffer({ iceRestart: true })
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              socket.emit("signal", {
+                roomId,
+                to: remoteSocketId,
+                signal: pc.localDescription,
+              });
+            })
+            .catch((err) => {
+              console.error("ICE restart failed:", err);
+              setError("Connection failed. Please rejoin the call.");
+            });
+        }
+        if (pc.iceConnectionState === "disconnected") {
+          console.warn("ICE disconnected, attempting restart...");
+          setTimeout(() => {
+            if (pc.iceConnectionState === "disconnected") {
+              pc.restartIce();
+              pc.createOffer({ iceRestart: true })
+                .then((offer) => pc.setLocalDescription(offer))
+                .then(() => {
+                  socket.emit("signal", {
+                    roomId,
+                    to: remoteSocketId,
+                    signal: pc.localDescription,
+                  });
+                })
+                .catch(() => {});
+            }
+          }, 3000);
         }
       };
 
@@ -675,7 +723,7 @@ const VideoCall = ({ roomId, user, onClose }) => {
 
       try {
         if (signal.type === "offer") {
-          if (pc.signalingState !== "stable") {
+          if (pc.signalingState !== "stable" && pc.signalingState !== "have-local-offer") {
             console.warn("Ignoring offer in unstable state", pc.signalingState);
             return;
           }
@@ -683,17 +731,36 @@ const VideoCall = ({ roomId, user, onClose }) => {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           socket.emit("signal", { roomId, to: from, signal: answer });
-        } else if (signal.type === "answer") {
-          if (pc.signalingState !== "have-local-offer") {
-            console.warn("Received answer in wrong state", pc.signalingState);
-            return;
+
+          // Process queued ICE candidates
+          if (pc.pendingCandidates) {
+            for (const cand of pc.pendingCandidates) {
+              await pc.addIceCandidate(cand).catch(() => {});
+            }
+            pc.pendingCandidates = [];
           }
-          await pc.setRemoteDescription(new RTCSessionDescription(signal));
+        } else if (signal.type === "answer") {
+          if (pc.signalingState === "have-local-offer") {
+            await pc.setRemoteDescription(new RTCSessionDescription(signal));
+            // Process queued candidates
+            if (pc.pendingCandidates) {
+              for (const cand of pc.pendingCandidates) {
+                await pc.addIceCandidate(cand).catch(() => {});
+              }
+              pc.pendingCandidates = [];
+            }
+          }
         } else if (signal.candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          const cand = new RTCIceCandidate(signal.candidate);
+          if (pc.remoteDescription && pc.remoteDescription.type) {
+            await pc.addIceCandidate(cand).catch(() => {});
+          } else {
+            if (!pc.pendingCandidates) pc.pendingCandidates = [];
+            pc.pendingCandidates.push(cand);
+          }
         }
       } catch (err) {
-        console.error("WebRTC signal error", err);
+        console.error("WebRTC signal error handled gracefully:", err);
       }
     };
 
@@ -713,62 +780,71 @@ const VideoCall = ({ roomId, user, onClose }) => {
     };
 
     const initMedia = async () => {
+      let stream = null;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
           audio: {
-            echoCancellation: useEchoCancellation,
-            noiseSuppression: useNoiseSuppression,
-            autoGainControl: true,
-            sampleRate: 48000,
-            sampleSize: 16
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
           }
         });
+      } catch (err) {
+        console.warn("Camera getUserMedia failed, attempting audio-only fallback:", err);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        } catch (err2) {
+          console.error("Media devices unavailable:", err2);
+          setError("Microphone/Camera access failed. Please check browser permissions.");
+        }
+      }
+
+      if (stream) {
         localStreamRef.current = stream;
         setupAudioAnalyzer(stream);
         updateLocalTrackStates();
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        socket.emit("join-room", { roomId, user: user || { id: "guest", role: "Student", name: "Guest" } });
-        if (!timerRef.current) {
-          timerRef.current = setInterval(() => {
-            setCallDuration((prev) => prev + 1);
-          }, 1000);
-        }
-        
-        // Start automatic AI audio recording immediately
-        if (user?.role === "HR" || user?.role === "Admin") {
-          try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            aiAudioContextRef.current = audioCtx;
-            const dest = audioCtx.createMediaStreamDestination();
-            aiAudioDestRef.current = dest;
-
-            if (stream) {
-              const localSource = audioCtx.createMediaStreamSource(stream);
-              localSource.connect(dest);
-            }
-
-            aiAudioRecorderRef.current = new MediaRecorder(dest.stream, { mimeType: 'audio/webm' });
-            aiAudioChunksRef.current = [];
-
-            aiAudioRecorderRef.current.ondataavailable = (e) => {
-              if (e.data.size > 0) aiAudioChunksRef.current.push(e.data);
-            };
-
-            aiAudioRecorderRef.current.start(1000);
-          } catch (err) {
-            console.error("AI Audio recording failed to start:", err);
-          }
-        }
-
-        // Start network monitoring
-        const networkInterval = setInterval(monitorNetworkQuality, 3000);
-        return () => clearInterval(networkInterval);
-      } catch (err) {
-        console.error("media error", err);
-        setError("Unable to access camera or microphone. Please allow permissions.");
       }
-    };
+
+      socket.emit("join-room", { roomId, user: user || { id: "guest", role: "Student", name: "Guest" } });
+      if (!timerRef.current) {
+        timerRef.current = setInterval(() => {
+          setCallDuration((prev) => prev + 1);
+        }, 1000);
+      }
+
+      // Start automatic AI audio recording if stream available
+      if ((user?.role === "HR" || user?.role === "Admin" || user?.role === "LPU Faculty") && stream) {
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          aiAudioContextRef.current = audioCtx;
+          const dest = audioCtx.createMediaStreamDestination();
+          aiAudioDestRef.current = dest;
+
+          const localSource = audioCtx.createMediaStreamSource(stream);
+          localSource.connect(dest);
+
+          const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+            ? "audio/webm;codecs=opus"
+            : "audio/webm";
+          aiAudioRecorderRef.current = new MediaRecorder(dest.stream, { mimeType });
+          aiAudioChunksRef.current = [];
+
+          aiAudioRecorderRef.current.ondataavailable = (e) => {
+            if (e.data.size > 0) aiAudioChunksRef.current.push(e.data);
+          };
+
+          aiAudioRecorderRef.current.start(1000);
+        } catch (err) {
+          console.warn("AI Audio setup error:", err);
+        }
+      }
+
+      // Start network monitoring
+      const networkInterval = setInterval(monitorNetworkQuality, 3000);
+      return () => clearInterval(networkInterval);
+  };
 
     socket.on("connect", () => {
       setStatus("Connected to signaling server");

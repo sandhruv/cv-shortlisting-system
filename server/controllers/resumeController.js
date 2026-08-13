@@ -170,6 +170,133 @@ exports.getResumeByStudent = async (req, res) => {
   }
 };
 
+// ── Generate ATS-Friendly Resume ─────────────────────────────────────────────
+exports.generateATSResume = async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ student: req.user.id }).sort({ createdAt: -1 });
+    if (!resume) return res.status(404).json({ message: "No resume found. Upload one first." });
+
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    if (!GROQ_API_KEY) return res.status(500).json({ message: "GROQ_API_KEY not configured" });
+
+    const d = resume.extractedData || {};
+    const context = [
+      d.email && `Email: ${d.email}`,
+      d.contact_no && `Phone: ${d.contact_no}`,
+      d.technical_skills && `Technical Skills: ${d.technical_skills}`,
+      d.project_details && `Projects: ${d.project_details}`,
+      d.certifications && `Certifications: ${d.certifications}`,
+      d.other_info && `Other: ${d.other_info}`,
+    ].filter(Boolean).join("\n");
+
+    const prompt = `You are an expert ATS (Applicant Tracking System) resume writer.
+
+Given the following extracted resume data, generate a professional, ATS-optimized resume in clean HTML format.
+
+RULES:
+1. Use clean, simple HTML (no <style> tags, no JavaScript, no external CSS)
+2. Use only inline styles for basic formatting (font-family, margin, padding, color, border-bottom)
+3. Structure: Header (name + contact) → Summary → Skills → Projects → Certifications → Education/Other
+4. Use action verbs, quantify achievements where possible
+5. Optimize for ATS parsing: use standard section headings, no tables, no columns, no graphics
+6. Keep it professional and concise (1 page equivalent)
+7. If data says "Not found" for a section, skip that section entirely
+8. Use the candidate's actual data - do NOT fabricate information
+9. Add a professional summary paragraph based on the skills and projects
+10. Format skills as a clean comma-separated list
+11. Wrap everything in a single <div> with basic inline styling
+12. Use <h2> for section headers with border-bottom styling
+
+Here is the extracted resume data:
+${context}
+
+Return ONLY the HTML content (starting with <div>), no markdown, no code fences, no explanations.`;
+
+    const response = await axios.post(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert ATS resume writer. Return ONLY clean HTML content. No markdown, no code fences, no explanations.",
+          },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 3000,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        timeout: 30000,
+      }
+    );
+
+    let html = response.data.choices[0].message.content;
+    html = html.replace(/```html\n?/g, "").replace(/```\n?/g, "").trim();
+
+    // Wrap in full document if not already wrapped
+    if (!html.startsWith("<div")) {
+      html = `<div>${html}</div>`;
+    }
+
+    resume.atsResume = { html, generatedAt: new Date() };
+    await resume.save();
+
+    res.json({ message: "ATS resume generated", atsResume: resume.atsResume });
+  } catch (err) {
+    console.error("❌ ATS generation error:", err?.response?.data || err.message);
+    res.status(500).json({ message: "ATS generation failed: " + (err?.response?.data?.error?.message || err.message) });
+  }
+};
+
+// ── Download ATS Resume as HTML File ────────────────────────────────────────
+exports.downloadATSResume = async (req, res) => {
+  try {
+    const resume = await Resume.findOne({ student: req.user.id }).sort({ createdAt: -1 });
+    if (!resume || !resume.atsResume?.html) {
+      return res.status(404).json({ message: "No ATS resume found. Generate one first." });
+    }
+
+    const fullName = resume.extractedData?.email?.split("@")[0] || "candidate";
+    const safeName = fullName.replace(/[^a-zA-Z0-9]/g, "_");
+
+    const fullHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Resume - ${safeName}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      line-height: 1.5;
+    }
+    @media print {
+      body { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  ${resume.atsResume.html}
+</body>
+</html>`;
+
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Content-Disposition", `attachment; filename="ATS_Resume_${safeName}.html"`);
+    res.send(fullHTML);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ── Generate AI Interview Questions from Resume + Job Profile ───────────────
 exports.generateInterviewQuestions = async (req, res) => {
   try {

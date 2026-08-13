@@ -34,9 +34,11 @@ import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 import CompilerEmbed from "../components/CompilerEmbed";
 import ProctoringViewer from "../components/ProctoringViewer";
+import Toast, { useToast } from "../components/Toast";
 
 function LpuFacultyDashboard() {
   const navigate = useNavigate();
+  const { toasts, add: toast, remove: removeToast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [hrInterviews, setHrInterviews] = useState([]);
@@ -142,7 +144,7 @@ function LpuFacultyDashboard() {
       const res = await api.get("/jobs");
       setJobs(res.data);
     } catch (err) {
-      alert("Failed to fetch jobs");
+      toast("Failed to fetch jobs", "error");
     }
   };
 
@@ -152,7 +154,7 @@ function LpuFacultyDashboard() {
       const res = await api.get("/coding-tests/hr-tests");
       setCodingTests(res.data);
     } catch (err) {
-      alert("Failed to load coding tests");
+      toast("Failed to load coding tests", "error");
     } finally {
       setLoadingCodingTests(false);
     }
@@ -178,13 +180,13 @@ function LpuFacultyDashboard() {
         applicationId: selectedAppForTest._id,
         ...codingTestForm,
       });
-      alert("Coding test assigned to candidate successfully!");
+      toast("Coding test assigned to candidate successfully!");
       setShowCodingTestModal(false);
       setSelectedAppForTest(null);
       if (selectedJobId) fetchApplicants(selectedJobId);
       fetchHRCodingTests();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to assign coding test");
+      toast(err.response?.data?.message || "Failed to assign coding test", "error");
     }
   };
 
@@ -203,13 +205,13 @@ function LpuFacultyDashboard() {
     if (!selectedTestForReview) return;
     try {
       await api.put(`/coding-tests/${selectedTestForReview._id}/review`, reviewFormData);
-      alert("Coding test reviewed and status updated!");
+      toast("Coding test reviewed and status updated!");
       setShowReviewModal(false);
       setSelectedTestForReview(null);
-      fetchHRCodingTests();
       if (selectedJobId) fetchApplicants(selectedJobId);
+      fetchHRCodingTests();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to review coding test");
+      toast(err.response?.data?.message || "Failed to review coding test", "error");
     }
   };
 
@@ -239,7 +241,7 @@ function LpuFacultyDashboard() {
       setSelectedJobId(jobId);
       setActiveTab("applicants");
     } catch (err) {
-      alert("Failed to fetch applicants");
+      toast("Failed to fetch applicants", "error");
     }
   };
 
@@ -249,7 +251,7 @@ function LpuFacultyDashboard() {
       const res = await api.get("/interviews/job");
       setHrInterviews(res.data);
     } catch (err) {
-      alert("Failed to fetch interviews");
+      toast("Failed to fetch interviews", "error");
     } finally {
       setLoadingInterviews(false);
     }
@@ -261,7 +263,7 @@ function LpuFacultyDashboard() {
       const res = await api.get("/analytics/hr");
       setAnalyticsData(res.data);
     } catch (err) {
-      alert("Failed to load analytics");
+      toast("Failed to load analytics", "error");
     } finally {
       setLoadingAnalytics(false);
     }
@@ -281,12 +283,12 @@ function LpuFacultyDashboard() {
     e.preventDefault();
     try {
       await api.post("/jobs", newJob);
-      alert("Job created");
+      toast("Job created");
       setNewJob({ title: "", description: "", requirements: "", location: "" });
       setShowModal(false);
       fetchJobs();
     } catch (err) {
-      alert(err.response?.data?.message || "Creation failed");
+      toast(err.response?.data?.message || "Creation failed", "error");
     }
   };
 
@@ -294,20 +296,20 @@ function LpuFacultyDashboard() {
     if (!window.confirm("Delete this job?")) return;
     try {
       await api.delete(`/jobs/${id}`);
-      alert("Job deleted");
+      toast("Job deleted");
       fetchJobs();
     } catch (err) {
-      alert(err.response?.data?.message || "Delete failed");
+      toast(err.response?.data?.message || "Delete failed", "error");
     }
   };
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {
       await api.put(`/applications/${applicationId}/status`, { status });
-      alert(`Application ${status}`);
+      toast(`Application ${status}`);
       fetchApplicants(selectedJobId);
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -318,14 +320,14 @@ function LpuFacultyDashboard() {
         applicationId: selectedApplication._id,
         ...interviewData,
       });
-      alert("Interview scheduled successfully!");
+      toast("Interview scheduled successfully!");
       setShowInterviewModal(false);
       setSelectedApplication(null);
       setInterviewData({ scheduledAt: "", duration: 60, location: "Online", meetingLink: "", notes: "" });
       fetchApplicants(selectedJobId);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to schedule interview");
+      toast(err.response?.data?.message || "Failed to schedule interview", "error");
     }
   };
 
@@ -333,10 +335,10 @@ function LpuFacultyDashboard() {
     if (!window.confirm(`Mark this interview as ${status}?`)) return;
     try {
       await api.put(`/interviews/${interviewId}`, { status });
-      alert(`Interview ${status}`);
+      toast(`Interview ${status}`);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -346,7 +348,7 @@ function LpuFacultyDashboard() {
       setVideoCallRoom(interview._id);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to start call");
+      toast(err.response?.data?.message || "Failed to start call", "error");
     }
   };
 
@@ -356,7 +358,7 @@ function LpuFacultyDashboard() {
       setVideoCallRoom(null);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to stop call");
+      toast(err.response?.data?.message || "Failed to stop call", "error");
     }
   };
 
@@ -364,13 +366,13 @@ function LpuFacultyDashboard() {
     e.preventDefault();
     try {
       await api.put(`/interviews/${selectedInterviewForFeedback._id}/feedback`, feedbackData);
-      alert("Feedback added successfully!");
+      toast("Feedback added successfully!");
       setShowFeedbackModal(false);
       setSelectedInterviewForFeedback(null);
       setFeedbackData({ rating: 3, comments: "", decision: "" });
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add feedback");
+      toast(err.response?.data?.message || "Failed to add feedback", "error");
     }
   };
 
@@ -389,7 +391,7 @@ function LpuFacultyDashboard() {
 
   const handleApplicantsClick = () => {
     if (jobs.length === 0) {
-      alert("No jobs posted yet. Please create a job first.");
+      toast("No jobs posted yet. Please create a job first.", "error");
       return;
     }
     fetchApplicants(selectedJobId || jobs[0]._id);
@@ -404,7 +406,7 @@ function LpuFacultyDashboard() {
       const res = await api.get(`/resume/student/${studentId}`);
       setSelectedResume(res.data);
     } catch (err) {
-      alert("No resume found for this student");
+      toast("No resume found for this student", "error");
       setShowResumeModal(false);
     } finally {
       setLoadingResume(false);
@@ -423,7 +425,7 @@ function LpuFacultyDashboard() {
       });
       setAiInterviewQs(res.data.questions || []);
     } catch (err) {
-      alert("AI generation failed: " + (err.response?.data?.message || err.message));
+      toast("AI generation failed: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setLoadingAiQs(false);
     }
@@ -434,6 +436,7 @@ function LpuFacultyDashboard() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+      <Toast toasts={toasts} remove={removeToast} />
       <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
         <div className="flex items-center gap-3">
           <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
@@ -1247,6 +1250,54 @@ function LpuFacultyDashboard() {
                 <div>
                   <span className="text-slate-400 block font-semibold">Candidate Notes:</span>
                   <p className="p-2.5 rounded-lg bg-black/30 text-slate-200">{selectedTestForReview.submissionNotes}</p>
+                </div>
+              )}
+
+              {/* ANTI-CHEAT SECURITY REPORT */}
+              {selectedTestForReview?.antiCheatLog && (
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: (selectedTestForReview.violationCount || 0) > 5 ? '#ef4444' : (selectedTestForReview.violationCount || 0) > 0 ? '#eab308' : '#22c55e' }}>
+                  <div className="px-3 py-2 font-bold text-xs flex items-center gap-2" style={{
+                    background: (selectedTestForReview.violationCount || 0) > 5 ? 'rgba(239,68,68,0.15)' : (selectedTestForReview.violationCount || 0) > 0 ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
+                    color: (selectedTestForReview.violationCount || 0) > 5 ? '#ef4444' : (selectedTestForReview.violationCount || 0) > 0 ? '#eab308' : '#22c55e'
+                  }}>
+                    🛡️ Security Report — Total Violations: {selectedTestForReview.violationCount || 0}
+                    {(selectedTestForReview.violationCount || 0) > 10 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[10px]">HIGH RISK</span>
+                    )}
+                  </div>
+                  <div className="p-3 bg-black/30 grid grid-cols-3 gap-2 text-[10px]">
+                    {[
+                      { label: 'Tab Switches', value: selectedTestForReview.antiCheatLog.tabSwitches || 0, icon: '📑' },
+                      { label: 'Right-Click', value: selectedTestForReview.antiCheatLog.rightClickAttempts || 0, icon: '🖱️' },
+                      { label: 'Clipboard', value: selectedTestForReview.antiCheatLog.clipboardAttempts || 0, icon: '📋' },
+                      { label: 'DevTools', value: selectedTestForReview.antiCheatLog.devToolsOpened || 0, icon: '🔧' },
+                      { label: 'Blocked Keys', value: selectedTestForReview.antiCheatLog.keyboardBlockAttempts || 0, icon: '⌨️' },
+                      { label: 'Mouse Leave', value: selectedTestForReview.antiCheatLog.mouseLeaveCount || 0, icon: '🖱️' },
+                      { label: 'Focus Loss', value: selectedTestForReview.antiCheatLog.focusLossCount || 0, icon: '👁️' },
+                      { label: 'Fullscreen Exits', value: selectedTestForReview.antiCheatLog.fullscreenExits || 0, icon: '🖥️' },
+                      { label: 'Screenshots', value: selectedTestForReview.antiCheatLog.screenshotAttempts || 0, icon: '📸' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-1 p-1.5 rounded-lg" style={{
+                        background: item.value > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.05)',
+                        color: item.value > 0 ? '#fca5a5' : '#86efac'
+                      }}>
+                        <span>{item.icon}</span>
+                        <span className="text-slate-400">{item.label}:</span>
+                        <span className="font-bold">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedTestForReview.sessionDuration && (
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                      Session Duration: {Math.floor(selectedTestForReview.sessionDuration / 60)}m {selectedTestForReview.sessionDuration % 60}s
+                      {selectedTestForReview.ipAddress && <> · IP: {selectedTestForReview.ipAddress}</>}
+                    </div>
+                  )}
+                  {selectedTestForReview.browserFingerprint?.userAgent && (
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t truncate" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                      Browser: {selectedTestForReview.browserFingerprint.userAgent.substring(0, 100)}...
+                    </div>
+                  )}
                 </div>
               )}
 

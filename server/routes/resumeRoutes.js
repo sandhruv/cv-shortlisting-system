@@ -33,6 +33,8 @@ const {
   getMyResume,
   getResumeByStudent,
   generateInterviewQuestions,
+  generateATSResume,
+  downloadATSResume,
 } = require("../controllers/resumeController");
 
 router.use(protect);
@@ -41,5 +43,7 @@ router.post("/upload", upload.single("resume"), uploadCV);
 router.get("/me", getMyResume);
 router.get("/student/:studentId", getResumeByStudent);
 router.post("/interview-questions", generateInterviewQuestions);
+router.post("/generate-ats", generateATSResume);
+router.get("/download-ats", downloadATSResume);
 
 module.exports = router;

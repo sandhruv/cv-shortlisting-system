@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaEnvelope, FaLock, FaUserTag, FaBuilding } from "react-icons/fa";
 import api from "../services/api";
+import VettoraLoader from "../components/VettoraLoader";
 
 function Register() {
   const navigate = useNavigate();
@@ -52,6 +53,8 @@ function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ backgroundColor: theme.bg }}>
+      {isLoading && <VettoraLoader message="Creating account…" />}
+
       <div className="w-full max-w-[420px]">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">

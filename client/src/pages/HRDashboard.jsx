@@ -35,9 +35,12 @@ import VideoCall from "../components/VideoCall";
 import RazorpayCheckout from "../components/RazorpayCheckout";
 import CompilerEmbed from "../components/CompilerEmbed";
 import ProctoringViewer from "../components/ProctoringViewer";
+import Toast, { useToast } from "../components/Toast";
+import ConfirmModal from "../components/ConfirmModal";
 
 function HRDashboard() {
   const navigate = useNavigate();
+  const { toasts, add: toast, remove: removeToast } = useToast();
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [hrInterviews, setHrInterviews] = useState([]);
@@ -97,6 +100,13 @@ function HRDashboard() {
   });
   const [paymentPlan, setPaymentPlan] = useState("monthly");
 
+  // Profile Submissions states
+  const [profileSubmissions, setProfileSubmissions] = useState([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [hrComment, setHrComment] = useState("");
+
   // Feedback states
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [selectedInterviewForFeedback, setSelectedInterviewForFeedback] = useState(null);
@@ -111,7 +121,7 @@ function HRDashboard() {
       const res = await api.get("/jobs");
       setJobs(res.data);
     } catch (err) {
-      alert("Failed to fetch jobs");
+      toast("Failed to fetch jobs", "error");
     }
   };
 
@@ -122,7 +132,7 @@ function HRDashboard() {
       setSelectedJobId(jobId);
       setActiveTab("applicants");
     } catch (err) {
-      alert("Failed to fetch applicants");
+      toast("Failed to fetch applicants", "error");
     }
   };
 
@@ -132,7 +142,7 @@ function HRDashboard() {
       const res = await api.get("/interviews/job");
       setHrInterviews(res.data);
     } catch (err) {
-      alert("Failed to fetch interviews");
+      toast("Failed to fetch interviews", "error");
     } finally {
       setLoadingInterviews(false);
     }
@@ -144,7 +154,7 @@ function HRDashboard() {
       const res = await api.get("/analytics/hr");
       setAnalyticsData(res.data);
     } catch (err) {
-      alert("Failed to load analytics");
+      toast("Failed to load analytics", "error");
     } finally {
       setLoadingAnalytics(false);
     }
@@ -156,9 +166,34 @@ function HRDashboard() {
       const res = await api.get("/coding-tests/hr-tests");
       setCodingTests(res.data);
     } catch (err) {
-      alert("Failed to load coding tests");
+      toast("Failed to load coding tests", "error");
     } finally {
       setLoadingCodingTests(false);
+    }
+  };
+
+  const fetchProfileSubmissions = async () => {
+    setLoadingSubmissions(true);
+    try {
+      const res = await api.get("/profile-submissions/received");
+      setProfileSubmissions(res.data);
+    } catch (err) {
+      toast("Failed to load profile submissions", "error");
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
+  const handleSubmissionStatus = async (id, status) => {
+    try {
+      await api.put(`/profile-submissions/${id}/status`, { status, hrComment });
+      toast(`Profile ${status}`);
+      setShowSubmissionModal(false);
+      setSelectedSubmission(null);
+      setHrComment("");
+      fetchProfileSubmissions();
+    } catch (err) {
+      toast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -182,13 +217,13 @@ function HRDashboard() {
         applicationId: selectedAppForTest._id,
         ...codingTestForm,
       });
-      alert("Coding test assigned to candidate successfully!");
+      toast("Coding test assigned to candidate successfully!");
       setShowCodingTestModal(false);
       setSelectedAppForTest(null);
       if (selectedJobId) fetchApplicants(selectedJobId);
       fetchHRCodingTests();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to assign coding test");
+      toast(err.response?.data?.message || "Failed to assign coding test", "error");
     }
   };
 
@@ -207,13 +242,13 @@ function HRDashboard() {
     if (!selectedTestForReview) return;
     try {
       await api.put(`/coding-tests/${selectedTestForReview._id}/review`, reviewFormData);
-      alert("Coding test reviewed and status updated!");
+      toast("Coding test reviewed and status updated!");
       setShowReviewModal(false);
       setSelectedTestForReview(null);
-      fetchHRCodingTests();
       if (selectedJobId) fetchApplicants(selectedJobId);
+      fetchHRCodingTests();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to review coding test");
+      toast(err.response?.data?.message || "Failed to review coding test", "error");
     }
   };
 
@@ -245,19 +280,19 @@ function HRDashboard() {
     const nextUser = { ...currentUser, ...updatedUser };
     setCurrentUser(nextUser);
     localStorage.setItem("user", JSON.stringify(nextUser));
-    alert("Subscription activated successfully.");
+    toast("Subscription activated successfully.");
   };
 
   const handleCreateJob = async (e) => {
     e.preventDefault();
     try {
       await api.post("/jobs", newJob);
-      alert("Job created");
+      toast("Job created");
       setNewJob({ title: "", description: "", requirements: "", location: "" });
       setShowModal(false);
       fetchJobs();
     } catch (err) {
-      alert(err.response?.data?.message || "Creation failed");
+      toast(err.response?.data?.message || "Creation failed", "error");
     }
   };
 
@@ -265,20 +300,20 @@ function HRDashboard() {
     if (!window.confirm("Delete this job?")) return;
     try {
       await api.delete(`/jobs/${id}`);
-      alert("Job deleted");
+      toast("Job deleted");
       fetchJobs();
     } catch (err) {
-      alert(err.response?.data?.message || "Delete failed");
+      toast(err.response?.data?.message || "Delete failed", "error");
     }
   };
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {
       await api.put(`/applications/${applicationId}/status`, { status });
-      alert(`Application ${status}`);
+      toast(`Application ${status}`);
       fetchApplicants(selectedJobId);
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -289,14 +324,14 @@ function HRDashboard() {
         applicationId: selectedApplication._id,
         ...interviewData,
       });
-      alert("Interview scheduled successfully!");
+      toast("Interview scheduled successfully!");
       setShowInterviewModal(false);
       setSelectedApplication(null);
       setInterviewData({ scheduledAt: "", duration: 60, location: "Online", meetingLink: "", notes: "" });
       fetchApplicants(selectedJobId);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to schedule interview");
+      toast(err.response?.data?.message || "Failed to schedule interview", "error");
     }
   };
 
@@ -304,10 +339,10 @@ function HRDashboard() {
     if (!window.confirm(`Mark this interview as ${status}?`)) return;
     try {
       await api.put(`/interviews/${interviewId}`, { status });
-      alert(`Interview ${status}`);
+      toast(`Interview ${status}`);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Update failed");
+      toast(err.response?.data?.message || "Update failed", "error");
     }
   };
 
@@ -317,7 +352,7 @@ function HRDashboard() {
       setVideoCallRoom(interview._id);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to start call");
+      toast(err.response?.data?.message || "Failed to start call", "error");
     }
   };
 
@@ -327,7 +362,7 @@ function HRDashboard() {
       setVideoCallRoom(null);
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to stop call");
+      toast(err.response?.data?.message || "Failed to stop call", "error");
     }
   };
 
@@ -335,13 +370,13 @@ function HRDashboard() {
     e.preventDefault();
     try {
       await api.put(`/interviews/${selectedInterviewForFeedback._id}/feedback`, feedbackData);
-      alert("Feedback added successfully!");
+      toast("Feedback added successfully!");
       setShowFeedbackModal(false);
       setSelectedInterviewForFeedback(null);
       setFeedbackData({ rating: 3, comments: "", decision: "" });
       fetchHRInterviews();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to add feedback");
+      toast(err.response?.data?.message || "Failed to add feedback", "error");
     }
   };
 
@@ -360,7 +395,7 @@ function HRDashboard() {
 
   const handleApplicantsClick = () => {
     if (jobs.length === 0) {
-      alert("No jobs posted yet. Please create a job first.");
+      toast("No jobs posted yet. Please create a job first.", "error");
       return;
     }
     fetchApplicants(selectedJobId || jobs[0]._id);
@@ -375,7 +410,7 @@ function HRDashboard() {
       const res = await api.get(`/resume/student/${studentId}`);
       setSelectedResume(res.data);
     } catch (err) {
-      alert("No resume found for this student");
+      toast("No resume found for this student", "error");
       setShowResumeModal(false);
     } finally {
       setLoadingResume(false);
@@ -394,7 +429,7 @@ function HRDashboard() {
       });
       setAiInterviewQs(res.data.questions || []);
     } catch (err) {
-      alert("AI generation failed: " + (err.response?.data?.message || err.message));
+      toast("AI generation failed: " + (err.response?.data?.message || err.message), "error");
     } finally {
       setLoadingAiQs(false);
     }
@@ -418,6 +453,7 @@ function HRDashboard() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+      <Toast toasts={toasts} remove={removeToast} />
       <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
         <div className="flex items-center gap-3">
           <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
@@ -542,6 +578,16 @@ function HRDashboard() {
             onClick={() => { setActiveTab("coding_tests"); fetchHRCodingTests(); }}
           >
             <FaCode className="inline mr-1" /> Coding Tests
+          </button>
+          <button 
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "profile_submissions" ? "border-b-2" : ""}`}
+            style={{ 
+              color: activeTab === "profile_submissions" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "profile_submissions" ? theme.gold : 'transparent'
+            }}
+            onClick={() => { setActiveTab("profile_submissions"); fetchProfileSubmissions(); }}
+          >
+            <FaUsers className="inline mr-1" /> Profile Submissions
           </button>
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "analytics" ? "border-b-2" : ""}`}
@@ -831,6 +877,78 @@ function HRDashboard() {
                           >
                             📷 {t.status === "in_progress" ? "🔴 Live" : `Snaps (${(t.proctorSnapshots || []).length})`}
                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "profile_submissions" && (
+          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: theme.border }}>
+              <h2 className="text-lg font-semibold" style={{ color: theme.text }}>Student Profile Submissions</h2>
+              <button onClick={fetchProfileSubmissions} className="transition hover:opacity-80" style={{ color: theme.textSecondary }}>
+                <FaSync />
+              </button>
+            </div>
+            {loadingSubmissions ? (
+              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>Loading...</div>
+            ) : profileSubmissions.length === 0 ? (
+              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No profile submissions received yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
+                  <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Student</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Headline</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Message</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y" style={{ borderColor: theme.border }}>
+                    {profileSubmissions.map((sub) => (
+                      <tr key={sub._id}>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>
+                          {sub.student?.name || "Unknown"}
+                          <div className="text-xs" style={{ color: theme.textSecondary }}>{sub.student?.email}</div>
+                        </td>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.profile?.headline || "-"}</td>
+                        <td className="px-6 py-4">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            sub.status === "approved" ? "bg-green-900/30 text-green-400" :
+                            sub.status === "rejected" ? "bg-red-900/30 text-red-400" :
+                            "bg-yellow-900/30 text-yellow-400"
+                          }`}>{sub.status}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.message || "-"}</td>
+                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(sub.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-sm flex gap-2">
+                          {sub.status === "pending" ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedSubmission(sub);
+                                  setHrComment("");
+                                  setShowSubmissionModal(true);
+                                }}
+                                className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
+                                style={{ backgroundColor: theme.gold }}
+                              >
+                                <FaEye size={12} /> Review
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs" style={{ color: theme.textSecondary }}>
+                              {sub.hrComment ? `Comment: ${sub.hrComment}` : `No comment`}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1520,6 +1638,54 @@ function HRDashboard() {
                 </div>
               )}
 
+              {/* ANTI-CHEAT SECURITY REPORT */}
+              {selectedTestForReview?.antiCheatLog && (
+                <div className="rounded-xl border overflow-hidden" style={{ borderColor: (selectedTestForReview.violationCount || 0) > 5 ? '#ef4444' : (selectedTestForReview.violationCount || 0) > 0 ? '#eab308' : '#22c55e' }}>
+                  <div className="px-3 py-2 font-bold text-xs flex items-center gap-2" style={{
+                    background: (selectedTestForReview.violationCount || 0) > 5 ? 'rgba(239,68,68,0.15)' : (selectedTestForReview.violationCount || 0) > 0 ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
+                    color: (selectedTestForReview.violationCount || 0) > 5 ? '#ef4444' : (selectedTestForReview.violationCount || 0) > 0 ? '#eab308' : '#22c55e'
+                  }}>
+                    🛡️ Security Report — Total Violations: {selectedTestForReview.violationCount || 0}
+                    {(selectedTestForReview.violationCount || 0) > 10 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[10px]">HIGH RISK</span>
+                    )}
+                  </div>
+                  <div className="p-3 bg-black/30 grid grid-cols-3 gap-2 text-[10px]">
+                    {[
+                      { label: 'Tab Switches', value: selectedTestForReview.antiCheatLog.tabSwitches || 0, icon: '📑' },
+                      { label: 'Right-Click', value: selectedTestForReview.antiCheatLog.rightClickAttempts || 0, icon: '🖱️' },
+                      { label: 'Clipboard', value: selectedTestForReview.antiCheatLog.clipboardAttempts || 0, icon: '📋' },
+                      { label: 'DevTools', value: selectedTestForReview.antiCheatLog.devToolsOpened || 0, icon: '🔧' },
+                      { label: 'Blocked Keys', value: selectedTestForReview.antiCheatLog.keyboardBlockAttempts || 0, icon: '⌨️' },
+                      { label: 'Mouse Leave', value: selectedTestForReview.antiCheatLog.mouseLeaveCount || 0, icon: '🖱️' },
+                      { label: 'Focus Loss', value: selectedTestForReview.antiCheatLog.focusLossCount || 0, icon: '👁️' },
+                      { label: 'Fullscreen Exits', value: selectedTestForReview.antiCheatLog.fullscreenExits || 0, icon: '🖥️' },
+                      { label: 'Screenshots', value: selectedTestForReview.antiCheatLog.screenshotAttempts || 0, icon: '📸' },
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center gap-1 p-1.5 rounded-lg" style={{
+                        background: item.value > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.05)',
+                        color: item.value > 0 ? '#fca5a5' : '#86efac'
+                      }}>
+                        <span>{item.icon}</span>
+                        <span className="text-slate-400">{item.label}:</span>
+                        <span className="font-bold">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedTestForReview.sessionDuration && (
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                      Session Duration: {Math.floor(selectedTestForReview.sessionDuration / 60)}m {selectedTestForReview.sessionDuration % 60}s
+                      {selectedTestForReview.ipAddress && <> · IP: {selectedTestForReview.ipAddress}</>}
+                    </div>
+                  )}
+                  {selectedTestForReview.browserFingerprint?.userAgent && (
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t truncate" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                      Browser: {selectedTestForReview.browserFingerprint.userAgent.substring(0, 100)}...
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* HR REVIEW FORM */}
               <form onSubmit={handleReviewCodingTest} className="space-y-4 pt-3 border-t border-slate-800">
                 <div className="grid grid-cols-2 gap-4">
@@ -1611,6 +1777,106 @@ function HRDashboard() {
               candidateName={selectedAppForTest?.student?.name}
               iframeHeight={520}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Profile Submission Review Modal */}
+      {showSubmissionModal && selectedSubmission && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="rounded-xl p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: '1px solid' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Review Student Profile</h2>
+              <button onClick={() => { setShowSubmissionModal(false); setSelectedSubmission(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>✕</button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', border: `1px solid ${theme.border}` }}>
+                {selectedSubmission.profile?.photo && (
+                  <img src={selectedSubmission.profile.photo} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: theme.gold }} />
+                )}
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{selectedSubmission.student?.name}</h3>
+                  <p className="text-sm" style={{ color: theme.textSecondary }}>{selectedSubmission.student?.email}</p>
+                  {selectedSubmission.profile?.headline && <p className="text-sm mt-1" style={{ color: theme.gold }}>{selectedSubmission.profile.headline}</p>}
+                </div>
+              </div>
+
+              {selectedSubmission.profile?.about && (
+                <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>About</p>
+                  <p className="text-sm" style={{ color: theme.text }}>{selectedSubmission.profile.about}</p>
+                </div>
+              )}
+
+              {selectedSubmission.profile?.skills?.length > 0 && (
+                <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Skills</p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedSubmission.profile.skills.map((skill, i) => (
+                      <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.15)', color: theme.gold }}>{skill}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedSubmission.profile?.experiences?.length > 0 && (
+                <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Experience</p>
+                  {selectedSubmission.profile.experiences.map((exp, i) => (
+                    <div key={i} className="text-sm mb-1" style={{ color: theme.text }}>
+                      <strong>{exp.title}</strong> at {exp.company} ({exp.startDate} - {exp.endDate || "Present"})
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedSubmission.profile?.education?.length > 0 && (
+                <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Education</p>
+                  {selectedSubmission.profile.education.map((edu, i) => (
+                    <div key={i} className="text-sm mb-1" style={{ color: theme.text }}>
+                      <strong>{edu.school}</strong> - {edu.degree} {edu.fieldOfStudy} ({edu.startYear} - {edu.endYear})
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedSubmission.message && (
+                <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Student Message</p>
+                  <p className="text-sm" style={{ color: theme.text }}>{selectedSubmission.message}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Your Comment (optional)</label>
+                <textarea
+                  rows="3"
+                  placeholder="Add feedback for the student..."
+                  value={hrComment}
+                  onChange={(e) => setHrComment(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}`, color: theme.text }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4 pt-3 border-t" style={{ borderColor: theme.border }}>
+                <button
+                  onClick={() => handleSubmissionStatus(selectedSubmission._id, "rejected")}
+                  className="bg-red-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-red-700 transition"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => handleSubmissionStatus(selectedSubmission._id, "approved")}
+                  className="text-white px-4 py-2 text-sm rounded-lg transition hover:opacity-80"
+                  style={{ backgroundColor: theme.gold }}
+                >
+                  Approve
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

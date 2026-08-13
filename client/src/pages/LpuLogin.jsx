@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaUser, FaLock, FaEye, FaEyeSlash, FaBuilding } from "react-icons/fa";
 import { motion } from "framer-motion";
 import api from "../services/api";
+import VettoraLoader from "../components/VettoraLoader";
 
 function LpuLogin() {
   const navigate = useNavigate();
@@ -44,6 +45,9 @@ function LpuLogin() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#0d131f] relative overflow-hidden">
+      {/* ── Full-screen Vettora Loading Overlay ── */}
+      {isLoading && <VettoraLoader message="Signing in…" />}
+
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGwxMiAxMi0xMiAxMi0xMi0xMiAxMi0xMnpNMTggMzZsMTIgMTItMTIgMTItMTItMTIgMTItMTJ6IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-20"></div>
 
       <motion.div
@@ -161,7 +165,12 @@ function LpuLogin() {
                     : "bg-gradient-to-r from-[#ff6b2b] to-[#ff8c52] text-[#0d131f] hover:from-[#ff8c52] hover:to-[#ff6b2b] active:scale-[0.98] shadow-lg shadow-[#ff6b2b]/10 hover:shadow-[#ff6b2b]/20"
                 }`}
               >
-                {isLoading ? "Signing in..." : "Sign in to LPU"}
+                {isLoading ? (
+                  <>
+                    <span className="vettora-btn-spinner" style={{ borderColor: "#0d131f", borderTopColor: "transparent" }} />
+                    Signing in…
+                  </>
+                ) : "Sign in to LPU"}
               </button>
 
               <div className="mt-4 text-center">

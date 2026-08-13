@@ -22,6 +22,10 @@ const resumeSchema = new mongoose.Schema(
       enum: ["pending", "processed", "failed"],
       default: "pending",
     },
+    atsResume: {
+      html: { type: String },
+      generatedAt: { type: Date },
+    },
   },
   { timestamps: true }
 );
