@@ -12,6 +12,7 @@ import LpuAdminDashboard from "./pages/LpuAdminDashboard";
 import LpuFacultyDashboard from "./pages/LpuFacultyDashboard";
 import LpuStudentDashboard from "./pages/LpuStudentDashboard";
 import TestCompilerPage from "./pages/TestCompilerPage";
+import AiInterviewRoom from "./components/AiInterviewRoom";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/lpu-faculty" element={<LpuFacultyDashboard />} />
         <Route path="/lpu-student" element={<LpuStudentDashboard />} />
         <Route path="/test-compiler" element={<TestCompilerPage />} />
+        <Route path="/ai-interview/:interviewId" element={<AiInterviewRoom />} />
       </Routes>
     </BrowserRouter>
   );

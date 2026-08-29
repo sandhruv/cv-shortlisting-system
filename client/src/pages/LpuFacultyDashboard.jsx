@@ -183,8 +183,7 @@ function LpuFacultyDashboard() {
       toast("Coding test assigned to candidate successfully!");
       setShowCodingTestModal(false);
       setSelectedAppForTest(null);
-      if (selectedJobId) fetchApplicants(selectedJobId);
-      fetchHRCodingTests();
+      setApplications(prev => prev.map(app => app._id === selectedAppForTest._id ? { ...app, status: "coding_test_assigned" } : app));
     } catch (err) {
       toast(err.response?.data?.message || "Failed to assign coding test", "error");
     }
@@ -208,8 +207,7 @@ function LpuFacultyDashboard() {
       toast("Coding test reviewed and status updated!");
       setShowReviewModal(false);
       setSelectedTestForReview(null);
-      if (selectedJobId) fetchApplicants(selectedJobId);
-      fetchHRCodingTests();
+      setCodingTests(prev => prev.map(t => t._id === selectedTestForReview._id ? { ...t, ...reviewFormData, status: reviewFormData.verdict === "passed" ? "passed" : "failed" } : t));
     } catch (err) {
       toast(err.response?.data?.message || "Failed to review coding test", "error");
     }
@@ -307,7 +305,7 @@ function LpuFacultyDashboard() {
     try {
       await api.put(`/applications/${applicationId}/status`, { status });
       toast(`Application ${status}`);
-      fetchApplicants(selectedJobId);
+      setApplications(prev => prev.map(app => app._id === applicationId ? { ...app, status } : app));
     } catch (err) {
       toast(err.response?.data?.message || "Update failed", "error");
     }
@@ -316,7 +314,7 @@ function LpuFacultyDashboard() {
   const handleScheduleInterview = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/interviews", {
+      const res = await api.post("/interviews", {
         applicationId: selectedApplication._id,
         ...interviewData,
       });
@@ -324,8 +322,7 @@ function LpuFacultyDashboard() {
       setShowInterviewModal(false);
       setSelectedApplication(null);
       setInterviewData({ scheduledAt: "", duration: 60, location: "Online", meetingLink: "", notes: "" });
-      fetchApplicants(selectedJobId);
-      fetchHRInterviews();
+      setHrInterviews(prev => [res.data, ...prev]);
     } catch (err) {
       toast(err.response?.data?.message || "Failed to schedule interview", "error");
     }

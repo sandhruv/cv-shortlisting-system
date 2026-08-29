@@ -14,11 +14,15 @@ import {
   FaDownload,
   FaMagic,
   FaSpinner,
+  FaRobot,
+  FaMicrophone,
 } from "react-icons/fa";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 import CodingTestView from "../components/CodingTestView";
 import Toast, { useToast } from "../components/Toast";
+import StudentProfile from "./StudentProfile";
+import TypingTest from "../components/TypingTest";
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -387,14 +391,24 @@ function StudentDashboard() {
             <FaCode className="inline mr-1" /> Coding Assessments {codingTests.length > 0 && `(${codingTests.length})`}
           </button>
           <button
-            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "send_profile" ? "border-b-2" : ""}`}
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "profile" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "send_profile" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "send_profile" ? theme.gold : 'transparent'
+              color: activeTab === "profile" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "profile" ? theme.gold : 'transparent'
             }}
-            onClick={() => setActiveTab("send_profile")}
+            onClick={() => setActiveTab("profile")}
           >
-            <FaUpload className="inline mr-1" /> Send Profile to HR
+            <FaUpload className="inline mr-1" /> Profile
+          </button>
+          <button
+            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "typing" ? "border-b-2" : ""}`}
+            style={{ 
+              color: activeTab === "typing" ? theme.text : theme.textSecondary,
+              borderColor: activeTab === "typing" ? theme.gold : 'transparent'
+            }}
+            onClick={() => setActiveTab("typing")}
+          >
+            <FaCode className="inline mr-1" /> Typing Test
           </button>
         </div>
 
@@ -666,34 +680,59 @@ function StudentDashboard() {
                           <FaCalendarAlt style={{ color: theme.gold }} />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold" style={{ color: theme.text }}>{interview.job.title}</h3>
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold" style={{ color: theme.text }}>{interview.job.title}</h3>
+                            {interview.interviewMode === "ai" ? (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-purple-900/40 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                <FaRobot size={10} /> AI Voice Interview
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-900/40 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                                <FaVideo size={10} /> Human Video
+                              </span>
+                            )}
+                          </div>
                           <div className="text-sm space-y-1 mt-1" style={{ color: theme.textSecondary }}>
                             <p><FaClock className="inline mr-1" size={12} style={{ color: theme.gold }} /> {new Date(interview.scheduledAt).toLocaleString()}</p>
                             <p><FaMapMarkerAlt className="inline mr-1" size={12} style={{ color: theme.gold }} /> {interview.location}</p>
                             <p>Duration: {interview.duration} min</p>
-                            {interview.meetingLink && (
+                            {interview.meetingLink && interview.interviewMode !== "ai" && (
                               <p><FaVideo className="inline mr-1" size={12} style={{ color: theme.gold }} /> <a href={interview.meetingLink} target="_blank" rel="noopener noreferrer" className="hover:underline" style={{ color: theme.gold }}>Join meeting</a></p>
                             )}
                             {interview.notes && (
                               <p className="text-sm" style={{ color: theme.textSecondary }}>📝 {interview.notes}</p>
                             )}
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              status === "scheduled" ? "bg-green-900/30 text-green-400" : 
+                              status === "completed" ? "bg-green-900/30 text-green-400" : 
+                              status === "cancelled" ? "bg-red-900/30 text-red-400" : 
                               "bg-yellow-900/30 text-yellow-400"
                             }`}>
                               {status}
                             </span>
-                            {status === "scheduled" && interview.callActive ? (
-                              <button
-                                onClick={() => setVideoCallRoom(interview._id)}
-                                className="mt-2 text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
-                                style={{ backgroundColor: theme.gold }}
-                              >
-                                <FaVideo size={12} /> Join Call
-                              </button>
-                            ) : status === "scheduled" ? (
-                              <p className="mt-2 text-xs" style={{ color: theme.textSecondary }}>Waiting for HR to start the call.</p>
-                            ) : null}
+
+                            {/* Action Buttons */}
+                            {status === "scheduled" && (
+                              interview.interviewMode === "ai" ? (
+                                <button
+                                  onClick={() => navigate(`/ai-interview/${interview._id}`)}
+                                  className="mt-3 text-black font-semibold px-4 py-2 rounded-xl transition text-xs flex items-center gap-2 shadow-lg transform hover:scale-105"
+                                  style={{ backgroundColor: theme.gold }}
+                                >
+                                  <FaRobot size={13} /> Start AI Voice Interview
+                                </button>
+                              ) : interview.callActive ? (
+                                <button
+                                  onClick={() => setVideoCallRoom(interview._id)}
+                                  className="mt-2 text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
+                                  style={{ backgroundColor: theme.gold }}
+                                >
+                                  <FaVideo size={12} /> Join Call
+                                </button>
+                              ) : (
+                                <p className="mt-2 text-xs" style={{ color: theme.textSecondary }}>Waiting for HR to start the call.</p>
+                              )
+                            )}
+
                             {interview.feedback && interview.feedback.decision && (
                               <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
                                 <p className="text-sm font-medium" style={{ color: theme.text }}>Feedback:</p>
@@ -783,88 +822,13 @@ function StudentDashboard() {
           </div>
         )}
 
-        {activeTab === "send_profile" && (
-          <div className="space-y-6">
-            <div className="rounded-xl border shadow-sm p-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-              <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Send Your Profile to HR</h2>
-              <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>Select an HR user to send your profile for review and approval.</p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Select HR</label>
-                  <select
-                    value={selectedHrId}
-                    onChange={(e) => setSelectedHrId(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                    style={{ backgroundColor: theme.bgInput, border: `1px solid ${theme.border}`, color: theme.text }}
-                  >
-                    <option value="">-- Choose HR --</option>
-                    {hrUsers.map((hr) => (
-                      <option key={hr._id} value={hr._id}>{hr.name} ({hr.email})</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Message (optional)</label>
-                  <textarea
-                    rows="2"
-                    placeholder="Add a note for the HR..."
-                    value={sendMsg}
-                    onChange={(e) => setSendMsg(e.target.value)}
-                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
-                    style={{ backgroundColor: theme.bgInput, border: `1px solid ${theme.border}`, color: theme.text }}
-                  />
-                </div>
-                <button
-                  onClick={handleSendProfile}
-                  disabled={!selectedHrId}
-                  className={`px-6 py-2 rounded-lg text-sm font-medium transition ${
-                    !selectedHrId ? "opacity-50 cursor-not-allowed" : "text-white hover:opacity-80"
-                  }`}
-                  style={{ backgroundColor: !selectedHrId ? theme.border : theme.gold }}
-                >
-                  Send Profile
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-              <div className="p-4 border-b" style={{ borderColor: theme.border }}>
-                <h3 className="text-lg font-semibold" style={{ color: theme.text }}>My Submissions</h3>
-              </div>
-              {submissions.length === 0 ? (
-                <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No submissions yet.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                    <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>HR</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Comment</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y" style={{ borderColor: theme.border }}>
-                      {submissions.map((sub) => (
-                        <tr key={sub._id}>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{sub.hr?.name || "HR"}</td>
-                          <td className="px-6 py-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              sub.status === "approved" ? "bg-green-900/30 text-green-400" :
-                              sub.status === "rejected" ? "bg-red-900/30 text-red-400" :
-                              "bg-yellow-900/30 text-yellow-400"
-                            }`}>{sub.status}</span>
-                          </td>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.hrComment || sub.message || "-"}</td>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(sub.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+        {activeTab === "profile" && (
+          <div>
+            <StudentProfile embed />
           </div>
+        )}
+        {activeTab === "typing" && (
+          <TypingTest theme={theme} />
         )}
       </div>
 

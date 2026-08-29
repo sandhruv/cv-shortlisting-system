@@ -10,6 +10,11 @@ const {
   addFeedback,
   startInterviewCall,
   stopInterviewCall,
+  startAiInterview,
+  submitAiInterview,
+  getAiInterviewReport,
+  generateTTS,
+  handleAiTurn,
 } = require("../controllers/interviewController");
 
 const multer = require("multer");
@@ -31,6 +36,11 @@ router.get("/me", getMyInterviews);
 router.post("/", isHRorAdmin, scheduleInterview);
 router.get("/job", isHRorAdmin, getJobInterviews);
 router.get("/job/:jobId", isHRorAdmin, getJobInterviews);
+router.post("/tts", generateTTS);
+router.post("/:id/ai-start", startAiInterview);
+router.post("/:id/ai-turn", handleAiTurn);
+router.post("/:id/ai-submit", upload.single("audio"), submitAiInterview);
+router.get("/:id/ai-report", isHRorAdmin, getAiInterviewReport);
 router.put("/:id/call/start", isHRorAdmin, startInterviewCall);
 router.put("/:id/call/stop", isHRorAdmin, stopInterviewCall);
 router.put("/:id", isHRorAdmin, updateInterviewStatus);

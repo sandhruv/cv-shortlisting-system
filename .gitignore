@@ -15,3 +15,7 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+
+# LinkedIn sessions (contains cookies - NEVER commit)
+mcp/.sessions/
+server/.linkedin-sessions/

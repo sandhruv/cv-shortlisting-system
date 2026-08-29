@@ -1,5 +1,6 @@
 const ProfileSubmission = require("../models/ProfileSubmission");
 const Profile = require("../models/Profile");
+const Application = require("../models/Application");
 const User = require("../models/User");
 
 // Student: send profile to an HR
@@ -62,6 +63,30 @@ exports.getMySubmissions = async (req, res) => {
 // HR: get all profile submissions sent to me
 exports.getMyReceivedSubmissions = async (req, res) => {
   try {
+    // Auto-sync: find applications to HR's jobs that have no profile submission yet
+    try {
+      const applications = await Application.find()
+        .populate({ path: "job", select: "postedBy", match: { postedBy: req.user.id } })
+        .populate("student", "name email");
+      for (const app of applications) {
+        if (!app.job || !app.student) continue;
+        const exists = await ProfileSubmission.findOne({ hr: req.user.id, student: app.student._id });
+        if (!exists) {
+          const profile = await Profile.findOne({ user: app.student._id });
+          if (profile) {
+            await ProfileSubmission.create({
+              hr: req.user.id,
+              student: app.student._id,
+              profile: profile._id,
+              status: "pending",
+            });
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.error("Profile sync error:", syncErr.message);
+    }
+
     const submissions = await ProfileSubmission.find({ hr: req.user.id })
       .populate("student", "name email")
       .populate("profile")

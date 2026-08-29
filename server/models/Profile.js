@@ -59,6 +59,8 @@ const profileSchema = new mongoose.Schema(
       viewer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       viewedAt: { type: Date, default: Date.now },
     }],
+    profileSource: { type: String, enum: ["manual", "linkedin-public", "linkedin-pdf"], default: "manual" },
+    importedAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -1,5 +1,7 @@
 const Application = require("../models/Application");
 const Job = require("../models/Job");
+const Profile = require("../models/Profile");
+const ProfileSubmission = require("../models/ProfileSubmission");
 
 const VALID_APPLICATION_STATUSES = ["pending", "shortlisted", "coding_test_assigned", "coding_test_submitted", "coding_test_passed", "coding_test_failed", "rejected"];
 const ALLOWED_JOB_MANAGEMENT_ROLES = ["Admin", "LPU Admin", "HR", "LPU Faculty"];
@@ -81,6 +83,31 @@ exports.applyToJob = async (req, res) => {
       student: req.user.id,
       status: "pending",
     });
+
+    // Auto-send profile to HR
+    try {
+      const [profile, jobData] = await Promise.all([
+        Profile.findOne({ user: req.user.id }),
+        Job.findById(jobId),
+      ]);
+      if (profile && jobData) {
+        const existingSubmission = await ProfileSubmission.findOne({
+          hr: jobData.postedBy,
+          student: req.user.id,
+        });
+        if (!existingSubmission) {
+          await ProfileSubmission.create({
+            hr: jobData.postedBy,
+            student: req.user.id,
+            profile: profile._id,
+            status: "pending",
+          });
+        }
+      }
+    } catch (profileErr) {
+      console.error("Failed to auto-send profile:", profileErr.message);
+    }
+
     res.status(201).json({ message: "Applied successfully", application });
   } catch (err) {
     res.status(500).json({ message: err.message });

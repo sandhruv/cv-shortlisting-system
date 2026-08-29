@@ -4,12 +4,13 @@ import {
   FaCamera, FaPencilAlt, FaPlus, FaTrash, FaSave, FaTimes,
   FaMapMarkerAlt, FaPhone, FaGlobe, FaUser, FaSignOutAlt,
   FaBriefcase, FaGraduationCap, FaStar, FaCertificate, FaProjectDiagram,
-  FaEye, FaToggleOn, FaToggleOff,
+  FaEye, FaToggleOn, FaToggleOff, FaLinkedin, FaUndo,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 import api from "../services/api";
 import Toast, { useToast } from "../components/Toast";
 import ProfileCompletion from "../components/ProfileCompletion";
+import LinkedInImport from "../components/LinkedInImport";
 
 const EMPTY = { title: "", company: "", location: "", startDate: "", endDate: "", description: "" };
 const EMPTY_EDU = { school: "", degree: "", fieldOfStudy: "", startYear: "", endYear: "", cgpa: "" };
@@ -53,7 +54,7 @@ function ItemCard({ item, onDelete, fields }) {
   );
 }
 
-export default function StudentProfile() {
+export default function StudentProfile({ embed }) {
   const navigate = useNavigate();
   const { toasts, add: toast, remove: removeToast } = useToast();
   const photoRef = useRef();
@@ -74,6 +75,8 @@ export default function StudentProfile() {
   const [isOpenToWork, setIsOpenToWork] = useState(false);
   const [preferredRoles, setPreferredRoles] = useState("");
   const [preferredLocations, setPreferredLocations] = useState("");
+  const [showLinkedInImport, setShowLinkedInImport] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -83,7 +86,15 @@ export default function StudentProfile() {
       setForm({ headline: r.data.headline || "", about: r.data.about || "", location: r.data.location || "", phone: r.data.phone || "", website: r.data.website || "" });
       setExperiences(r.data.experiences || []);
       setEducation(r.data.education || []);
-      setSkills(r.data.skills || []);
+      // Deduplicate skills (case-insensitive)
+      const rawSkills = r.data.skills || [];
+      const seen = new Set();
+      setSkills(rawSkills.filter(s => {
+        const lower = (s || "").toLowerCase().trim();
+        if (!lower || seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      }));
       setCertifications(r.data.certifications || []);
       setProjects(r.data.projects || []);
       setIsOpenToWork(r.data.isOpenToWork || false);
@@ -144,31 +155,186 @@ export default function StudentProfile() {
 
   const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); navigate("/login"); };
 
+  const handleResetProfile = async () => {
+    try {
+      await api.put("/profile", {
+        headline: "",
+        about: "",
+        location: "",
+        phone: "",
+        website: "",
+        experiences: [],
+        education: [],
+        skills: [],
+        certifications: [],
+        projects: [],
+        isOpenToWork: false,
+        preferredRoles: "",
+        preferredLocations: "",
+      });
+      setForm({ headline: "", about: "", location: "", phone: "", website: "" });
+      setExperiences([]);
+      setEducation([]);
+      setSkills([]);
+      setCertifications([]);
+      setProjects([]);
+      setIsOpenToWork(false);
+      setPreferredRoles("");
+      setPreferredLocations("");
+      setEditing(false);
+      setShowResetConfirm(false);
+      toast("Profile reset successfully");
+    } catch (err) {
+      toast(err.response?.data?.message || "Failed to reset profile", "error");
+    }
+  };
+
+  const handleLinkedInImport = (importedProfile) => {
+    // Map imported profile to existing form state
+    if (importedProfile.personal?.name) {
+      // Update user name in localStorage if available
+    }
+    if (importedProfile.professional?.headline) {
+      setForm((p) => ({ ...p, headline: importedProfile.professional.headline || p.headline }));
+    }
+    if (importedProfile.professional?.about) {
+      setForm((p) => ({ ...p, about: importedProfile.professional.about || p.about }));
+    }
+    if (importedProfile.personal?.location) {
+      setForm((p) => ({ ...p, location: importedProfile.personal.location || p.location }));
+    }
+    if (importedProfile.personal?.phone) {
+      setForm((p) => ({ ...p, phone: importedProfile.personal.phone || p.phone }));
+    }
+    if (importedProfile.personal?.linkedinUrl) {
+      setForm((p) => ({ ...p, website: importedProfile.personal.linkedinUrl || p.website }));
+    }
+    if (importedProfile.experience?.length > 0) {
+      setExperiences(
+        importedProfile.experience.map((exp) => ({
+          title: exp.position || "",
+          company: exp.company || "",
+          location: "",
+          startDate: exp.startDate || "",
+          endDate: exp.endDate || "",
+          description: exp.description || "",
+        }))
+      );
+    }
+    if (importedProfile.education?.length > 0) {
+      setEducation(
+        importedProfile.education.map((edu) => ({
+          school: edu.university || "",
+          degree: edu.degree || "",
+          fieldOfStudy: edu.field || "",
+          startYear: edu.startYear || "",
+          endYear: edu.endYear || "",
+          cgpa: edu.grade || "",
+        }))
+      );
+    }
+    const allSkills = [
+      ...(importedProfile.skills?.technical || []),
+      ...(importedProfile.skills?.softSkills || []),
+      ...(importedProfile.skills?.tools || []),
+    ];
+    // Deduplicate skills (case-insensitive)
+    if (allSkills.length > 0) {
+      const seen = new Set();
+      setSkills(allSkills.filter(s => {
+        const lower = (s || "").toLowerCase().trim();
+        if (!lower || seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      }));
+    }
+    if (importedProfile.additional?.certifications?.length > 0) {
+      setCertifications(
+        importedProfile.additional.certifications.map((cert) => {
+          if (typeof cert === "string") return { name: cert, issuer: "", date: "", url: "" };
+          return { name: cert.name || "", issuer: cert.issuer || "", date: cert.date || "", url: cert.url || "" };
+        })
+      );
+    }
+    if (importedProfile.additional?.projects?.length > 0) {
+      setProjects(
+        importedProfile.additional.projects.map((proj) => {
+          if (typeof proj === "string") return { name: proj, description: "", techStack: "", link: "" };
+          return { name: proj.name || "", description: proj.description || "", techStack: proj.techStack || "", link: proj.link || "" };
+        })
+      );
+    }
+    setEditing(true);
+    setShowLinkedInImport(false);
+    toast("Profile imported! Review and save your changes.");
+  };
+
   if (loading) return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f] flex items-center justify-center">
+    <div className={`${embed ? "" : "min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f]"} flex items-center justify-center`}>
       <div className="text-white/50">Loading profile...</div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f] relative overflow-hidden">
+    <div className={`${embed ? "" : "min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f] relative overflow-hidden"}`}>
       <Toast toasts={toasts} remove={removeToast} />
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGwxMiAxMi0xMiAxMi0xMi0xMiAxMi0xMnpNMTggMzZsMTIgMTItMTIgMTItMTItMTIgMTItMTJ6IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-20"></div>
+      {!embed && <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGwxMiAxMi0xMiAxMi0xMi0xMiAxMi0xMnpNMTggMzZsMTIgMTItMTIgMTItMTItMTIgMTItMTJ6IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-20"></div>}
 
-      {/* Header */}
-      <header className="relative z-20 bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0">
-        <div className="flex items-center gap-3">
-          <img src="/vettora-logo.png" alt="Vettora" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/student")} className="text-sm text-white/50 hover:text-white transition">Dashboard</button>
-          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition">
-            <FaSignOutAlt size={14} /> Sign out
-          </button>
-        </div>
-      </header>
+      {/* Header - only show when NOT embedded */}
+      {!embed && (
+        <header className="relative z-20 bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0">
+          <div className="flex items-center gap-3">
+            <img src="/vettora-logo.png" alt="Vettora" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate("/student")} className="text-sm text-white/50 hover:text-white transition">Dashboard</button>
+            <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition">
+              <FaSignOutAlt size={14} /> Sign out
+            </button>
+          </div>
+        </header>
+      )}
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-6">
+        {/* LinkedIn Import */}
+        {showLinkedInImport && (
+          <LinkedInImport
+            onProfileImported={handleLinkedInImport}
+            onClose={() => setShowLinkedInImport(false)}
+          />
+        )}
+
+        {/* Reset Confirmation Modal */}
+        {showResetConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#1a2a40] border border-white/10 rounded-2xl p-6 max-w-sm mx-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-red-500/10 rounded-xl">
+                  <FaUndo className="text-red-400" size={20} />
+                </div>
+                <h3 className="text-sm font-semibold text-white/90">Reset Profile?</h3>
+              </div>
+              <p className="text-xs text-white/50 mb-5">
+                This will clear all your profile data including experience, education, skills, and certifications. This action cannot be undone.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowResetConfirm(false)}
+                  className="flex-1 p-2.5 text-white/50 hover:text-white rounded-xl border border-white/10 transition text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResetProfile}
+                  className="flex-1 p-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition text-sm font-medium"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cover Photo */}
         <div className="relative h-48 rounded-2xl overflow-hidden mb-16 bg-white/5 border border-white/10">
           {profile?.coverPhoto && <img src={profile.coverPhoto} alt="" className="w-full h-full object-cover" />}
@@ -199,6 +365,25 @@ export default function StudentProfile() {
                     <p className="text-sm text-white/50 mt-1">{profile?.headline || "Add a headline"}</p>}
                 </div>
                 <div className="flex gap-2">
+                  {!showLinkedInImport && !editing && (
+                    <>
+                      <button
+                        onClick={() => setShowLinkedInImport(true)}
+                        className="p-2 text-[#0077b5] hover:bg-[#0077b5]/10 rounded-xl border border-[#0077b5]/30 transition flex items-center gap-1.5"
+                        title="Import from LinkedIn"
+                      >
+                        <FaLinkedin size={14} />
+                        <span className="text-xs hidden sm:inline">Import</span>
+                      </button>
+                      <button
+                        onClick={() => setShowResetConfirm(true)}
+                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-xl border border-red-500/30 transition"
+                        title="Reset Profile"
+                      >
+                        <FaUndo size={14} />
+                      </button>
+                    </>
+                  )}
                   {editing ? (
                     <>
                       <button onClick={() => setEditing(false)} className="p-2 text-white/40 hover:text-white rounded-xl border border-white/10 transition"><FaTimes size={14} /></button>

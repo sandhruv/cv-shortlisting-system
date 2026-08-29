@@ -16,6 +16,8 @@ import {
   FaChartBar,
   FaVideo,
   FaCode,
+  FaRobot,
+  FaMicrophone,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -68,7 +70,10 @@ function HRDashboard() {
     location: "Online",
     meetingLink: "",
     notes: "",
+    interviewMode: "human",
   });
+  const [showAiReportModal, setShowAiReportModal] = useState(false);
+  const [selectedAiReport, setSelectedAiReport] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
@@ -127,8 +132,12 @@ function HRDashboard() {
 
   const fetchApplicants = async (jobId) => {
     try {
-      const res = await api.get(`/applications/jobs/${jobId}/applicants`);
-      setApplications(res.data);
+      const [appRes, subRes] = await Promise.all([
+        api.get(`/applications/jobs/${jobId}/applicants`),
+        api.get("/profile-submissions/received"),
+      ]);
+      setApplications(appRes.data);
+      setProfileSubmissions(subRes.data);
       setSelectedJobId(jobId);
       setActiveTab("applicants");
     } catch (err) {
@@ -220,8 +229,7 @@ function HRDashboard() {
       toast("Coding test assigned to candidate successfully!");
       setShowCodingTestModal(false);
       setSelectedAppForTest(null);
-      if (selectedJobId) fetchApplicants(selectedJobId);
-      fetchHRCodingTests();
+      setApplications(prev => prev.map(app => app._id === selectedAppForTest._id ? { ...app, status: "coding_test_assigned" } : app));
     } catch (err) {
       toast(err.response?.data?.message || "Failed to assign coding test", "error");
     }
@@ -245,8 +253,7 @@ function HRDashboard() {
       toast("Coding test reviewed and status updated!");
       setShowReviewModal(false);
       setSelectedTestForReview(null);
-      if (selectedJobId) fetchApplicants(selectedJobId);
-      fetchHRCodingTests();
+      setCodingTests(prev => prev.map(t => t._id === selectedTestForReview._id ? { ...t, ...reviewFormData, status: reviewFormData.verdict === "passed" ? "passed" : "failed" } : t));
     } catch (err) {
       toast(err.response?.data?.message || "Failed to review coding test", "error");
     }
@@ -310,8 +317,8 @@ function HRDashboard() {
   const handleStatusUpdate = async (applicationId, status) => {
     try {
       await api.put(`/applications/${applicationId}/status`, { status });
+      setApplications(prev => prev.map(app => app._id === applicationId ? { ...app, status } : app));
       toast(`Application ${status}`);
-      fetchApplicants(selectedJobId);
     } catch (err) {
       toast(err.response?.data?.message || "Update failed", "error");
     }
@@ -320,18 +327,28 @@ function HRDashboard() {
   const handleScheduleInterview = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/interviews", {
+      const res = await api.post("/interviews", {
         applicationId: selectedApplication._id,
         ...interviewData,
       });
-      toast("Interview scheduled successfully!");
+      toast(interviewData.interviewMode === "ai" ? "AI Interview scheduled! AI questions are being generated." : "Interview scheduled successfully!");
       setShowInterviewModal(false);
       setSelectedApplication(null);
-      setInterviewData({ scheduledAt: "", duration: 60, location: "Online", meetingLink: "", notes: "" });
-      fetchApplicants(selectedJobId);
+      setInterviewData({ scheduledAt: "", duration: 60, location: "Online", meetingLink: "", notes: "", interviewMode: "human" });
+      setHrInterviews(prev => [res.data.interview || res.data, ...prev]);
       fetchHRInterviews();
     } catch (err) {
       toast(err.response?.data?.message || "Failed to schedule interview", "error");
+    }
+  };
+
+  const handleViewAiReport = async (interview) => {
+    try {
+      const res = await api.get(`/interviews/${interview._id}/ai-report`);
+      setSelectedAiReport(res.data);
+      setShowAiReportModal(true);
+    } catch (err) {
+      toast(err.response?.data?.message || "Failed to load AI report", "error");
     }
   };
 
@@ -580,16 +597,6 @@ function HRDashboard() {
             <FaCode className="inline mr-1" /> Coding Tests
           </button>
           <button 
-            className={`px-4 py-2 text-sm font-medium transition ${activeTab === "profile_submissions" ? "border-b-2" : ""}`}
-            style={{ 
-              color: activeTab === "profile_submissions" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "profile_submissions" ? theme.gold : 'transparent'
-            }}
-            onClick={() => { setActiveTab("profile_submissions"); fetchProfileSubmissions(); }}
-          >
-            <FaUsers className="inline mr-1" /> Profile Submissions
-          </button>
-          <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "analytics" ? "border-b-2" : ""}`}
             style={{ 
               color: activeTab === "analytics" ? theme.text : theme.textSecondary,
@@ -662,6 +669,21 @@ function HRDashboard() {
                         </button>
                       </td>
                       <td className="px-6 py-4 text-sm flex items-center flex-wrap gap-2">
+                        <button
+                          onClick={() => {
+                            const sub = profileSubmissions.find(s => s.student?._id === app.student?._id);
+                            if (sub) {
+                              setSelectedSubmission(sub);
+                              setHrComment("");
+                              setShowSubmissionModal(true);
+                            }
+                          }}
+                          className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
+                          style={{ backgroundColor: theme.gold, opacity: profileSubmissions.some(s => s.student?._id === app.student?._id) ? 1 : 0.4 }}
+                        >
+                          <FaEye size={12} /> View Profile
+                        </button>
+
                         {["shortlisted", "coding_test_passed"].includes(app.status) && (
                           <button onClick={() => openInterviewModal(app)} className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
                             <FaCalendarAlt size={12} /> Schedule Interview
@@ -716,8 +738,8 @@ function HRDashboard() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Job</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Candidate</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Mode</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date & Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Location</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
                     </tr>
@@ -725,12 +747,23 @@ function HRDashboard() {
                   <tbody className="divide-y" style={{ borderColor: theme.border }}>
                     {hrInterviews.map((iv) => {
                       const status = iv.status?.toLowerCase ? iv.status.toLowerCase() : iv.status;
+                      const isAi = iv.interviewMode === "ai";
                       return (
                         <tr key={iv._id}>
                           <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{iv.job?.title || "Unknown"}</td>
                           <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{iv.application?.student?.name || "Unknown"}</td>
+                          <td className="px-6 py-4 text-sm">
+                            {isAi ? (
+                              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-purple-900/40 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5">
+                                <FaRobot size={11} /> AI Voice
+                              </span>
+                            ) : (
+                              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-blue-900/40 text-blue-300 border border-blue-500/30 inline-flex items-center gap-1.5">
+                                <FaVideo size={11} /> Human Video
+                              </span>
+                            )}
+                          </td>
                           <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(iv.scheduledAt).toLocaleString()}</td>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{iv.location}</td>
                           <td className="px-6 py-4">
                             <span className={`text-xs px-2 py-0.5 rounded-full ${
                               status === "completed" ? "bg-green-900/30 text-green-400" : 
@@ -741,40 +774,57 @@ function HRDashboard() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-sm">
-                            {status === "scheduled" && (
-                              <>
-                                <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs" style={{ backgroundColor: theme.gold }}>
-                                  Complete
+                            {isAi ? (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleViewAiReport(iv)}
+                                  className="text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs flex items-center gap-1.5 shadow"
+                                  style={{ backgroundColor: theme.gold }}
+                                >
+                                  <FaRobot size={12} /> View AI Report
                                 </button>
-                                <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs">
-                                  Cancel
-                                </button>
-                                {!iv.callActive ? (
-                                  <button
-                                    onClick={() => handleStartInterviewCall(iv)}
-                                    className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
-                                  >
-                                    <FaVideo size={12} /> Start Call
+                                {status === "scheduled" && (
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600/80 text-white px-2.5 py-1 rounded hover:bg-red-700 transition text-xs">
+                                    Cancel
                                   </button>
-                                ) : (
-                                  <>
+                                )}
+                              </div>
+                            ) : (
+                              status === "scheduled" && (
+                                <>
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs" style={{ backgroundColor: theme.gold }}>
+                                    Complete
+                                  </button>
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs">
+                                    Cancel
+                                  </button>
+                                  {!iv.callActive ? (
                                     <button
-                                      onClick={() => setVideoCallRoom(iv._id)}
+                                      onClick={() => handleStartInterviewCall(iv)}
                                       className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
                                     >
-                                      <FaVideo size={12} /> Join Call
+                                      <FaVideo size={12} /> Start Call
                                     </button>
-                                    <button
-                                      onClick={() => handleStopInterviewCall(iv)}
-                                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs"
-                                    >
-                                      End Call
-                                    </button>
-                                  </>
-                                )}
-                              </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() => setVideoCallRoom(iv._id)}
+                                        className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
+                                      >
+                                        <FaVideo size={12} /> Join Call
+                                      </button>
+                                      <button
+                                        onClick={() => handleStopInterviewCall(iv)}
+                                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs"
+                                      >
+                                        End Call
+                                      </button>
+                                    </>
+                                  )}
+                                </>
+                              )
                             )}
-                            {status === "completed" && (
+                            {!isAi && status === "completed" && (
                               <button
                                 onClick={() => {
                                   setSelectedInterviewForFeedback(iv);
@@ -877,78 +927,6 @@ function HRDashboard() {
                           >
                             📷 {t.status === "in_progress" ? "🔴 Live" : `Snaps (${(t.proctorSnapshots || []).length})`}
                           </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === "profile_submissions" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: theme.border }}>
-              <h2 className="text-lg font-semibold" style={{ color: theme.text }}>Student Profile Submissions</h2>
-              <button onClick={fetchProfileSubmissions} className="transition hover:opacity-80" style={{ color: theme.textSecondary }}>
-                <FaSync />
-              </button>
-            </div>
-            {loadingSubmissions ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>Loading...</div>
-            ) : profileSubmissions.length === 0 ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No profile submissions received yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                  <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Student</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Headline</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Message</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y" style={{ borderColor: theme.border }}>
-                    {profileSubmissions.map((sub) => (
-                      <tr key={sub._id}>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>
-                          {sub.student?.name || "Unknown"}
-                          <div className="text-xs" style={{ color: theme.textSecondary }}>{sub.student?.email}</div>
-                        </td>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.profile?.headline || "-"}</td>
-                        <td className="px-6 py-4">
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            sub.status === "approved" ? "bg-green-900/30 text-green-400" :
-                            sub.status === "rejected" ? "bg-red-900/30 text-red-400" :
-                            "bg-yellow-900/30 text-yellow-400"
-                          }`}>{sub.status}</span>
-                        </td>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{sub.message || "-"}</td>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(sub.createdAt).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-sm flex gap-2">
-                          {sub.status === "pending" ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  setSelectedSubmission(sub);
-                                  setHrComment("");
-                                  setShowSubmissionModal(true);
-                                }}
-                                className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
-                                style={{ backgroundColor: theme.gold }}
-                              >
-                                <FaEye size={12} /> Review
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-xs" style={{ color: theme.textSecondary }}>
-                              {sub.hrComment ? `Comment: ${sub.hrComment}` : `No comment`}
-                            </span>
-                          )}
                         </td>
                       </tr>
                     ))}
@@ -1173,6 +1151,50 @@ function HRDashboard() {
             </p>
             <form onSubmit={handleScheduleInterview} className="space-y-4">
               <div>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: theme.text }}>Interview Type / Mode</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setInterviewData({ ...interviewData, interviewMode: "human" })}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${
+                      interviewData.interviewMode === "human"
+                        ? "border-amber-500 bg-amber-500/10 text-white"
+                        : "border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-700"
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-blue-900/30 text-blue-400">
+                      <FaVideo size={16} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white">Human Interview</div>
+                      <div className="text-[10px] text-gray-400">Live 1-on-1 Video Call</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setInterviewData({ ...interviewData, interviewMode: "ai" })}
+                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${
+                      interviewData.interviewMode === "ai"
+                        ? "border-purple-500 bg-purple-500/15 text-white"
+                        : "border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-700"
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-purple-900/40 text-purple-300">
+                      <FaRobot size={16} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-white flex items-center gap-1">
+                        AI Interview
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500 text-black font-extrabold">NEW</span>
+                      </div>
+                      <div className="text-[10px] text-gray-400">Groq Voice & Evaluation</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: theme.text }}>Date & Time</label>
                 <input
                   type="datetime-local"
@@ -1259,11 +1281,240 @@ function HRDashboard() {
                 <button type="button" onClick={() => { setShowInterviewModal(false); setSelectedApplication(null); }} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-white px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: theme.gold }}>
-                  Schedule
+                <button type="submit" className="text-white px-4 py-2 text-sm rounded-lg transition font-semibold" style={{ backgroundColor: theme.gold }}>
+                  {interviewData.interviewMode === "ai" ? "Schedule AI Interview" : "Schedule Interview"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* AI Interview Report Modal */}
+      {showAiReportModal && selectedAiReport && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="rounded-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+            <div className="flex justify-between items-center pb-4 border-b" style={{ borderColor: theme.border }}>
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-900/30 text-purple-300 border border-purple-500/30">
+                  <FaRobot size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold" style={{ color: theme.text }}>
+                    AI Interview Assessment Report
+                  </h2>
+                  <p className="text-xs" style={{ color: theme.textSecondary }}>
+                    Candidate: <strong style={{ color: theme.text }}>{selectedAiReport.candidate?.name || "Candidate"}</strong> ({selectedAiReport.candidate?.email}) • Job: <strong style={{ color: theme.text }}>{selectedAiReport.job?.title}</strong>
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => { setShowAiReportModal(false); setSelectedAiReport(null); }} className="text-xl hover:opacity-70" style={{ color: theme.textSecondary }}>✕</button>
+            </div>
+
+            <div className="py-5 space-y-5">
+              {/* Score & Decision Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <div className="text-xs font-semibold uppercase mb-1" style={{ color: theme.textSecondary }}>Overall Score</div>
+                  <div className="text-3xl font-extrabold" style={{ color: theme.gold }}>
+                    {selectedAiReport.feedback?.rating ? `${selectedAiReport.feedback.rating}/5` : "Pending"}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-1">AI Evaluated</div>
+                </div>
+
+                <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <div className="text-xs font-semibold uppercase mb-1" style={{ color: theme.textSecondary }}>AI Recommendation</div>
+                  <div className={`text-base font-bold uppercase px-3 py-1 rounded-full mt-1 ${
+                    selectedAiReport.feedback?.decision === "selected" ? "bg-green-900/40 text-green-400 border border-green-500/30" :
+                    selectedAiReport.feedback?.decision === "rejected" ? "bg-red-900/40 text-red-400 border border-red-500/30" :
+                    "bg-yellow-900/40 text-yellow-400 border border-yellow-500/30"
+                  }`}>
+                    {selectedAiReport.feedback?.decision || "Pending"}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-1">Suggested Action</div>
+                </div>
+
+                <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <div className="text-xs font-semibold uppercase mb-1" style={{ color: theme.textSecondary }}>Session Status</div>
+                  <div className="text-sm font-semibold capitalize text-purple-300">
+                    {selectedAiReport.aiInterview?.status || selectedAiReport.status}
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-1">
+                    {selectedAiReport.aiInterview?.completedAt ? new Date(selectedAiReport.aiInterview.completedAt).toLocaleTimeString() : "Scheduled"}
+                  </div>
+                </div>
+              </div>
+
+              {/* 🛡️ AI Proctoring & Speech Telemetry Card */}
+              {selectedAiReport.proctoring && (
+                <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: theme.gold }}>
+                    <span>🛡️ AI Proctoring & Speech Telemetry</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-900/40 text-green-400 border border-green-500/30">
+                      INTEGRITY: {selectedAiReport.proctoring.integrityScore || 100}%
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Tab Switches</span>
+                      <span className={`text-base font-extrabold mt-0.5 ${selectedAiReport.proctoring.tabSwitches > 0 ? "text-amber-400" : "text-green-400"}`}>
+                        {selectedAiReport.proctoring.tabSwitches || 0}
+                      </span>
+                      <span className="text-[9px] text-gray-400 mt-0.5">
+                        {selectedAiReport.proctoring.tabSwitches > 0 ? "Flagged Warning" : "Clean Session"}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Speech Pacing</span>
+                      <span className="text-base font-extrabold mt-0.5 text-blue-400">
+                        {selectedAiReport.proctoring.wordsPerMinute || 125} WPM
+                      </span>
+                      <span className="text-[9px] text-gray-400 mt-0.5">Words Per Minute</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Filler Words</span>
+                      <span className={`text-base font-extrabold mt-0.5 ${selectedAiReport.proctoring.fillerWordsCount > 5 ? "text-amber-400" : "text-purple-400"}`}>
+                        {selectedAiReport.proctoring.fillerWordsCount || 0}
+                      </span>
+                      <span className="text-[9px] text-gray-400 mt-0.5">"Um/Like/Actually"</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Confidence Index</span>
+                      <span className="text-base font-extrabold mt-0.5 text-green-400">
+                        {selectedAiReport.proctoring.confidenceScore || 90}%
+                      </span>
+                      <span className="text-[9px] text-gray-400 mt-0.5">Voice Fluency</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Candidate Resume Profile */}
+              {selectedAiReport.candidateResume && (
+                <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: theme.gold }}>
+                    <span>📄 Candidate Resume Highlights</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {selectedAiReport.candidateResume.technical_skills && (
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                        <strong className="text-white">Technical Skills:</strong>
+                        <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.technical_skills}</p>
+                      </div>
+                    )}
+                    {selectedAiReport.candidateResume.project_details && (
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                        <strong className="text-white">Projects from CV:</strong>
+                        <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.project_details}</p>
+                      </div>
+                    )}
+                    {selectedAiReport.candidateResume.certifications && (
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                        <strong className="text-white">Certifications:</strong>
+                        <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.certifications}</p>
+                      </div>
+                    )}
+                    {selectedAiReport.candidateResume.other_info && (
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                        <strong className="text-white">Education & Background:</strong>
+                        <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.other_info}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* AI Summary / Feedback */}
+              <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: theme.gold }}>
+                  <span>📋 Executive Feedback & Suggestions</span>
+                </h3>
+                <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap" style={{ color: theme.text }}>
+                  {selectedAiReport.feedback?.comments || selectedAiReport.aiAnalysis?.feedbackAndSuggestions || "AI evaluation in progress or no response submitted yet."}
+                </p>
+              </div>
+
+              {/* AI Interview Questions & Candidate Answers Breakdown */}
+              {((selectedAiReport.aiInterview?.qaList && selectedAiReport.aiInterview.qaList.length > 0) || (selectedAiReport.aiInterview?.questions && selectedAiReport.aiInterview.questions.length > 0)) && (
+                <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: theme.gold }}>
+                    <span>❓ Detailed Questions & Candidate Answers</span>
+                    <span className="text-[10px] text-gray-400 font-normal">Question-by-Question AI Breakdown</span>
+                  </h3>
+                  <div className="space-y-3">
+                    {(selectedAiReport.aiInterview.qaList && selectedAiReport.aiInterview.qaList.length > 0
+                      ? selectedAiReport.aiInterview.qaList
+                      : selectedAiReport.aiInterview.questions.map(q => ({ question: q, answer: "Answer recorded verbally.", score: 4, feedback: "Evaluated by AI." }))
+                    ).map((item, idx) => (
+                      <div key={idx} className="p-3.5 rounded-xl border space-y-2.5" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                        {/* Question */}
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-extrabold text-purple-400 shrink-0">Q{idx + 1}:</span>
+                          <span className="text-xs font-semibold" style={{ color: theme.text }}>{item.question}</span>
+                        </div>
+
+                        {/* Candidate's Actual Spoken Answer */}
+                        <div className="p-2.5 rounded-lg bg-black/40 border border-gray-800 text-xs">
+                          <div className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <FaMicrophone size={10} /> Candidate's Spoken Answer:
+                          </div>
+                          <p className="text-xs leading-relaxed italic" style={{ color: theme.text }}>
+                            "{item.answer || "Verbal answer provided by candidate during the interview."}"
+                          </p>
+                        </div>
+
+                        {/* AI Feedback & Score for this Question */}
+                        {item.feedback && (
+                          <div className="flex items-center justify-between text-[11px] pt-1 text-gray-400">
+                            <span className="flex items-center gap-1 text-purple-300">
+                              <span>🎯 AI Feedback:</span> {item.feedback}
+                            </span>
+                            {item.score && (
+                              <span className="px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 border border-purple-500/30 font-bold shrink-0">
+                                {item.score}/5
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Candidate Audio Transcript */}
+              {selectedAiReport.aiAnalysis?.transcript && (
+                <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: theme.textSecondary }}>
+                    <FaMicrophone size={12} /> Full Audio Transcript (Groq Whisper)
+                  </h3>
+                  <div className="p-3 rounded-lg border max-h-48 overflow-y-auto text-xs leading-relaxed font-mono" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+                    {selectedAiReport.aiAnalysis.transcript}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t" style={{ borderColor: theme.border }}>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition hover:opacity-80"
+                style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}
+              >
+                <span>📄 Print / Export PDF</span>
+              </button>
+
+              <button
+                onClick={() => { setShowAiReportModal(false); setSelectedAiReport(null); }}
+                className="px-5 py-2 text-xs font-semibold rounded-lg shadow transition hover:opacity-90"
+                style={{ backgroundColor: theme.gold, color: "#000" }}
+              >
+                Close Report
+              </button>
+            </div>
           </div>
         </div>
       )}

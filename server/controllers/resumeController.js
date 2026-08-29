@@ -71,7 +71,7 @@ ${text}`;
   const response = await axios.post(
     "https://api.groq.com/openai/v1/chat/completions",
     {
-      model: "llama-3.1-8b-instant",
+      model: "openai/gpt-oss-20b",
       messages: [
         { role: "system", content: "You extract structured data from resumes. Return ONLY valid JSON. No markdown, no explanations." },
         { role: "user", content: prompt }
@@ -215,7 +215,7 @@ Return ONLY the HTML content (starting with <div>), no markdown, no code fences,
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         messages: [
           {
             role: "system",
@@ -351,7 +351,7 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
     const response = await axios.post(
       "https://api.groq.com/openai/v1/chat/completions",
       {
-        model: "llama-3.1-8b-instant",
+        model: "openai/gpt-oss-20b",
         messages: [
           {
             role: "system",

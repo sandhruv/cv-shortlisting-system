@@ -18,13 +18,38 @@ const interviewSchema = new mongoose.Schema(
       decision: { type: String, enum: ["", "selected", "rejected", "hold"], default: "" },
     },
     callActive: { type: Boolean, default: false },
+    interviewMode: { type: String, enum: ["human", "ai"], default: "human" },
+    aiInterview: {
+      questions: [{ type: String }],
+      qaList: [
+        {
+          question: { type: String },
+          answer: { type: String, default: "" },
+          score: { type: Number },
+          feedback: { type: String, default: "" },
+        }
+      ],
+      totalQuestions: { type: Number, default: 5 },
+      status: { type: String, enum: ["pending", "in_progress", "completed", "failed"], default: "pending" },
+      startedAt: { type: Date },
+      completedAt: { type: Date }
+    },
     aiAnalysis: {
       transcript: { type: String, default: "" },
       feedbackAndSuggestions: { type: String, default: "" },
       status: { type: String, enum: ["pending", "processing", "completed", "failed"], default: "pending" }
+    },
+    proctoring: {
+      tabSwitches: { type: Number, default: 0 },
+      integrityScore: { type: Number, default: 100 },
+      fillerWordsCount: { type: Number, default: 0 },
+      wordsPerMinute: { type: Number, default: 0 },
+      confidenceScore: { type: Number, default: 85 },
+      technicalScore: { type: Number, default: 4 },
+      communicationScore: { type: Number, default: 4 },
     }
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 module.exports = mongoose.model("Interview", interviewSchema);
