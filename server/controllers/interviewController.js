@@ -16,7 +16,7 @@ const canManageInterview = (req, job) => {
     job.allocatedFaculty.toString() === req.user.id;
 
   return (
-    job.postedBy.toString() === req.user.id ||
+    job.postedBy?.toString() === req.user.id ||
     ALLOWED_INTERVIEW_ROLES.includes(req.user.role) ||
     isAssignedFaculty
   );
