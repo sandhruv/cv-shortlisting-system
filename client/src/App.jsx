@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -15,6 +16,21 @@ import TestCompilerPage from "./pages/TestCompilerPage";
 import AiInterviewRoom from "./components/AiInterviewRoom";
 
 function App() {
+  useEffect(() => {
+    const isDevelopment = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    const healthUrl = isDevelopment
+      ? "http://localhost:5000/api/health"
+      : `${window.location.protocol}//${window.location.hostname}/api/health`;
+
+    const pingServer = () => {
+      fetch(healthUrl, { cache: "no-store" }).catch(() => {});
+    };
+
+    pingServer();
+    const intervalId = window.setInterval(pingServer, 5 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
