@@ -54,6 +54,7 @@ export default function AiInterviewRoom() {
   const [isListening, setIsListening] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [qaAnswers, setQaAnswers] = useState([]);
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   // Media States
   const [hasCamera, setHasCamera] = useState(true);
@@ -77,6 +78,36 @@ export default function AiInterviewRoom() {
   const analyserRef = useRef(null);
   const animFrameRef = useRef(null);
   const recognitionRef = useRef(null);
+  const speechFinalTranscriptRef = useRef("");
+  const actionLockRef = useRef(false);
+  const phaseRef = useRef(phase);
+  const isSpeakingRef = useRef(isSpeaking);
+
+  const enterFullscreen = () => {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  };
+
+  const exitFullscreen = () => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    isSpeakingRef.current = isSpeaking;
+  }, [isSpeaking]);
+
+  // Tab switch listener
+  useEffect(() => {
+    enterFullscreen();
+    return () => exitFullscreen();
+  }, []);
 
   // Tab switch listener
   useEffect(() => {
@@ -99,7 +130,7 @@ export default function AiInterviewRoom() {
     async function init() {
       try {
         setLoadingData(true);
-        const res = await api.post(`/interviews/${interviewId}/ai-start`);
+        const res = await api.get(`/interviews/${interviewId}/ai`);
         if (!mounted) return;
 
         setInterviewData(res.data);
@@ -125,6 +156,16 @@ export default function AiInterviewRoom() {
             return;
           }
           streamRef.current = stream;
+          stream.getTracks().forEach((track) => {
+            track.onended = () => {
+              if (track.kind === "video") setHasCamera(false);
+              if (track.kind === "audio") setHasMic(false);
+              if (phaseRef.current === "interviewing") {
+                setErrorMessage(`${track.kind === "video" ? "Camera" : "Microphone"} disconnected. Please reconnect it and restart the interview.`);
+                setPhase("error");
+              }
+            };
+          });
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
           }
@@ -215,12 +256,18 @@ export default function AiInterviewRoom() {
       recognition.lang = "en-IN"; // Supports English, Indian accents, Hindi/Hinglish
 
       recognition.onresult = (event) => {
-        let transcript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + " ";
+        let interimTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i][0].transcript.trim();
+          if (event.results[i].isFinal) {
+            speechFinalTranscriptRef.current = `${speechFinalTranscriptRef.current} ${result}`.trim();
+          } else {
+            interimTranscript = `${interimTranscript} ${result}`.trim();
+          }
         }
-        if (transcript.trim()) {
-          setCurrentAnswer(transcript.trim());
+        const transcript = `${speechFinalTranscriptRef.current} ${interimTranscript}`.trim();
+        if (transcript) {
+          setCurrentAnswer(transcript);
         }
       };
 
@@ -229,7 +276,7 @@ export default function AiInterviewRoom() {
       };
 
       recognition.onend = () => {
-        if (recognitionRef.current && phase === "interviewing" && !isSpeaking) {
+        if (recognitionRef.current && phaseRef.current === "interviewing" && !isSpeakingRef.current) {
           try { recognition.start(); } catch (e) {}
         }
       };
@@ -284,6 +331,8 @@ export default function AiInterviewRoom() {
     return new Promise((resolve) => {
       try {
         const token = localStorage.getItem("token");
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 15000);
         const baseURL = window.location.hostname === "localhost"
           ? "http://localhost:5000/api"
           : `${window.location.protocol}//${window.location.hostname}/api`;
@@ -294,47 +343,57 @@ export default function AiInterviewRoom() {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
+          signal: controller.signal,
           body: JSON.stringify({ text: text.trim(), voice: "en-US-JennyNeural" }),
         })
           .then(async (res) => {
             if (!res.ok || !res.body) {
+              window.clearTimeout(timeoutId);
               return resolve(false);
             }
 
             const reader = res.body.getReader();
             const chunks = [];
 
-            const read = async () => {
-              const { done, value } = await reader.read();
-              if (done) {
-                // All chunks received — play the full audio
-                const blob = new Blob(chunks, { type: "audio/mpeg" });
-                const audioUrl = URL.createObjectURL(blob);
-                const audio = new Audio(audioUrl);
-                currentAudioRef.current = audio;
-
-                audio.onended = () => {
-                  URL.revokeObjectURL(audioUrl);
-                  currentAudioRef.current = null;
-                  resolve(true);
-                };
-
-                audio.onerror = () => {
-                  URL.revokeObjectURL(audioUrl);
-                  currentAudioRef.current = null;
-                  resolve(false);
-                };
-
-                audio.play().catch(() => resolve(false));
-                return;
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
               }
-              chunks.push(value);
-              read();
-            };
+              window.clearTimeout(timeoutId);
 
-            read();
+              const blob = new Blob(chunks, { type: "audio/mpeg" });
+              const audioUrl = URL.createObjectURL(blob);
+              const audio = new Audio(audioUrl);
+              currentAudioRef.current = audio;
+              const cleanup = () => {
+                URL.revokeObjectURL(audioUrl);
+                if (currentAudioRef.current === audio) currentAudioRef.current = null;
+              };
+
+              audio.onended = () => {
+                cleanup();
+                resolve(true);
+              };
+
+              audio.onerror = () => {
+                cleanup();
+                resolve(false);
+              };
+
+              audio.play().catch(() => {
+                cleanup();
+                resolve(false);
+              });
+            } catch (e) {
+              resolve(false);
+            }
           })
-          .catch(() => resolve(false));
+          .catch(() => {
+            window.clearTimeout(timeoutId);
+            resolve(false);
+          });
       } catch (e) {
         resolve(false);
       }
@@ -365,8 +424,19 @@ export default function AiInterviewRoom() {
 
   // Start interview session
   const handleStartInterview = async () => {
-    if (!streamRef.current) {
+    if (!streamRef.current || streamRef.current.getTracks().some((track) => track.readyState !== "live")) {
       alert("Camera and Microphone access are required to begin.");
+      return;
+    }
+
+    enterFullscreen();
+
+    try {
+      await api.post(`/interviews/${interviewId}/ai-start`);
+    } catch (err) {
+      console.error("Failed to start interview:", err);
+      setErrorMessage(err.response?.data?.message || "Failed to start AI interview.");
+      setPhase("error");
       return;
     }
 
@@ -374,6 +444,7 @@ export default function AiInterviewRoom() {
     setCurrentQIndex(0);
     setCurrentAnswer("");
     setQaAnswers([]);
+    speechFinalTranscriptRef.current = "";
 
     // Start recorder
     interviewStartTimeRef.current = Date.now();
@@ -403,6 +474,10 @@ export default function AiInterviewRoom() {
 
   // Next Question / Finish with conversational reaction
   const handleNextQuestion = async () => {
+    if (actionLockRef.current) return;
+    actionLockRef.current = true;
+    setIsAdvancing(true);
+
     if (isSpeaking) {
       window.speechSynthesis?.cancel();
       setIsSpeaking(false);
@@ -426,6 +501,7 @@ export default function AiInterviewRoom() {
     ];
     setQaAnswers(updatedAnswers);
     setCurrentAnswer("");
+    speechFinalTranscriptRef.current = "";
 
     const nextIndex = currentQIndex + 1;
 
@@ -436,11 +512,15 @@ export default function AiInterviewRoom() {
       const transition = HUMAN_TRANSITIONS[currentQIndex % HUMAN_TRANSITIONS.length];
       const nextSpeech = `${transition} Question ${nextIndex + 1}: ${questions[nextIndex]}`;
       await speakVoice(nextSpeech);
+      actionLockRef.current = false;
+      setIsAdvancing(false);
     } else {
       // Warm closing remark
       const closing = `Thank you so much, ${interviewData?.candidateName || "Candidate"}! You did a wonderful job walking through your projects and technical background. We have recorded your responses, and our hiring team will review your detailed assessment report. Have a great day!`;
       await speakVoice(closing);
       await finishInterview(updatedAnswers);
+      actionLockRef.current = false;
+      setIsAdvancing(false);
     }
   };
 
@@ -476,9 +556,6 @@ export default function AiInterviewRoom() {
       const formData = new FormData();
       if (finalAudioBlob) {
         formData.append("audio", finalAudioBlob, "ai_interview.webm");
-      } else {
-        const emptyBlob = new Blob(["silent"], { type: "audio/webm" });
-        formData.append("audio", emptyBlob, "ai_interview.webm");
       }
 
       formData.append("qaList", JSON.stringify(answersToSubmit));
@@ -497,7 +574,25 @@ export default function AiInterviewRoom() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setPhase("completed");
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const statusResponse = await api.get(`/interviews/${interviewId}/ai`);
+        if (statusResponse.data.analysisStatus === "failed") {
+          setErrorMessage("Your interview was recorded, but the AI report could not be generated. Please contact HR for a retry.");
+          setPhase("error");
+          return;
+        }
+        if (
+          statusResponse.data.analysisStatus === "completed" ||
+          statusResponse.data.interviewStatus === "completed"
+        ) {
+          setPhase("completed");
+          return;
+        }
+      }
+
+      setErrorMessage("Your interview was submitted, but the report is still processing. Please check your dashboard shortly.");
+      setPhase("error");
     } catch (err) {
       console.error("Submission failed:", err);
       setErrorMessage(err.response?.data?.message || "Failed to submit interview.");
@@ -528,6 +623,7 @@ export default function AiInterviewRoom() {
   const handleExit = () => {
     stopMediaTracks();
     stopSpeechRecognition();
+    exitFullscreen();
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user.role === "LPU Student") {
       navigate("/lpu-student");
@@ -794,6 +890,7 @@ export default function AiInterviewRoom() {
 
               <button
                 onClick={handleNextQuestion}
+                disabled={isAdvancing}
                 className="px-6 py-2.5 rounded-xl font-bold shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xs md:text-sm text-black"
                 style={{ backgroundColor: theme.gold }}
               >

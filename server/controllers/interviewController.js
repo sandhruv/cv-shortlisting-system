@@ -22,6 +22,16 @@ const canManageInterview = (req, job) => {
   );
 };
 
+const isInterviewCandidate = (req, interview) => {
+  const student = interview.application?.student;
+  const studentId = student?._id || student;
+  return (
+    ["Student", "LPU Student"].includes(req.user.role) &&
+    studentId &&
+    studentId.toString() === req.user.id
+  );
+};
+
 // Helper: Generate resume-tailored interview questions using Groq
 const generateQuestionsForCandidate = async (job, studentId) => {
   try {
@@ -182,7 +192,7 @@ exports.getMyInterviews = async (req, res) => {
     if (appIds.length === 0) return res.json([]);
     const interviews = await Interview.find({
       application: { $in: appIds },
-      status: { $in: ["scheduled", "rescheduled"] }
+      status: { $in: ["scheduled", "rescheduled", "completed"] }
     })
       .populate("job", "title location")
       .populate("application", "status")
@@ -200,6 +210,9 @@ exports.getJobInterviews = async (req, res) => {
     let query = {};
 
     if (jobId) {
+      const job = await Job.findById(jobId);
+      if (!job) return res.status(404).json({ message: "Job not found." });
+      if (!canManageInterview(req, job)) return res.status(403).json({ message: "Not authorized to view this job's interviews." });
       query.job = jobId;
     } else if (req.user.role === "LPU Faculty") {
       const jobs = await Job.find({ scope: "lpu", allocatedFaculty: req.user.id }).select("_id");
@@ -283,6 +296,32 @@ exports.addFeedback = async (req, res) => {
 };
 
 // AI Interview Handlers
+exports.getAiInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const interview = await Interview.findById(id)
+      .populate("job", "title description requirements")
+      .populate({ path: "application", populate: { path: "student", select: "name email" } });
+
+    if (!interview) return res.status(404).json({ message: "Interview not found." });
+    if (interview.interviewMode !== "ai") return res.status(400).json({ message: "This is not an AI interview." });
+    if (!isInterviewCandidate(req, interview)) return res.status(403).json({ message: "Not authorized to access this interview." });
+
+    res.json({
+      questions: interview.aiInterview?.questions || [],
+      jobTitle: interview.job?.title,
+      candidateName: interview.application?.student?.name,
+      totalQuestions: interview.aiInterview?.totalQuestions || interview.aiInterview?.questions?.length || 0,
+      status: interview.aiInterview?.status || "scheduled",
+      interviewStatus: interview.status,
+      analysisStatus: interview.aiAnalysis?.status || "pending",
+    });
+  } catch (err) {
+    console.error("getAiInterview error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.startAiInterview = async (req, res) => {
   try {
     const { id } = req.params;
@@ -292,6 +331,10 @@ exports.startAiInterview = async (req, res) => {
 
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     if (interview.interviewMode !== "ai") return res.status(400).json({ message: "This is not an AI interview." });
+    if (!isInterviewCandidate(req, interview)) return res.status(403).json({ message: "Not authorized to start this interview." });
+    if (["completed", "cancelled"].includes(interview.status) || interview.aiInterview?.status === "completed") {
+      return res.status(409).json({ message: "This interview is no longer available." });
+    }
 
     let qList = interview.aiInterview?.questions || [];
     // If questions are not yet generated, generate them from resume now
@@ -330,13 +373,26 @@ exports.submitAiInterview = async (req, res) => {
 
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     if (interview.interviewMode !== "ai") return res.status(400).json({ message: "This is not an AI interview." });
+    if (!isInterviewCandidate(req, interview)) return res.status(403).json({ message: "Not authorized to submit this interview." });
+    if (interview.aiInterview?.status !== "in_progress") return res.status(409).json({ message: "This interview is not ready for submission." });
 
     interview.aiInterview = interview.aiInterview || {};
     interview.aiInterview.status = "completed";
     interview.aiInterview.completedAt = new Date();
     interview.aiAnalysis = interview.aiAnalysis || {};
     interview.aiAnalysis.status = "processing";
-    await interview.save();
+    const claimedInterview = await Interview.findOneAndUpdate(
+      { _id: id, "aiInterview.status": "in_progress", "aiAnalysis.status": { $ne: "processing" } },
+      {
+        $set: {
+          "aiInterview.status": "completed",
+          "aiInterview.completedAt": interview.aiInterview.completedAt,
+          "aiAnalysis.status": "processing",
+        },
+      },
+      { new: true }
+    );
+    if (!claimedInterview) return res.status(409).json({ message: "This interview has already been submitted." });
 
     res.json({ message: "AI interview submitted. Generating assessment report...", status: "processing" });
 
@@ -520,12 +576,12 @@ Evaluate the answers thoroughly. Return ONLY a valid JSON object in this exact f
         console.log(`✅ Detailed AI Interview Q&A report generated for interview: ${id}`);
       } catch (err) {
         console.error("AI Interview processing error:", err);
-        interview.aiAnalysis.status = "completed";
-        interview.aiAnalysis.feedbackAndSuggestions = "Interview session recorded and candidate evaluation processed.";
+        interview.aiInterview.status = "failed";
+        interview.aiAnalysis.status = "failed";
+        interview.aiAnalysis.feedbackAndSuggestions = "Interview was recorded, but the AI assessment could not be generated.";
         interview.feedback = {
-          rating: 4,
-          comments: "Interview submitted and evaluated by AI.",
-          decision: "selected"
+          comments: "Interview submitted. AI assessment failed and requires review.",
+          decision: "hold"
         };
         interview.status = "completed";
         await interview.save();
@@ -552,6 +608,7 @@ exports.getAiInterviewReport = async (req, res) => {
       .populate({ path: "application", populate: { path: "student", select: "name email" } });
 
     if (!interview) return res.status(404).json({ message: "Interview not found." });
+    if (!canManageInterview(req, interview.job)) return res.status(403).json({ message: "Not authorized to view this report." });
 
     const studentId = interview.application?.student?._id || interview.application?.student;
     const candidateResume = await Resume.findOne({ student: studentId }).sort({ createdAt: -1 });
@@ -568,11 +625,11 @@ exports.getAiInterviewReport = async (req, res) => {
       proctoring: interview.proctoring || {
         tabSwitches: 0,
         integrityScore: 100,
-        fillerWordsCount: 2,
-        wordsPerMinute: 130,
-        confidenceScore: 92,
-        technicalScore: interview.feedback?.rating || 4,
-        communicationScore: 4,
+        fillerWordsCount: 0,
+        wordsPerMinute: 0,
+        confidenceScore: 0,
+        technicalScore: null,
+        communicationScore: null,
       },
       scheduledAt: interview.scheduledAt,
     });
@@ -587,8 +644,13 @@ exports.handleAiTurn = async (req, res) => {
     const { id } = req.params;
     const { currentQuestion, candidateAnswer, nextQuestionIndex } = req.body;
 
-    const interview = await Interview.findById(id).populate("job");
+    const interview = await Interview.findById(id)
+      .populate("job")
+      .populate({ path: "application", populate: { path: "student", select: "_id" } });
     if (!interview) return res.status(404).json({ message: "Interview not found." });
+    if (interview.interviewMode !== "ai") return res.status(400).json({ message: "This is not an AI interview." });
+    if (!isInterviewCandidate(req, interview)) return res.status(403).json({ message: "Not authorized to use this interview." });
+    if (interview.aiInterview?.status === "completed") return res.status(409).json({ message: "This interview has already been submitted." });
 
     const questions = interview.aiInterview?.questions || [];
     const nextQuestion = questions[nextQuestionIndex] || "";
@@ -655,12 +717,16 @@ exports.generateTTS = async (req, res) => {
     if (!text || text.trim().length === 0) {
       return res.status(400).json({ message: "Text is required" });
     }
+    if (text.trim().length > 500) {
+      return res.status(400).json({ message: "Text must be 500 characters or fewer" });
+    }
 
     const { MsEdgeTTS, OUTPUT_FORMAT } = require("msedge-tts");
     const tts = new MsEdgeTTS();
 
     // Jenny = warm female, Guy = professional male
-    const selectedVoice = voice || "en-US-JennyNeural";
+    const allowedVoices = ["en-US-JennyNeural", "en-US-GuyNeural"];
+    const selectedVoice = allowedVoices.includes(voice) ? voice : "en-US-JennyNeural";
     await tts.setMetadata(selectedVoice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
 
     res.setHeader("Content-Type", "audio/mpeg");
