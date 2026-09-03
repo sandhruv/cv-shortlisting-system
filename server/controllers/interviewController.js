@@ -390,7 +390,7 @@ exports.submitAiInterview = async (req, res) => {
           "aiAnalysis.status": "processing",
         },
       },
-      { new: true }
+      { returnDocument: "after" }
     );
     if (!claimedInterview) return res.status(409).json({ message: "This interview has already been submitted." });
 

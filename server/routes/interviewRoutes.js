@@ -19,6 +19,7 @@ const {
 } = require("../controllers/interviewController");
 
 const multer = require("multer");
+const path = require("path");
 const rateLimit = require("express-rate-limit");
 const ttsLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -28,7 +29,13 @@ const ttsLimiter = rateLimit({
   message: "Too many text-to-speech requests. Please try again shortly.",
 });
 const upload = multer({
-  dest: "uploads/",
+  storage: multer.diskStorage({
+    destination: "uploads/",
+    filename: (req, file, cb) => {
+      const extension = path.extname(file.originalname).toLowerCase() || ".webm";
+      cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+    },
+  }),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("audio/") || file.mimetype === "video/webm") {
