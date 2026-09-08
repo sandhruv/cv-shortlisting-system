@@ -495,7 +495,7 @@ function LpuFacultyDashboard() {
               <div key={job._id} className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
                 <div className="font-semibold text-sm" style={{ color: theme.text }}>{job.title}</div>
                 <div className="text-xs mt-1" style={{ color: theme.textSecondary }}>
-                  {job.allocatedStudents?.length || 0} students assigned • {job.location}
+                  {job.allocatedStudents?.length || 0} students assigned ΓÇó {job.location}
                 </div>
               </div>
             ))}
@@ -612,7 +612,7 @@ function LpuFacultyDashboard() {
                         }`}>
                           {app.status === "coding_test_assigned" ? "Coding Test Assigned" :
                            app.status === "coding_test_submitted" ? "Coding Test Submitted" :
-                           app.status === "coding_test_passed" ? "Coding Test Passed ✓" :
+                           app.status === "coding_test_passed" ? "Coding Test Passed Γ£ô" :
                            app.status === "coding_test_failed" ? "Coding Test Failed" :
                            app.status}
                         </span>
@@ -748,7 +748,7 @@ function LpuFacultyDashboard() {
                                 className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex"
                                 style={{ backgroundColor: theme.gold }}
                               >
-                                ✨ AI Analysis & Feedback
+                                Γ£¿ AI Analysis & Feedback
                               </button>
                             )}
                           </td>
@@ -868,22 +868,22 @@ function LpuFacultyDashboard() {
                 onClick={() => { setShowResumeModal(false); setSelectedResume(null); setAiInterviewQs([]); }}
                 className="hover:opacity-70 text-xl"
                 style={{ color: theme.textSecondary }}
-              >✕</button>
+              >Γ£ò</button>
             </div>
 
             <div className="p-5">
               {loadingResume ? (
-                <p className="text-center py-8" style={{ color: theme.textSecondary }}>Loading resume…</p>
+                <p className="text-center py-8" style={{ color: theme.textSecondary }}>Loading resumeΓÇª</p>
               ) : selectedResume ? (
                 <>
                   <div className="grid grid-cols-2 gap-3 text-sm mb-5">
                     {[
-                      ["📄 File", selectedResume.fileName],
-                      ["📅 Uploaded", new Date(selectedResume.createdAt).toLocaleString()],
-                      ["📧 Email", selectedResume.extractedData?.email],
-                      ["📞 Contact", selectedResume.extractedData?.contact_no],
-                      ["🛠 Skills", selectedResume.extractedData?.technical_skills],
-                      ["🏆 Certifications", selectedResume.extractedData?.certifications],
+                      ["≡ƒôä File", selectedResume.fileName],
+                      ["≡ƒôà Uploaded", new Date(selectedResume.createdAt).toLocaleString()],
+                      ["≡ƒôº Email", selectedResume.extractedData?.email],
+                      ["≡ƒô₧ Contact", selectedResume.extractedData?.contact_no],
+                      ["≡ƒ¢á Skills", selectedResume.extractedData?.technical_skills],
+                      ["≡ƒÅå Certifications", selectedResume.extractedData?.certifications],
                     ].map(([label, val]) => val && val !== "Not found" && (
                       <div key={label} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
                         <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>{label}</div>
@@ -894,7 +894,7 @@ function LpuFacultyDashboard() {
 
                   {selectedResume.extractedData?.project_details && selectedResume.extractedData.project_details !== "Not found" && (
                     <div className="rounded-lg p-3 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
-                      <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>🗂 Projects</div>
+                      <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>≡ƒùé Projects</div>
                       <div className="text-xs" style={{ color: theme.text }}>{selectedResume.extractedData.project_details}</div>
                     </div>
                   )}
@@ -902,7 +902,7 @@ function LpuFacultyDashboard() {
                   <div className="border-t pt-4" style={{ borderColor: theme.border }}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm font-bold" style={{ color: theme.text }}>🤖 AI Interview Questions</p>
+                        <p className="text-sm font-bold" style={{ color: theme.text }}>≡ƒñû AI Interview Questions</p>
                         <p className="text-xs" style={{ color: theme.textSecondary }}>Auto-generated from CV + Job profile via Groq AI</p>
                       </div>
                       <button
@@ -918,10 +918,10 @@ function LpuFacultyDashboard() {
                         {loadingAiQs ? (
                           <>
                             <span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                            Generating…
+                            GeneratingΓÇª
                           </>
                         ) : (
-                          <>🤖 Generate 10 Interview Q&amp;As</>
+                          <>≡ƒñû Generate 10 Interview Q&amp;As</>
                         )}
                       </button>
                     </div>
@@ -941,7 +941,7 @@ function LpuFacultyDashboard() {
                               </div>
                             </div>
                             <div className="p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
-                              <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>✅ Model Answer</p>
+                              <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Γ£à Model Answer</p>
                               <p className="text-xs leading-relaxed" style={{ color: theme.textSecondary }}>{q.answer}</p>
                             </div>
                           </div>
@@ -1032,7 +1032,7 @@ function LpuFacultyDashboard() {
                           style={{ background: t.status === "in_progress" ? "#15803d" : "#1e3a5f" }}
                           title={t.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
                         >
-                          📷 {t.status === "in_progress" ? "🔴 Live Cam" : `Snaps (${(t.proctorSnapshots || []).length})`}
+                          ≡ƒô╖ {t.status === "in_progress" ? "≡ƒö┤ Live Cam" : `Snaps (${(t.proctorSnapshots || []).length})`}
                         </button>
                       </div>
                     </div>
@@ -1051,7 +1051,7 @@ function LpuFacultyDashboard() {
               <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
                 <FaCode className="text-purple-400" /> Assign Technical Coding Assessment
               </h2>
-              <button onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+              <button onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }} className="hover:opacity-80 text-xl text-slate-400">Γ£ò</button>
             </div>
 
             <p className="text-xs mb-4 p-2.5 rounded-lg bg-purple-950/30 border border-purple-800/40 text-purple-200">
@@ -1212,7 +1212,7 @@ function LpuFacultyDashboard() {
               <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
                 <FaCode className="text-emerald-400" /> Review Candidate's Code Submission
               </h2>
-              <button onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+              <button onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }} className="hover:opacity-80 text-xl text-slate-400">Γ£ò</button>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -1257,22 +1257,22 @@ function LpuFacultyDashboard() {
                     background: (selectedTestForReview.violationCount || 0) > 5 ? 'rgba(239,68,68,0.15)' : (selectedTestForReview.violationCount || 0) > 0 ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)',
                     color: (selectedTestForReview.violationCount || 0) > 5 ? '#ef4444' : (selectedTestForReview.violationCount || 0) > 0 ? '#eab308' : '#22c55e'
                   }}>
-                    🛡️ Security Report — Total Violations: {selectedTestForReview.violationCount || 0}
+                    ≡ƒ¢í∩╕Å Security Report ΓÇö Total Violations: {selectedTestForReview.violationCount || 0}
                     {(selectedTestForReview.violationCount || 0) > 10 && (
                       <span className="ml-2 px-2 py-0.5 rounded-full bg-red-900/50 text-red-400 text-[10px]">HIGH RISK</span>
                     )}
                   </div>
                   <div className="p-3 bg-black/30 grid grid-cols-3 gap-2 text-[10px]">
                     {[
-                      { label: 'Tab Switches', value: selectedTestForReview.antiCheatLog.tabSwitches || 0, icon: '📑' },
-                      { label: 'Right-Click', value: selectedTestForReview.antiCheatLog.rightClickAttempts || 0, icon: '🖱️' },
-                      { label: 'Clipboard', value: selectedTestForReview.antiCheatLog.clipboardAttempts || 0, icon: '📋' },
-                      { label: 'DevTools', value: selectedTestForReview.antiCheatLog.devToolsOpened || 0, icon: '🔧' },
-                      { label: 'Blocked Keys', value: selectedTestForReview.antiCheatLog.keyboardBlockAttempts || 0, icon: '⌨️' },
-                      { label: 'Mouse Leave', value: selectedTestForReview.antiCheatLog.mouseLeaveCount || 0, icon: '🖱️' },
-                      { label: 'Focus Loss', value: selectedTestForReview.antiCheatLog.focusLossCount || 0, icon: '👁️' },
-                      { label: 'Fullscreen Exits', value: selectedTestForReview.antiCheatLog.fullscreenExits || 0, icon: '🖥️' },
-                      { label: 'Screenshots', value: selectedTestForReview.antiCheatLog.screenshotAttempts || 0, icon: '📸' },
+                      { label: 'Tab Switches', value: selectedTestForReview.antiCheatLog.tabSwitches || 0, icon: '≡ƒôæ' },
+                      { label: 'Right-Click', value: selectedTestForReview.antiCheatLog.rightClickAttempts || 0, icon: '≡ƒû▒∩╕Å' },
+                      { label: 'Clipboard', value: selectedTestForReview.antiCheatLog.clipboardAttempts || 0, icon: '≡ƒôï' },
+                      { label: 'DevTools', value: selectedTestForReview.antiCheatLog.devToolsOpened || 0, icon: '≡ƒöº' },
+                      { label: 'Blocked Keys', value: selectedTestForReview.antiCheatLog.keyboardBlockAttempts || 0, icon: 'Γî¿∩╕Å' },
+                      { label: 'Mouse Leave', value: selectedTestForReview.antiCheatLog.mouseLeaveCount || 0, icon: '≡ƒû▒∩╕Å' },
+                      { label: 'Focus Loss', value: selectedTestForReview.antiCheatLog.focusLossCount || 0, icon: '≡ƒæü∩╕Å' },
+                      { label: 'Fullscreen Exits', value: selectedTestForReview.antiCheatLog.fullscreenExits || 0, icon: '≡ƒûÑ∩╕Å' },
+                      { label: 'Screenshots', value: selectedTestForReview.antiCheatLog.screenshotAttempts || 0, icon: '≡ƒô╕' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-1 p-1.5 rounded-lg" style={{
                         background: item.value > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.05)',
@@ -1287,7 +1287,7 @@ function LpuFacultyDashboard() {
                   {selectedTestForReview.sessionDuration && (
                     <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
                       Session Duration: {Math.floor(selectedTestForReview.sessionDuration / 60)}m {selectedTestForReview.sessionDuration % 60}s
-                      {selectedTestForReview.ipAddress && <> · IP: {selectedTestForReview.ipAddress}</>}
+                      {selectedTestForReview.ipAddress && <> ┬╖ IP: {selectedTestForReview.ipAddress}</>}
                     </div>
                   )}
                   {selectedTestForReview.browserFingerprint?.userAgent && (
@@ -1319,9 +1319,9 @@ function LpuFacultyDashboard() {
                       onChange={(e) => setReviewFormData({ ...reviewFormData, verdict: e.target.value })}
                       className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white font-semibold"
                     >
-                      <option value="passed">✅ PASSED (Shortlist for Interview)</option>
-                      <option value="failed">❌ FAILED</option>
-                      <option value="resubmit">🔄 Request Resubmission</option>
+                      <option value="passed">Γ£à PASSED (Shortlist for Interview)</option>
+                      <option value="failed">Γ¥î FAILED</option>
+                      <option value="resubmit">≡ƒöä Request Resubmission</option>
                     </select>
                   </div>
                 </div>
@@ -1367,7 +1367,7 @@ function LpuFacultyDashboard() {
                 <FaCode className="text-purple-400 text-lg" />
                 <h3 className="font-bold text-sm text-white">Faculty Live Code Compiler & Assessment Playground</h3>
               </div>
-              <button onClick={() => setShowCompilerPreview(false)} className="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+              <button onClick={() => setShowCompilerPreview(false)} className="text-slate-400 hover:text-white font-bold text-lg">Γ£ò</button>
             </div>
             <div className="flex-1 p-3 overflow-hidden">
               <CompilerEmbed
@@ -1388,7 +1388,7 @@ function LpuFacultyDashboard() {
           <div className="rounded-xl p-6 w-full max-w-lg shadow-xl" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: '1px solid' }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Schedule Interview</h2>
-              <button onClick={() => { setShowInterviewModal(false); setSelectedApplication(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>✕</button>
+              <button onClick={() => { setShowInterviewModal(false); setSelectedApplication(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>Γ£ò</button>
             </div>
             <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>
               Scheduling for: <strong style={{ color: theme.text }}>{selectedApplication?.student?.name}</strong>
@@ -1441,7 +1441,7 @@ function LpuFacultyDashboard() {
                   }}
                 >
                   <option value="Online">Online</option>
-                  <option value="In-Person">In‑Person</option>
+                  <option value="In-Person">InΓÇæPerson</option>
                   <option value="Phone">Phone</option>
                 </select>
               </div>
@@ -1496,7 +1496,7 @@ function LpuFacultyDashboard() {
           <div className="rounded-xl p-6 w-full max-w-lg shadow-xl" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, border: '1px solid' }}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold" style={{ color: theme.text }}>Interview Feedback</h2>
-              <button onClick={() => { setShowFeedbackModal(false); setSelectedInterviewForFeedback(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>✕</button>
+              <button onClick={() => { setShowFeedbackModal(false); setSelectedInterviewForFeedback(null); }} className="hover:opacity-80 text-xl" style={{ color: theme.textSecondary }}>Γ£ò</button>
             </div>
             <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>
               Candidate: <strong style={{ color: theme.text }}>{selectedInterviewForFeedback?.application?.student?.name}</strong>

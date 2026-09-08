@@ -664,23 +664,29 @@ exports.handleAiTurn = async (req, res) => {
     }
 
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const prompt = `You are a real-time conversational AI technical interviewer (like Gemini Live and VocalLabs AI).
+    const prompt = `You are a real-time conversational AI technical interviewer — natural, warm, and adaptive like VocalLabs AI.
 Job Role: ${interview.job?.title || "Technical Role"}
+
+Previous conversation context:
+${interview.aiInterview?.qaLog?.slice(-2).map(qa => `Q: ${qa.question}\nA: ${qa.answer}`).join("\n") || "First question of the interview."}
 
 The candidate just answered the question:
 Question: "${currentQuestion}"
 Candidate's Spoken Answer: "${candidateAnswer}"
 
-${nextQuestion ? `The next question to ask is: "${nextQuestion}"` : `This was the final question.`}
+${nextQuestion ? `The next planned question is: "${nextQuestion}"` : `This was the final planned question.`}
 
 Instructions:
 1. Multilingual Support: Understand English, Hindi, and Hinglish. If the candidate answered in Hinglish/Hindi, respond in a natural, polite Hinglish/English mix. If they spoke in English, respond in English.
-2. Give a brief, authentic 1-sentence reaction to what they specifically mentioned.
-3. ${nextQuestion ? `Then seamlessly transition to asking the next question: "${nextQuestion}"` : `Then congratulate and thank them warmly, letting them know the interview is complete.`}
+2. Give a brief, authentic 1-sentence reaction to what they specifically mentioned — reference something concrete from their answer.
+3. If their answer was incomplete or unclear, ask a brief follow-up question to dig deeper, then say "Let's move on" and ask the next question.
+4. If their answer was solid and complete, smoothly transition to the next question with a natural connector.
+5. ${nextQuestion ? `Ask the next question: "${nextQuestion}"` : `Congratulate them warmly, tell them the interview is complete, and wish them well.`}
+6. Keep the total response to 2-3 sentences max. Sound like a real person, not a script.
 
 Return ONLY a valid JSON object in this format:
 {
-  "speechText": "Great explanation on the prompt caching strategy! Now moving to your next project, how did you handle multithreading in Selenium?"
+  "speechText": "That's interesting — you mentioned prompt caching, which is a great optimization. Can you tell me more about how you measured the latency improvement? Actually, let's keep going — how did you handle multithreading in your Selenium project?"
 }`;
 
     const completion = await groq.chat.completions.create({
@@ -842,5 +848,193 @@ Based on the transcript, please provide a concise evaluation of the candidate. P
     console.error("analyzeAudio error:", err);
     if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── Conversational AI Interview (VocalLabs-style) ──────────
+exports.aiChatInterview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { messages, chancesLeft } = req.body;
+
+    if (!messages || !Array.isArray(messages)) {
+      return res.status(400).json({ message: "messages array is required" });
+    }
+
+    const interview = await Interview.findById(id)
+      .populate("job", "title description requirements")
+      .populate({ path: "application", populate: { path: "student", select: "name email" } });
+
+    if (!interview) return res.status(404).json({ message: "Interview not found." });
+    if (interview.interviewMode !== "ai") return res.status(400).json({ message: "Not an AI interview." });
+    if (!isInterviewCandidate(req, interview)) return res.status(403).json({ message: "Not authorized." });
+    if (interview.aiInterview?.status === "completed") return res.status(409).json({ message: "Interview already completed." });
+
+    // Ensure interview is in_progress
+    if (interview.aiInterview?.status !== "in_progress") {
+      await Interview.findByIdAndUpdate(id, {
+        $set: {
+          "aiInterview.status": "in_progress",
+          "aiInterview.startedAt": interview.aiInterview?.startedAt || new Date(),
+        }
+      });
+    }
+
+    // Fetch resume
+    const candidateResume = await Resume.findOne({ student: interview.application?.student?._id }).sort({ createdAt: -1 });
+    const extracted = candidateResume?.extractedData || {};
+    const resumeText = [
+      extracted.technical_skills ? `Skills: ${extracted.technical_skills}` : "",
+      extracted.project_details ? `Projects: ${extracted.project_details}` : "",
+      extracted.certifications ? `Certifications: ${extracted.certifications}` : "",
+      extracted.other_info ? `Background/Education: ${extracted.other_info}` : "",
+    ].filter(Boolean).join("\n");
+
+    const chances = typeof chancesLeft === "number" ? chancesLeft : 3;
+    const MAX_TURNS = 8;
+    const userTurns = messages.filter(m => m.role === "user").length;
+
+    if (!process.env.GROQ_API_KEY) {
+      return res.json({ reply: "I'm having a technical issue. Let me ask you directly — tell me about yourself.", shouldFinish: false, chancesLeft: chances });
+    }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const systemPrompt = `You are a professional, warm, and conversational AI interviewer for the position of "${interview.job?.title || 'Software Developer'}" at a company.
+
+Job Description: ${interview.job?.description || 'N/A'}
+Job Requirements: ${interview.job?.requirements || 'N/A'}
+
+Candidate Resume:
+${resumeText || "No resume details available."}
+
+Candidate Name: ${interview.application?.student?.name || 'Candidate'}
+
+YOUR ROLE:
+- You are conducting a LIVE voice interview. Speak naturally like a real human interviewer.
+- Ask questions one at a time. Wait for the candidate to answer before asking the next question.
+- Start by greeting the candidate warmly and asking them to introduce themselves.
+- Based on their answers, ask relevant follow-up questions or move to the next topic.
+- Reference specific things from their resume (projects, skills, certifications) to make it personal.
+- If they give a vague or incomplete answer, ask them to elaborate — but only once per question.
+- If they still can't answer properly after being asked to elaborate, say "No problem, let's move on" and ask a different question.
+- Be encouraging and positive. Say things like "Great!", "Interesting!", "I see!" naturally.
+- Keep responses SHORT (1-2 sentences max). This is a voice conversation — don't ramble.
+- Speak in English. If they reply in Hindi/Hinglish, respond in Hinglish.
+- NEVER reveal you are an AI. Act like a real person.
+
+CONVERSATION FLOW:
+1. Greet → Ask for self-introduction
+2. Ask about their most relevant project from resume
+3. Ask a technical question based on their skills
+4. Ask a behavioral/situational question
+5. Ask about their career goals
+6. Wrap up warmly
+
+CRITICAL RULES:
+- You have exactly ${MAX_TURNS} total exchanges (including the greeting). Plan your questions accordingly.
+- Turn 1: Greet + self-intro
+- Turns 2-5: Technical/project questions (adapt based on answers)
+- Turn 6-7: Behavioral + career goals
+- Turn 8 (FINAL): Say "Thank you so much for your time, ${interview.application?.student?.name || 'Candidate'}. It was great speaking with you. We'll get back to you soon. Goodbye!" and set shouldFinish to true.
+
+IMPORTANT:
+- When you want to ask a question, ALWAYS include it in your response.
+- When the interview reaches turn 8, you MUST end with a goodbye message and set shouldFinish to true.
+- If the candidate gives very poor answers 3 times in a row, end the interview early with shouldFinish: true.
+- Return ONLY a JSON object: { "reply": "your spoken text", "shouldFinish": false }`;
+
+    const completion = await groq.chat.completions.create({
+      model: "allam-2-7b",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.slice(-20).map(m => ({ role: m.role, content: m.content })),
+      ],
+      temperature: 0.7,
+      max_tokens: 200,
+    });
+
+    const content = completion.choices[0]?.message?.content || "";
+
+    // Parse JSON from response
+    let reply = "";
+    let shouldFinish = false;
+    try {
+      const parsed = JSON.parse(content);
+      reply = parsed.reply || content;
+      shouldFinish = parsed.shouldFinish || false;
+    } catch {
+      reply = content.replace(/^```json\n?|\n?```$/g, "").trim();
+      shouldFinish = reply.toLowerCase().includes("goodbye") || reply.toLowerCase().includes("thank you for your time");
+    }
+
+    // HARD CONSTRAINT: force finish at max turns
+    if (userTurns >= MAX_TURNS) {
+      shouldFinish = true;
+      if (!reply.toLowerCase().includes("goodbye")) {
+        reply = `Thank you so much for your time, ${interview.application?.student?.name || 'Candidate'}. It was great speaking with you. We'll get back to you soon. Goodbye!`;
+      }
+    }
+
+    // Save Q&A to interview model after each exchange
+    const lastUserMsg = messages.filter(m => m.role === "user").pop();
+    if (lastUserMsg && !lastUserMsg.content.includes("Start the interview now")) {
+      // Find the previous assistant question
+      const lastAssistantIdx = messages.length - 2;
+      const lastAssistantMsg = lastAssistantIdx >= 0 ? messages[lastAssistantIdx] : null;
+      if (lastAssistantMsg && lastAssistantMsg.role === "assistant") {
+        await Interview.findByIdAndUpdate(id, {
+          $push: {
+            "aiInterview.qaList": {
+              question: lastAssistantMsg.content,
+              answer: lastUserMsg.content,
+            }
+          }
+        });
+      }
+    }
+
+    // If finishing, save final evaluation
+    if (shouldFinish) {
+      const updatedInterview = await Interview.findById(id);
+      const qaList = updatedInterview.aiInterview?.qaList || [];
+
+      // Generate evaluation via Groq
+      let evaluation = { overallScore: 3, decision: "hold", summary: "Interview completed." };
+      if (process.env.GROQ_API_KEY && qaList.length > 0) {
+        try {
+          const evalGroq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+          const evalCompletion = await evalGroq.chat.completions.create({
+            model: "allam-2-7b",
+            messages: [
+              { role: "system", content: "You are an expert HR interviewer. Output ONLY a valid JSON object with keys: overallScore (1-5), decision ('selected'|'rejected'|'hold'), summary (2-3 sentences for HR)." },
+              { role: "user", content: `Evaluate this candidate for ${interview.job?.title || 'the role'}.\n\nResume Skills: ${resumeText || 'N/A'}\n\nQ&A:\n${qaList.map((qa, i) => `Q${i+1}: ${qa.question}\nA: ${qa.answer}`).join('\n\n')}` }
+            ],
+            temperature: 0.2,
+          });
+          evaluation = JSON.parse(evalCompletion.choices[0].message.content);
+        } catch (e) {
+          console.error("Evaluation error:", e.message);
+        }
+      }
+
+      await Interview.findByIdAndUpdate(id, {
+        $set: {
+          "aiInterview.status": "completed",
+          "aiInterview.completedAt": new Date(),
+          "feedback.rating": Math.min(5, Math.max(1, Number(evaluation.overallScore) || 3)),
+          "feedback.decision": ["selected", "rejected", "hold"].includes(evaluation.decision) ? evaluation.decision : "hold",
+          "feedback.comments": evaluation.summary || "AI Interview completed.",
+          "aiAnalysis.feedbackAndSuggestions": evaluation.summary || "AI Interview completed.",
+          "aiAnalysis.status": "completed",
+          "status": "completed",
+        }
+      });
+    }
+
+    res.json({ reply, shouldFinish, chancesLeft: chances });
+  } catch (err) {
+    console.error("aiChatInterview error:", err);
+    res.status(500).json({ message: "Interview service temporarily unavailable." });
   }
 };

@@ -16,6 +16,7 @@ const {
   getAiInterviewReport,
   generateTTS,
   handleAiTurn,
+  aiChatInterview,
 } = require("../controllers/interviewController");
 
 const multer = require("multer");
@@ -56,6 +57,7 @@ router.post("/tts", ttsLimiter, generateTTS);
 router.get("/:id/ai", getAiInterview);
 router.post("/:id/ai-start", startAiInterview);
 router.post("/:id/ai-turn", handleAiTurn);
+router.post("/:id/ai-chat", aiChatInterview);
 router.post("/:id/ai-submit", upload.single("audio"), submitAiInterview);
 router.get("/:id/ai-report", isHRorAdmin, getAiInterviewReport);
 router.put("/:id/call/start", isHRorAdmin, startInterviewCall);

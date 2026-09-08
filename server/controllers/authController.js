@@ -126,6 +126,41 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ message: "Please enter a valid email address" });
+  }
+
+  // Keep account existence private until an email delivery provider is configured.
+  res.status(200).json({
+    message: "Your reset request was received. Please contact the administrator for the password reset link.",
+  });
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, oldPassword, newPassword } = req.body;
+    if (!email || !oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Email, old password, and new password are required" });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(oldPassword, user.password))) {
+      return res.status(400).json({ message: "Email or old password is incorrect" });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    return res.status(200).json({ message: "Password changed successfully. You can now sign in." });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 exports.lpuLogin = async (req, res) => {
   try {
     const { uid, password } = req.body;

@@ -27,6 +27,7 @@ const codingTestRoutes = require("./routes/codingTestRoutes");
 const compileRoutes    = require("./routes/compileRoutes");
 const profileRoutes    = require("./routes/profileRoutes");
 const profileSubmissionRoutes = require("./routes/profileSubmissionRoutes");
+const aiAgentRoutes = require("./routes/aiAgentRoutes");
 const { protect } = require("./middleware/authMiddleware");
 
 const app = express();
@@ -129,6 +130,7 @@ app.use("/api/coding-tests", codingTestRoutes);
 app.use("/api/compile",      compileRoutes);
 app.use("/api/profile",     profileRoutes);
 app.use("/api/profile-submissions", profileSubmissionRoutes);
+app.use("/api/ai-agent", aiAgentRoutes);
 
 app.get("/api/profile", protect, (req, res) => {
   res.json({

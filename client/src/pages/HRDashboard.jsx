@@ -18,7 +18,11 @@ import {
   FaCode,
   FaRobot,
   FaMicrophone,
+  FaSun,
+  FaMoon,
+  FaBars,
 } from "react-icons/fa";
+import DashboardSidebar from "../components/DashboardSidebar";
 import {
   BarChart,
   Bar,
@@ -104,6 +108,9 @@ function HRDashboard() {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
   const [paymentPlan, setPaymentPlan] = useState("monthly");
+  const [themeMode, setThemeMode] = useState("dark");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Profile Submissions states
   const [profileSubmissions, setProfileSubmissions] = useState([]);
@@ -455,46 +462,102 @@ function HRDashboard() {
   const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
 
   // Golden theme colors
-  const theme = {
-    bg: '#0a0a0a',
-    bgSecondary: '#1a1a1a',
-    bgCard: '#1e1e1e',
-    border: '#2a2a2a',
-    text: '#f5f0e8',
-    textSecondary: '#b8a88a',
-    gold: '#d4a843',
-    goldLight: '#f0d080',
-    goldDark: '#b8922f',
-    goldGlow: 'rgba(212, 168, 67, 0.2)',
+  const themeColors = themeMode === "dark" ? {
+    bg: '#0a0f1a',
+    bgSecondary: '#0e1422',
+    bgCard: '#0e1422',
+    border: 'rgba(255,255,255,0.08)',
+    text: '#f8fafc',
+    textSecondary: '#94a3b8',
+    gold: '#d4af37',
+    goldLight: '#f3e5ab',
+    goldDark: '#996515',
+    goldGlow: 'rgba(212, 175, 55, 0.18)',
+    cardBg: "rgba(14,20,34,0.85)",
+    borderColor: "rgba(255,255,255,0.08)",
+    textColor: "#ffffff",
+    textMutedColor: "rgba(255,255,255,0.5)",
+    textSecondaryColor: "rgba(255,255,255,0.4)",
+  } : {
+    bg: '#f0f2f5',
+    bgSecondary: '#ffffff',
+    bgCard: '#ffffff',
+    border: 'rgba(0,0,0,0.1)',
+    text: '#1a1a2e',
+    textSecondary: 'rgba(0,0,0,0.5)',
+    gold: '#996515',
+    goldLight: '#d4af37',
+    goldDark: '#7a4f10',
+    goldGlow: 'rgba(153, 101, 21, 0.12)',
+    cardBg: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(0,0,0,0.1)",
+    textColor: "#1a1a2e",
+    textMutedColor: "rgba(0,0,0,0.5)",
+    textSecondaryColor: "rgba(0,0,0,0.4)",
   };
+  const theme = themeColors;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+    <div className="min-h-screen login-neo relative overflow-hidden" style={{ backgroundColor: themeColors.bg, color: theme.text }}>
+      {/* Ambient glow elements */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#d4af37]/[0.07] rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#d4af37]/[0.05] rounded-full blur-3xl pointer-events-none" />
       <Toast toasts={toasts} remove={removeToast} />
-      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+      <DashboardSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        items={[
+          { key: "jobs", label: "Jobs", icon: FaBriefcase },
+          { key: "applicants", label: "Applicants", icon: FaUsers },
+          { key: "interviews", label: "Interviews", icon: FaCalendarAlt },
+          { key: "coding_tests", label: "Coding Tests", icon: FaCode },
+          { key: "analytics", label: "Analytics", icon: FaChartBar },
+        ]}
+        activeKey={activeTab}
+        onSelect={(key) => { setActiveTab(key); setSidebarOpen(false); }}
+        onLogout={handleLogout}
+        theme={{ background: theme.bgSecondary, border: theme.border, card: theme.bgCard, text: theme.text, muted: theme.textSecondary, accent: theme.gold, danger: '#e57373', dangerBackground: 'rgba(139,26,26,0.06)', activeBackground: `rgba(212,175,55,0.12)` }}
+        userName={currentUser.name || currentUser.email || "HR User"} userRole={currentUser.role || "HR"}
+      />
+      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur-2xl" style={{ backgroundColor: theme.bgSecondary + 'D9', borderColor: theme.border }}>
         <div className="flex items-center gap-3">
-          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg transition hover:opacity-80" style={{ color: theme.text }}>
+            <FaBars size={18} />
+          </button>
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border p-0.5 bg-black/30" style={{ borderColor: theme.border }} />
           <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
             HR
           </span>
         </div>
-        <button 
-          onClick={handleLogout} 
-          className="flex items-center gap-2 text-sm transition"
-          style={{ color: theme.textSecondary }}
-          onMouseEnter={(e) => e.currentTarget.style.color = theme.text}
-          onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}
-        >
-          <FaSignOutAlt size={16} /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setThemeMode((c) => c === "dark" ? "light" : "dark")}
+            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+            style={{
+              background: themeMode === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
+              borderColor: themeMode === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
+              boxShadow: themeMode === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
+            }}
+            aria-label="Toggle theme">
+            {themeMode === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="flex items-center gap-2 text-sm transition"
+            style={{ color: theme.textSecondary }}
+            onMouseEnter={(e) => e.currentTarget.style.color = theme.text}
+            onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}
+          >
+            <FaSignOutAlt size={16} /> Sign out
+          </button>
+        </div>
       </header>
 
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold" style={{ color: theme.text }}>HR Dashboard</h1>
           <button 
             onClick={() => setShowModal(true)} 
-            className="text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition"
+            className="text-[#0a0f1a] px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
             style={{ backgroundColor: theme.gold }}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.goldDark}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.gold}
@@ -678,21 +741,21 @@ function HRDashboard() {
                               setShowSubmissionModal(true);
                             }
                           }}
-                          className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
+                          className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
                           style={{ backgroundColor: theme.gold, opacity: profileSubmissions.some(s => s.student?._id === app.student?._id) ? 1 : 0.4 }}
                         >
                           <FaEye size={12} /> View Profile
                         </button>
 
                         {["shortlisted", "coding_test_passed"].includes(app.status) && (
-                          <button onClick={() => openInterviewModal(app)} className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
+                          <button onClick={() => openInterviewModal(app)} className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
                             <FaCalendarAlt size={12} /> Schedule Interview
                           </button>
                         )}
 
                         <button
                           onClick={() => openCodingTestModal(app)}
-                          className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 transition text-xs flex items-center gap-1"
+                          className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                         >
                           <FaCode size={12} /> Assign Coding Test
                         </button>
@@ -700,7 +763,7 @@ function HRDashboard() {
                         {app.status !== "shortlisted" && (
                           <button 
                             onClick={() => handleStatusUpdate(app._id, "shortlisted")} 
-                            className="text-white px-3 py-1 rounded hover:opacity-80 transition text-xs"
+                            className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs"
                             style={{ backgroundColor: theme.gold }}
                           >
                             Shortlist
@@ -778,7 +841,7 @@ function HRDashboard() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => handleViewAiReport(iv)}
-                                  className="text-white px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs flex items-center gap-1.5 shadow"
+                                  className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs flex items-center gap-1.5 shadow bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                                   style={{ backgroundColor: theme.gold }}
                                 >
                                   <FaRobot size={12} /> View AI Report
@@ -792,7 +855,7 @@ function HRDashboard() {
                             ) : (
                               status === "scheduled" && (
                                 <>
-                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs" style={{ backgroundColor: theme.gold }}>
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs" style={{ backgroundColor: theme.gold }}>
                                     Complete
                                   </button>
                                   <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs">
@@ -801,7 +864,7 @@ function HRDashboard() {
                                   {!iv.callActive ? (
                                     <button
                                       onClick={() => handleStartInterviewCall(iv)}
-                                      className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
+                                        className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                                     >
                                       <FaVideo size={12} /> Start Call
                                     </button>
@@ -809,7 +872,7 @@ function HRDashboard() {
                                     <>
                                       <button
                                         onClick={() => setVideoCallRoom(iv._id)}
-                                        className="bg-green-600 text-white px-3 py-1 rounded mr-2 hover:bg-green-700 transition text-xs flex items-center gap-1"
+                                      className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                                       >
                                         <FaVideo size={12} /> Join Call
                                       </button>
@@ -831,7 +894,7 @@ function HRDashboard() {
                                   setFeedbackData(iv.feedback || { rating: 3, comments: "", decision: "" });
                                   setShowFeedbackModal(true);
                                 }}
-                                className="text-white px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex"
+                                className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                                 style={{ backgroundColor: theme.gold }}
                               >
                                 ✨ AI Analysis & Feedback
@@ -894,8 +957,8 @@ function HRDashboard() {
                             t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
                             t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
                             t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
-                            "bg-gray-800 text-gray-300 border border-gray-700"
-                          }`}>
+                            ""
+                          }`} style={t.status !== "submitted" && t.status !== "reviewed" && t.status !== "in_progress" ? { backgroundColor: themeColors.cardBg, color: themeColors.textSecondaryColor, borderColor: themeColors.borderColor } : {}}>
                             {t.status}
                           </span>
                         </td>
@@ -908,20 +971,20 @@ function HRDashboard() {
                               {t.verdict}
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-500">Pending Review</span>
+                            <span className="text-xs" style={{ color: themeColors.textSecondaryColor }}>Pending Review</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                           <button
                             onClick={() => openReviewModal(t)}
-                            className="text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium"
+                            className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                             style={{ backgroundColor: theme.gold }}
                           >
                             <FaEye size={12} /> Review Code
                           </button>
                           <button
                             onClick={() => { setProctoringTest(t); setShowProctoringViewer(true); }}
-                            className="text-white px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium"
+                            className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                             style={{ background: t.status === "in_progress" ? "#15803d" : "#1e3a5f" }}
                             title={t.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
                           >
@@ -1023,6 +1086,7 @@ function HRDashboard() {
           </div>
         )}
       </div>
+      </div>
 
       {/* Resume Modal */}
       {showResumeModal && (
@@ -1061,7 +1125,7 @@ function HRDashboard() {
                       ["🛠 Skills", selectedResume.extractedData?.technical_skills],
                       ["🏆 Certifications", selectedResume.extractedData?.certifications],
                     ].map(([label, val]) => val && val !== "Not found" && (
-                      <div key={label} className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                      <div key={label} className="rounded-lg p-3" style={{ background: themeColors.cardBg, border: `1px solid ${theme.border}` }}>
                         <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>{label}</div>
                         <div className="text-xs" style={{ color: theme.text }}>{val}</div>
                       </div>
@@ -1069,7 +1133,7 @@ function HRDashboard() {
                   </div>
 
                   {selectedResume.extractedData?.project_details && selectedResume.extractedData.project_details !== "Not found" && (
-                    <div className="rounded-lg p-3 mb-5" style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${theme.border}` }}>
+                    <div className="rounded-lg p-3 mb-5" style={{ background: themeColors.cardBg, border: `1px solid ${theme.border}` }}>
                       <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>🗂 Projects</div>
                       <div className="text-xs" style={{ color: theme.text }}>{selectedResume.extractedData.project_details}</div>
                     </div>
@@ -1120,7 +1184,7 @@ function HRDashboard() {
                                 <p className="text-sm font-semibold mt-1" style={{ color: theme.text }}>{q.question}</p>
                               </div>
                             </div>
-                            <div className="p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+                            <div className="p-3" style={{ background: themeColors.cardBg }}>
                               <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>✅ Model Answer</p>
                               <p className="text-xs leading-relaxed" style={{ color: theme.textSecondary }}>{q.answer}</p>
                             </div>
@@ -1156,39 +1220,41 @@ function HRDashboard() {
                   <button
                     type="button"
                     onClick={() => setInterviewData({ ...interviewData, interviewMode: "human" })}
-                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${
-                      interviewData.interviewMode === "human"
-                        ? "border-amber-500 bg-amber-500/10 text-white"
-                        : "border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-700"
-                    }`}
+                    className="p-3 rounded-xl border text-left transition flex items-center gap-2.5"
+                    style={{
+                      borderColor: interviewData.interviewMode === "human" ? "rgba(245,158,11,0.5)" : themeColors.borderColor,
+                      backgroundColor: interviewData.interviewMode === "human" ? "rgba(245,158,11,0.1)" : "rgba(0,0,0,0.15)",
+                      color: themeColors.textColor,
+                    }}
                   >
                     <div className="p-2 rounded-lg bg-blue-900/30 text-blue-400">
                       <FaVideo size={16} />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white">Human Interview</div>
-                      <div className="text-[10px] text-gray-400">Live 1-on-1 Video Call</div>
+                      <div className="text-xs font-bold" style={{ color: themeColors.textColor }}>Human Interview</div>
+                      <div className="text-[10px]" style={{ color: themeColors.textSecondaryColor }}>Live 1-on-1 Video Call</div>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setInterviewData({ ...interviewData, interviewMode: "ai" })}
-                    className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 ${
-                      interviewData.interviewMode === "ai"
-                        ? "border-purple-500 bg-purple-500/15 text-white"
-                        : "border-gray-800 bg-gray-900/40 text-gray-400 hover:border-gray-700"
-                    }`}
+                    className="p-3 rounded-xl border text-left transition flex items-center gap-2.5"
+                    style={{
+                      borderColor: interviewData.interviewMode === "ai" ? "rgba(168,85,247,0.5)" : themeColors.borderColor,
+                      backgroundColor: interviewData.interviewMode === "ai" ? "rgba(168,85,247,0.15)" : "rgba(0,0,0,0.15)",
+                      color: themeColors.textColor,
+                    }}
                   >
                     <div className="p-2 rounded-lg bg-purple-900/40 text-purple-300">
                       <FaRobot size={16} />
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white flex items-center gap-1">
+                      <div className="text-xs font-bold flex items-center gap-1" style={{ color: themeColors.textColor }}>
                         AI Interview
                         <span className="text-[9px] px-1 py-0.2 rounded bg-purple-500 text-black font-extrabold">NEW</span>
                       </div>
-                      <div className="text-[10px] text-gray-400">Groq Voice & Evaluation</div>
+                      <div className="text-[10px]" style={{ color: themeColors.textSecondaryColor }}>Groq Voice & Evaluation</div>
                     </div>
                   </button>
                 </div>
@@ -1201,7 +1267,7 @@ function HRDashboard() {
                   value={interviewData.scheduledAt}
                   onChange={(e) => setInterviewData({ ...interviewData, scheduledAt: e.target.value })}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1218,7 +1284,7 @@ function HRDashboard() {
                   onChange={(e) => setInterviewData({ ...interviewData, duration: parseInt(e.target.value) })}
                   min="15"
                   step="5"
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1232,7 +1298,7 @@ function HRDashboard() {
                 <select
                   value={interviewData.location}
                   onChange={(e) => setInterviewData({ ...interviewData, location: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1252,7 +1318,7 @@ function HRDashboard() {
                   placeholder="https://meet.google.com/..."
                   value={interviewData.meetingLink}
                   onChange={(e) => setInterviewData({ ...interviewData, meetingLink: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1268,7 +1334,7 @@ function HRDashboard() {
                   placeholder="Any additional instructions..."
                   value={interviewData.notes}
                   onChange={(e) => setInterviewData({ ...interviewData, notes: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1281,7 +1347,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => { setShowInterviewModal(false); setSelectedApplication(null); }} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-white px-4 py-2 text-sm rounded-lg transition font-semibold" style={{ backgroundColor: theme.gold }}>
+                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition font-semibold bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
                   {interviewData.interviewMode === "ai" ? "Schedule AI Interview" : "Schedule Interview"}
                 </button>
               </div>
@@ -1319,7 +1385,7 @@ function HRDashboard() {
                   <div className="text-3xl font-extrabold" style={{ color: theme.gold }}>
                     {selectedAiReport.feedback?.rating ? `${selectedAiReport.feedback.rating}/5` : "Pending"}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-1">AI Evaluated</div>
+                  <div className="text-[11px] mt-1" style={{ color: themeColors.textSecondaryColor }}>AI Evaluated</div>
                 </div>
 
                 <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
@@ -1331,7 +1397,7 @@ function HRDashboard() {
                   }`}>
                     {selectedAiReport.feedback?.decision || "Pending"}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-1">Suggested Action</div>
+                  <div className="text-[11px] mt-1" style={{ color: themeColors.textSecondaryColor }}>Suggested Action</div>
                 </div>
 
                 <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
@@ -1339,7 +1405,7 @@ function HRDashboard() {
                   <div className="text-sm font-semibold capitalize text-purple-300">
                     {selectedAiReport.aiInterview?.status || selectedAiReport.status}
                   </div>
-                  <div className="text-[11px] text-gray-400 mt-1">
+                  <div className="text-[11px] mt-1" style={{ color: themeColors.textSecondaryColor }}>
                     {selectedAiReport.aiInterview?.completedAt ? new Date(selectedAiReport.aiInterview.completedAt).toLocaleTimeString() : "Scheduled"}
                   </div>
                 </div>
@@ -1356,37 +1422,37 @@ function HRDashboard() {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                     <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Tab Switches</span>
+                      <span className="text-[10px] font-semibold uppercase" style={{ color: themeColors.textSecondaryColor }}>Tab Switches</span>
                       <span className={`text-base font-extrabold mt-0.5 ${selectedAiReport.proctoring.tabSwitches > 0 ? "text-amber-400" : "text-green-400"}`}>
                         {selectedAiReport.proctoring.tabSwitches || 0}
                       </span>
-                      <span className="text-[9px] text-gray-400 mt-0.5">
+                      <span className="text-[9px] mt-0.5" style={{ color: themeColors.textSecondaryColor }}>
                         {selectedAiReport.proctoring.tabSwitches > 0 ? "Flagged Warning" : "Clean Session"}
                       </span>
                     </div>
 
                     <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Speech Pacing</span>
+                      <span className="text-[10px] font-semibold uppercase" style={{ color: themeColors.textSecondaryColor }}>Speech Pacing</span>
                       <span className="text-base font-extrabold mt-0.5 text-blue-400">
                         {selectedAiReport.proctoring.wordsPerMinute || 125} WPM
                       </span>
-                      <span className="text-[9px] text-gray-400 mt-0.5">Words Per Minute</span>
+                      <span className="text-[9px] mt-0.5" style={{ color: themeColors.textSecondaryColor }}>Words Per Minute</span>
                     </div>
 
                     <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Filler Words</span>
+                      <span className="text-[10px] font-semibold uppercase" style={{ color: themeColors.textSecondaryColor }}>Filler Words</span>
                       <span className={`text-base font-extrabold mt-0.5 ${selectedAiReport.proctoring.fillerWordsCount > 5 ? "text-amber-400" : "text-purple-400"}`}>
                         {selectedAiReport.proctoring.fillerWordsCount || 0}
                       </span>
-                      <span className="text-[9px] text-gray-400 mt-0.5">"Um/Like/Actually"</span>
+                      <span className="text-[9px] mt-0.5" style={{ color: themeColors.textSecondaryColor }}>"Um/Like/Actually"</span>
                     </div>
 
                     <div className="p-2.5 rounded-lg border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                      <span className="text-[10px] font-semibold text-gray-400 uppercase">Confidence Index</span>
+                      <span className="text-[10px] font-semibold uppercase" style={{ color: themeColors.textSecondaryColor }}>Confidence Index</span>
                       <span className="text-base font-extrabold mt-0.5 text-green-400">
                         {selectedAiReport.proctoring.confidenceScore || 90}%
                       </span>
-                      <span className="text-[9px] text-gray-400 mt-0.5">Voice Fluency</span>
+                      <span className="text-[9px] mt-0.5" style={{ color: themeColors.textSecondaryColor }}>Voice Fluency</span>
                     </div>
                   </div>
                 </div>
@@ -1401,25 +1467,25 @@ function HRDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                     {selectedAiReport.candidateResume.technical_skills && (
                       <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                        <strong className="text-white">Technical Skills:</strong>
+                        <strong style={{ color: themeColors.textColor }}>Technical Skills:</strong>
                         <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.technical_skills}</p>
                       </div>
                     )}
                     {selectedAiReport.candidateResume.project_details && (
                       <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                        <strong className="text-white">Projects from CV:</strong>
+                        <strong style={{ color: themeColors.textColor }}>Projects from CV:</strong>
                         <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.project_details}</p>
                       </div>
                     )}
                     {selectedAiReport.candidateResume.certifications && (
                       <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                        <strong className="text-white">Certifications:</strong>
+                        <strong style={{ color: themeColors.textColor }}>Certifications:</strong>
                         <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.certifications}</p>
                       </div>
                     )}
                     {selectedAiReport.candidateResume.other_info && (
                       <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                        <strong className="text-white">Education & Background:</strong>
+                        <strong style={{ color: themeColors.textColor }}>Education & Background:</strong>
                         <p className="mt-1" style={{ color: theme.textSecondary }}>{selectedAiReport.candidateResume.other_info}</p>
                       </div>
                     )}
@@ -1442,7 +1508,7 @@ function HRDashboard() {
                 <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
                   <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: theme.gold }}>
                     <span>❓ Detailed Questions & Candidate Answers</span>
-                    <span className="text-[10px] text-gray-400 font-normal">Question-by-Question AI Breakdown</span>
+                    <span className="text-[10px] font-normal" style={{ color: themeColors.textSecondaryColor }}>Question-by-Question AI Breakdown</span>
                   </h3>
                   <div className="space-y-3">
                     {(selectedAiReport.aiInterview.qaList && selectedAiReport.aiInterview.qaList.length > 0
@@ -1457,7 +1523,7 @@ function HRDashboard() {
                         </div>
 
                         {/* Candidate's Actual Spoken Answer */}
-                        <div className="p-2.5 rounded-lg bg-black/40 border border-gray-800 text-xs">
+                        <div className="p-2.5 rounded-lg bg-black/40 border text-xs" style={{ borderColor: themeColors.borderColor }}>
                           <div className="text-[10px] font-bold text-amber-400/90 uppercase tracking-wider mb-1 flex items-center gap-1">
                             <FaMicrophone size={10} /> Candidate's Spoken Answer:
                           </div>
@@ -1468,7 +1534,7 @@ function HRDashboard() {
 
                         {/* AI Feedback & Score for this Question */}
                         {item.feedback && (
-                          <div className="flex items-center justify-between text-[11px] pt-1 text-gray-400">
+                          <div className="flex items-center justify-between text-[11px] pt-1" style={{ color: themeColors.textSecondaryColor }}>
                             <span className="flex items-center gap-1 text-purple-300">
                               <span>🎯 AI Feedback:</span> {item.feedback}
                             </span>
@@ -1541,7 +1607,7 @@ function HRDashboard() {
                   value={feedbackData.rating}
                   onChange={(e) => setFeedbackData({ ...feedbackData, rating: parseInt(e.target.value) })}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1557,7 +1623,7 @@ function HRDashboard() {
                   placeholder="Feedback comments..."
                   value={feedbackData.comments}
                   onChange={(e) => setFeedbackData({ ...feedbackData, comments: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1571,7 +1637,7 @@ function HRDashboard() {
                 <select
                   value={feedbackData.decision || ""}
                   onChange={(e) => setFeedbackData({ ...feedbackData, decision: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1589,7 +1655,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => { setShowFeedbackModal(false); setSelectedInterviewForFeedback(null); }} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-white px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: theme.gold }}>
+                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
                   Save Feedback
                 </button>
               </div>
@@ -1611,7 +1677,7 @@ function HRDashboard() {
                   value={newJob.title} 
                   onChange={(e) => setNewJob({ ...newJob, title: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1625,7 +1691,7 @@ function HRDashboard() {
                   onChange={(e) => setNewJob({ ...newJob, description: e.target.value })} 
                   required 
                   rows="3" 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1639,7 +1705,7 @@ function HRDashboard() {
                   value={newJob.requirements} 
                   onChange={(e) => setNewJob({ ...newJob, requirements: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1653,7 +1719,7 @@ function HRDashboard() {
                   value={newJob.location} 
                   onChange={(e) => setNewJob({ ...newJob, location: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1666,7 +1732,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-white px-4 py-2 text-sm rounded-lg transition" style={{ backgroundColor: theme.gold }}>
+                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
                   Create
                 </button>
               </div>
@@ -1683,7 +1749,7 @@ function HRDashboard() {
               <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
                 <FaCode className="text-purple-400" /> Assign Coding Assessment
               </h2>
-              <button onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+              <button onClick={() => { setShowCodingTestModal(false); setSelectedAppForTest(null); }} className="hover:opacity-80 text-xl" style={{ color: themeColors.textSecondaryColor }}>✕</button>
             </div>
             <p className="text-xs mb-4" style={{ color: theme.textSecondary }}>
               Candidate: <strong style={{ color: theme.text }}>{selectedAppForTest?.student?.name}</strong> ({selectedAppForTest?.student?.email})
@@ -1691,38 +1757,38 @@ function HRDashboard() {
 
             <form onSubmit={handleCreateCodingTest} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold mb-1 text-slate-300">Assessment Title</label>
+                <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Assessment Title</label>
                 <input
                   type="text"
                   required
                   value={codingTestForm.title}
                   onChange={(e) => setCodingTestForm({ ...codingTestForm, title: e.target.value })}
-                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1 text-slate-300">Problem Statement / Question Description</label>
+                <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Problem Statement / Question Description</label>
                 <textarea
                   rows="4"
                   required
                   value={codingTestForm.description}
                   onChange={(e) => setCodingTestForm({ ...codingTestForm, description: e.target.value })}
                   placeholder="Describe the coding problem, input constraints, and expected logic..."
-                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500"
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold mb-1 text-slate-300">Programming Language</label>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Programming Language</label>
                   <div className="flex gap-2">
                   <select
                     value={codingTestForm.language}
                     onChange={(e) => setCodingTestForm({ ...codingTestForm, language: e.target.value })}
-                    className="flex-1 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500 capitalize"
+                    className="flex-1 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50 capitalize"
                     style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                   >
                     <option value="python">Python</option>
@@ -1741,7 +1807,7 @@ function HRDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowCompilerPreview(true)}
-                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition whitespace-nowrap"
+                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition whitespace-nowrap"
                     title="Preview student compiler"
                   >
                     Preview IDE
@@ -1749,7 +1815,7 @@ function HRDashboard() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold mb-1 text-slate-300">Timer Limit (Minutes)</label>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Timer Limit (Minutes)</label>
                   <input
                     type="number"
                     min="5"
@@ -1757,14 +1823,14 @@ function HRDashboard() {
                     required
                     value={codingTestForm.durationMinutes}
                     onChange={(e) => setCodingTestForm({ ...codingTestForm, durationMinutes: parseInt(e.target.value) || 30 })}
-                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-purple-500"
+                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                     style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                   />
                 </div>
               </div>
 
               {/* TEST CASES MANAGEMENT */}
-              <div className="border pt-3 p-3.5 rounded-xl space-y-3" style={{ borderColor: theme.border, backgroundColor: 'rgba(0, 0, 0, 0.2)' }}>
+              <div className="border pt-3 p-3.5 rounded-xl space-y-3" style={{ borderColor: theme.border, backgroundColor: themeColors.cardBg }}>
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-bold text-purple-300">Sample Test Cases (Input & Expected Output)</label>
                   <button
@@ -1779,7 +1845,7 @@ function HRDashboard() {
                 {codingTestForm.testCases.map((tc, idx) => (
                   <div key={idx} className="p-3 rounded-lg border space-y-2 relative" style={{ borderColor: theme.border, backgroundColor: theme.bg }}>
                     <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-semibold text-slate-400">Test Case #{idx + 1}</span>
+                      <span className="text-[11px] font-semibold" style={{ color: themeColors.textSecondaryColor }}>Test Case #{idx + 1}</span>
                       {codingTestForm.testCases.length > 1 && (
                         <button type="button" onClick={() => removeTestCaseRow(idx)} className="text-red-400 text-xs hover:underline">
                           Remove
@@ -1796,7 +1862,8 @@ function HRDashboard() {
                           updated[idx].input = e.target.value;
                           setCodingTestForm({ ...codingTestForm, testCases: updated });
                         }}
-                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border border-slate-700 text-slate-200"
+                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border"
+                        style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                       />
                       <input
                         type="text"
@@ -1807,7 +1874,8 @@ function HRDashboard() {
                           updated[idx].expectedOutput = e.target.value;
                           setCodingTestForm({ ...codingTestForm, testCases: updated });
                         }}
-                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border border-slate-700 text-slate-200"
+                        className="rounded-lg px-2.5 py-1.5 text-xs bg-black/40 border"
+                        style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                       />
                     </div>
                   </div>
@@ -1825,7 +1893,7 @@ function HRDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-purple-600 hover:bg-purple-700 transition"
+                  className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition"
                 >
                   Send Coding Test
                 </button>
@@ -1851,19 +1919,19 @@ function HRDashboard() {
               <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: theme.text }}>
                 <FaCode className="text-emerald-400" /> Review Candidate's Code Submission
               </h2>
-              <button onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }} className="hover:opacity-80 text-xl text-slate-400">✕</button>
+              <button onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }} className="hover:opacity-80 text-xl" style={{ color: themeColors.textSecondaryColor }}>✕</button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-black/30 p-3 rounded-xl border border-slate-800">
+              <div className="grid grid-cols-2 gap-4 bg-black/30 p-3 rounded-xl border" style={{ borderColor: themeColors.borderColor }}>
                 <div>
-                  <span className="text-slate-400 block">Candidate:</span>
-                  <span className="font-semibold text-white text-sm">{selectedTestForReview?.student?.name}</span>
-                  <span className="block text-slate-400">{selectedTestForReview?.student?.email}</span>
+                  <span className="block" style={{ color: themeColors.textSecondaryColor }}>Candidate:</span>
+                  <span className="font-semibold text-sm" style={{ color: themeColors.textColor }}>{selectedTestForReview?.student?.name}</span>
+                  <span className="block" style={{ color: themeColors.textSecondaryColor }}>{selectedTestForReview?.student?.email}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block">Assessment:</span>
-                  <span className="font-semibold text-white text-sm">{selectedTestForReview?.title}</span>
+                  <span className="block" style={{ color: themeColors.textSecondaryColor }}>Assessment:</span>
+                  <span className="font-semibold text-sm" style={{ color: themeColors.textColor }}>{selectedTestForReview?.title}</span>
                   <span className="block text-purple-300 uppercase font-mono">{selectedTestForReview?.language}</span>
                 </div>
               </div>
@@ -1872,7 +1940,7 @@ function HRDashboard() {
               <div>
                 <label className="block text-xs font-bold text-emerald-400 mb-1">Candidate's Submitted Code Solution:</label>
                 {selectedTestForReview?.submittedCode ? (
-                  <pre className="p-4 rounded-xl bg-[#0d0d18] border border-[#2d2d48] text-emerald-300 font-mono text-xs overflow-x-auto max-h-64 whitespace-pre-wrap">
+                  <pre className="p-4 rounded-xl bg-[#0d0d18] border text-emerald-300 font-mono text-xs overflow-x-auto max-h-64 whitespace-pre-wrap" style={{ borderColor: themeColors.borderColor }}>
                     {selectedTestForReview.submittedCode}
                   </pre>
                 ) : (
@@ -1884,8 +1952,8 @@ function HRDashboard() {
 
               {selectedTestForReview?.submissionNotes && (
                 <div>
-                  <span className="text-slate-400 block font-semibold">Candidate Notes:</span>
-                  <p className="p-2.5 rounded-lg bg-black/30 text-slate-200">{selectedTestForReview.submissionNotes}</p>
+                  <span className="block font-semibold" style={{ color: themeColors.textSecondaryColor }}>Candidate Notes:</span>
+                  <p className="p-2.5 rounded-lg bg-black/30" style={{ color: themeColors.textColor }}>{selectedTestForReview.submissionNotes}</p>
                 </div>
               )}
 
@@ -1918,19 +1986,19 @@ function HRDashboard() {
                         color: item.value > 0 ? '#fca5a5' : '#86efac'
                       }}>
                         <span>{item.icon}</span>
-                        <span className="text-slate-400">{item.label}:</span>
+                        <span style={{ color: themeColors.textSecondaryColor }}>{item.label}:</span>
                         <span className="font-bold">{item.value}</span>
                       </div>
                     ))}
                   </div>
                   {selectedTestForReview.sessionDuration && (
-                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] border-t" style={{ color: themeColors.textSecondaryColor, borderColor: themeColors.borderColor }}>
                       Session Duration: {Math.floor(selectedTestForReview.sessionDuration / 60)}m {selectedTestForReview.sessionDuration % 60}s
                       {selectedTestForReview.ipAddress && <> · IP: {selectedTestForReview.ipAddress}</>}
                     </div>
                   )}
                   {selectedTestForReview.browserFingerprint?.userAgent && (
-                    <div className="px-3 py-1.5 bg-black/20 text-[10px] text-slate-400 border-t truncate" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
+                    <div className="px-3 py-1.5 bg-black/20 text-[10px] border-t truncate" style={{ color: themeColors.textSecondaryColor, borderColor: themeColors.borderColor }}>
                       Browser: {selectedTestForReview.browserFingerprint.userAgent.substring(0, 100)}...
                     </div>
                   )}
@@ -1938,25 +2006,27 @@ function HRDashboard() {
               )}
 
               {/* HR REVIEW FORM */}
-              <form onSubmit={handleReviewCodingTest} className="space-y-4 pt-3 border-t border-slate-800">
+              <form onSubmit={handleReviewCodingTest} className="space-y-4 pt-3 border-t" style={{ borderColor: themeColors.borderColor }}>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold mb-1 text-slate-300">Score (0 - 100)</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Score (0 - 100)</label>
                     <input
                       type="number"
                       min="0"
                       max="100"
                       value={reviewFormData.score}
                       onChange={(e) => setReviewFormData({ ...reviewFormData, score: parseInt(e.target.value) || 0 })}
-                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white"
+                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border"
+                      style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1 text-slate-300">Verdict & Shortlist Action</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>Verdict & Shortlist Action</label>
                     <select
                       value={reviewFormData.verdict}
                       onChange={(e) => setReviewFormData({ ...reviewFormData, verdict: e.target.value })}
-                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white font-semibold"
+                      className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border font-semibold"
+                      style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                     >
                       <option value="passed">✅ PASSED (Shortlist for Interview)</option>
                       <option value="failed">❌ FAILED</option>
@@ -1966,13 +2036,14 @@ function HRDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold mb-1 text-slate-300">HR Review Feedback / Notes</label>
+                  <label className="block text-xs font-semibold mb-1" style={{ color: themeColors.textColor }}>HR Review Feedback / Notes</label>
                   <textarea
                     rows="3"
                     placeholder="Feedback comments for candidate performance..."
                     value={reviewFormData.hrFeedback}
                     onChange={(e) => setReviewFormData({ ...reviewFormData, hrFeedback: e.target.value })}
-                    className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border border-slate-700 text-white"
+                    className="w-full rounded-xl px-3 py-2 text-xs outline-none bg-black/40 border"
+                    style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                   />
                 </div>
 
@@ -1980,13 +2051,14 @@ function HRDashboard() {
                   <button
                     type="button"
                     onClick={() => { setShowReviewModal(false); setSelectedTestForReview(null); }}
-                    className="px-4 py-2 text-xs rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800"
+                    className="px-4 py-2 text-xs rounded-xl border"
+                    style={{ borderColor: themeColors.borderColor, color: themeColors.textColor }}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-semibold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 transition"
+                    className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition"
                   >
                     Save Review & Update Candidate
                   </button>
@@ -2003,18 +2075,19 @@ function HRDashboard() {
           <div className="w-full max-w-5xl my-6">
             <div className="flex justify-between items-center mb-3 px-1">
               <div>
-                <h3 className="text-lg font-bold text-white">Student Compiler Preview</h3>
-                <p className="text-xs text-slate-400 mt-1">
+                <h3 className="text-lg font-bold" style={{ color: themeColors.textColor }}>Student Compiler Preview</h3>
+                <p className="text-xs mt-1" style={{ color: themeColors.textSecondaryColor }}>
                   Language: <span className="text-purple-300 font-mono uppercase">{codingTestForm.language}</span>
                   {selectedAppForTest?.student?.name && (
-                    <> · Candidate: <span className="text-slate-200">{selectedAppForTest.student.name}</span></>
+                    <> · Candidate: <span style={{ color: themeColors.textColor }}>{selectedAppForTest.student.name}</span></>
                   )}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCompilerPreview(false)}
-                className="text-slate-400 hover:text-white text-xl px-2"
+                className="hover:opacity-80 text-xl px-2"
+                style={{ color: themeColors.textSecondaryColor }}
               >
                 ✕
               </button>
@@ -2107,7 +2180,7 @@ function HRDashboard() {
                   placeholder="Add feedback for the student..."
                   value={hrComment}
                   onChange={(e) => setHrComment(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
                   style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}`, color: theme.text }}
                 />
               </div>
@@ -2121,7 +2194,7 @@ function HRDashboard() {
                 </button>
                 <button
                   onClick={() => handleSubmissionStatus(selectedSubmission._id, "approved")}
-                  className="text-white px-4 py-2 text-sm rounded-lg transition hover:opacity-80"
+                  className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition hover:opacity-80 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
                   style={{ backgroundColor: theme.gold }}
                 >
                   Approve

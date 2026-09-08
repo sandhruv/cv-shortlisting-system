@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaBuilding, FaRobot, FaShieldAlt, FaCode, FaVideo, FaCheckCircle, FaSun, FaMoon } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaBuilding, FaRobot, FaShieldAlt, FaCode, FaVideo, FaCheckCircle, FaSun, FaMoon, FaHeadset } from "react-icons/fa";
 import { motion } from "framer-motion";
 import api from "../services/api";
 import VettoraLoader from "../components/VettoraLoader";
+import VoiceAIAgent from "../components/VoiceAIAgent";
 
 /* ═══ Theme Palettes ═══════════════════════════════════════════ */
 const T = {
@@ -80,8 +81,15 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetOldPassword, setResetOldPassword] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [theme, setTheme] = useState("dark");
+  const [showAIAgent, setShowAIAgent] = useState(false);
 
   const t = T[theme];
   const toggleTheme = () => setTheme((p) => (p === "dark" ? "light" : "dark"));
@@ -116,8 +124,28 @@ function Login() {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setResetMessage("");
+    try {
+      const res = await api.post("/auth/reset-password", {
+        email: resetEmail,
+        oldPassword: resetOldPassword,
+        newPassword: resetNewPassword,
+      });
+      setResetMessage(res.data.message);
+      setResetOldPassword("");
+      setResetNewPassword("");
+    } catch (err) {
+      setResetMessage(err.response?.data?.message || "Unable to submit your request. Please try again.");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
-    <div className={`min-h-screen flex flex-col lg:flex-row ${t.page} relative overflow-hidden font-sans transition-colors duration-500`}>
+    <div className={`login-neo min-h-screen flex flex-col lg:flex-row ${t.page} relative overflow-hidden font-sans transition-colors duration-500`}>
 
       {/* ── Full-screen Vettora Loading Overlay ── */}
       {isLoading && <VettoraLoader message="Authenticating…" theme={theme} />}
@@ -127,7 +155,7 @@ function Login() {
         onClick={toggleTheme}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed top-5 right-5 z-50 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+        className="login-theme-toggle fixed top-5 right-5 z-50 w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
         style={{
           background: theme === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
           borderColor: theme === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
@@ -173,7 +201,7 @@ function Login() {
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
-        className={`hidden lg:flex lg:w-7/12 p-12 xl:p-16 flex-col justify-between relative z-10 border-r ${t.hero} backdrop-blur-2xl transition-colors duration-500`}
+        className={`login-hero hidden lg:flex lg:w-7/12 p-12 xl:p-16 flex-col justify-between relative z-10 border-r ${t.hero} backdrop-blur-2xl transition-colors duration-500`}
       >
         <div>
           {/* Badge */}
@@ -215,7 +243,7 @@ function Login() {
             ].map((f, idx) => (
               <div
                 key={idx}
-                className={`p-4 rounded-xl ${t.featureCard} hover:border-[#d4af37]/40 transition-all duration-300 backdrop-blur-md`}
+                className={`login-feature p-4 rounded-xl ${t.featureCard} hover:border-[#d4af37]/40 transition-all duration-300 backdrop-blur-md`}
               >
                 <div className="flex items-center gap-3 mb-1.5">
                   <div className="p-2 rounded-lg bg-[#d4af37]/10 text-sm">{f.icon}</div>
@@ -258,7 +286,7 @@ function Login() {
       </motion.div>
 
       {/* ── Right Panel (Login Form) ──────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10">
+      <div className="login-form-side flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 25 }}
           animate={{ opacity: 1, y: 0 }}
@@ -276,7 +304,7 @@ function Login() {
           </div>
 
           {/* Glass Card */}
-          <div className={`${t.card} backdrop-blur-2xl rounded-3xl p-8 sm:p-10 relative overflow-hidden transition-colors duration-500`}>
+          <div className={`login-card ${t.card} backdrop-blur-2xl rounded-3xl p-8 sm:p-10 relative overflow-hidden transition-colors duration-500`}>
             {/* Top Accent */}
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
 
@@ -311,7 +339,7 @@ function Login() {
                     value={form.email}
                     onChange={handleChange}
                     required
-                    className={`w-full pl-11 pr-4 py-3.5 border rounded-2xl outline-none text-sm transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
+                    className={`login-input w-full pl-11 pr-4 py-3.5 border rounded-2xl outline-none text-sm transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
                   />
                 </div>
               </div>
@@ -322,6 +350,13 @@ function Login() {
                   <label className={`text-xs font-semibold uppercase tracking-wider ${t.label} transition-colors duration-500`}>
                     Password
                   </label>
+                  <button
+                    type="button"
+                    onClick={() => { setResetEmail(form.email); setResetMessage(""); setShowForgotPassword(true); }}
+                    className={`text-xs font-semibold ${t.link} hover:underline`}
+                  >
+                    Forgot password?
+                  </button>
                 </div>
                 <div className="relative group">
                   <FaLock className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.icon} group-focus-within:text-[#d4af37] transition-colors`} />
@@ -332,7 +367,7 @@ function Login() {
                     value={form.password}
                     onChange={handleChange}
                     required
-                    className={`w-full pl-11 pr-12 py-3.5 border rounded-2xl outline-none text-sm transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
+                    className={`login-input w-full pl-11 pr-12 py-3.5 border rounded-2xl outline-none text-sm transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
                   />
                   <button
                     type="button"
@@ -348,7 +383,7 @@ function Login() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full py-4 rounded-2xl font-bold text-sm tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${
+                className={`login-primary w-full py-4 rounded-2xl font-bold text-sm tracking-wider transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${
                   isLoading
                     ? t.btnGoldDisabled
                     : `bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99]`
@@ -376,11 +411,25 @@ function Login() {
               <div className="space-y-3">
                 <Link
                   to="/lpu-login"
-                  className={`w-full py-3 rounded-2xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 ${t.btnLpu}`}
+                  className={`login-secondary w-full py-3 rounded-2xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 ${t.btnLpu}`}
                 >
                   <FaBuilding className={`text-sm ${t.btnLpuIcon}`} />
                   LPU University Campus Login
                 </Link>
+
+                {/* AI Voice Agent Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowAIAgent(true)}
+                  className={`login-ai-agent w-full py-3 rounded-2xl border font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 ${
+                    theme === "dark"
+                      ? "border-[#d4af37]/30 bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/20"
+                      : "border-[#8B6914]/30 bg-[#8B6914]/10 text-[#8B6914] hover:bg-[#8B6914]/20"
+                  }`}
+                >
+                  <FaHeadset className="text-sm" />
+                  Talk to AI Agent
+                </button>
 
                 <div className="text-center pt-2">
                   <span className={`text-xs ${t.heroSub} transition-colors duration-500`}>Need a candidate or HR account? </span>
@@ -391,6 +440,67 @@ function Login() {
               </div>
             </form>
           </div>
+
+          {showForgotPassword && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-5 backdrop-blur-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className={`w-full max-w-md rounded-3xl border p-7 shadow-2xl backdrop-blur-2xl ${t.card}`}
+              >
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className={`text-2xl font-bold ${t.cardText}`}>Reset Password</h2>
+                    <p className={`mt-1.5 text-sm ${t.cardSub}`}>Enter your old password and choose a new one.</p>
+                  </div>
+                  <button type="button" onClick={() => setShowForgotPassword(false)} className={`text-xl ${t.icon} hover:text-[#d4af37]`} aria-label="Close reset password dialog">×</button>
+                </div>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider ${t.label}`}>
+                    Registered Email
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="name@company.com"
+                      required
+                      className={`mt-2 w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
+                    />
+                  </label>
+                  <label className={`block text-xs font-semibold uppercase tracking-wider ${t.label}`}>
+                    Old Password
+                    <input
+                      type="password"
+                      value={resetOldPassword}
+                      onChange={(e) => setResetOldPassword(e.target.value)}
+                      placeholder="Enter old password"
+                      required
+                      className={`mt-2 w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
+                    />
+                  </label>
+                  <label className={`block text-xs font-semibold uppercase tracking-wider ${t.label}`}>
+                    New Password
+                    <input
+                      type="password"
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      minLength={8}
+                      required
+                      className={`mt-2 w-full rounded-2xl border px-4 py-3.5 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}
+                    />
+                  </label>
+                  {resetMessage && <p className={`rounded-xl border border-[#d4af37]/30 bg-[#d4af37]/10 px-3 py-2.5 text-xs ${t.cardSub}`}>{resetMessage}</p>}
+                  <button type="submit" disabled={resetLoading} className={`w-full rounded-2xl py-3.5 text-sm font-bold transition hover:brightness-110 disabled:opacity-60 bg-gradient-to-r ${t.btnGold}`}>
+                    {resetLoading ? "Submitting…" : "Request Password Reset"}
+                  </button>
+                </form>
+              </motion.div>
+            </div>
+          )}
+
+          {/* AI Voice Agent Modal */}
+          <VoiceAIAgent open={showAIAgent} onClose={() => setShowAIAgent(false)} theme={theme} />
 
           {/* Footer */}
           <div className="text-center mt-6">

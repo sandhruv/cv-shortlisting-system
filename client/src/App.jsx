@@ -14,6 +14,7 @@ import LpuFacultyDashboard from "./pages/LpuFacultyDashboard";
 import LpuStudentDashboard from "./pages/LpuStudentDashboard";
 import TestCompilerPage from "./pages/TestCompilerPage";
 import AiInterviewRoom from "./components/AiInterviewRoom";
+import VoiceInterview from "./components/VoiceInterview";
 
 function App() {
   useEffect(() => {
@@ -32,8 +33,9 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
+    <div className="vettora-app-theme">
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -49,8 +51,10 @@ function App() {
         <Route path="/lpu-student" element={<LpuStudentDashboard />} />
         <Route path="/test-compiler" element={<TestCompilerPage />} />
         <Route path="/ai-interview/:interviewId" element={<AiInterviewRoom />} />
-      </Routes>
-    </BrowserRouter>
+        <Route path="/voice-interview/:interviewId" element={<VoiceInterview />} />
+        </Routes>
+      </BrowserRouter>
+    </div>
   );
 }
 

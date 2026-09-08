@@ -16,6 +16,9 @@ import {
   FaSpinner,
   FaRobot,
   FaMicrophone,
+  FaBars,
+  FaSun,
+  FaMoon,
 } from "react-icons/fa";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
@@ -23,6 +26,7 @@ import CodingTestView from "../components/CodingTestView";
 import Toast, { useToast } from "../components/Toast";
 import StudentProfile from "./StudentProfile";
 import TypingTest from "../components/TypingTest";
+import DashboardSidebar from "../components/DashboardSidebar";
 
 function StudentDashboard() {
   const navigate = useNavigate();
@@ -45,44 +49,88 @@ function StudentDashboard() {
   const [submissions, setSubmissions] = useState([]);
   const [selectedHrId, setSelectedHrId] = useState("");
   const [sendMsg, setSendMsg] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
   const isLpuStudent = currentUser.role === "LPU Student";
+  const [themeMode, setThemeMode] = useState("dark");
 
-  const theme = isLpuStudent
+  const themeColors = themeMode === "dark"
     ? {
-        bg: '#0d131f',
-        bgSecondary: '#111a2a',
-        bgCard: '#152238',
-        bgInput: '#0b1627',
-        border: '#24406b',
-        text: '#f6f7fb',
-        textSecondary: '#9db2d6',
-        gold: '#ff6b2b',
-        goldLight: '#ff8c52',
-        goldDark: '#d95511',
-        goldGlow: 'rgba(255, 107, 43, 0.18)',
+        bg: '#0a0f1a',
+        bgSecondary: '#0e1422',
+        bgCard: '#0e1422',
+        bgInput: '#070a12',
+        border: 'rgba(255,255,255,0.08)',
+        text: '#ffffff',
+        textSecondary: 'rgba(255,255,255,0.5)',
+        gold: '#d4af37',
+        goldLight: '#f3e5ab',
+        goldDark: '#996515',
+        goldGlow: isLpuStudent ? 'rgba(212, 175, 55, 0.18)' : 'rgba(212, 175, 55, 0.15)',
         green: '#4ade80',
         red: '#f87171',
         yellow: '#fbbf24',
+        cardBg: "rgba(14,20,34,0.85)",
+        borderColor: "rgba(255,255,255,0.08)",
+        textColor: "#ffffff",
+        textMutedColor: "rgba(255,255,255,0.5)",
+        textSecondaryColor: "rgba(255,255,255,0.4)",
+        disabledBg: "rgba(255,255,255,0.1)",
+        badgeGreenBg: "rgba(34,197,94,0.15)",
+        badgeGreenText: "#4ade80",
+        badgeRedBg: "rgba(239,68,68,0.15)",
+        badgeRedText: "#f87171",
+        badgeYellowBg: "rgba(234,179,8,0.15)",
+        badgeYellowText: "#fbbf24",
+        badgeBlueBg: "rgba(59,130,246,0.15)",
+        badgeBlueText: "#60a5fa",
+        badgePurpleBg: "rgba(168,85,247,0.15)",
+        badgePurpleText: "#c084fc",
+        badgeAmberBg: "rgba(245,158,11,0.15)",
+        badgeAmberText: "#fbbf24",
+        accentBlue: "#38bdf8",
+        inputBorder: "rgba(255,255,255,0.1)",
       }
     : {
-        bg: '#0a0a0a',
-        bgSecondary: '#1a1a1a',
-        bgCard: '#1e1e1e',
-        bgInput: '#0d0d0d',
-        border: '#2a2a2a',
-        text: '#f5f0e8',
-        textSecondary: '#b8a88a',
-        gold: '#d4a843',
-        goldLight: '#f0d080',
-        goldDark: '#b8922f',
-        goldGlow: 'rgba(212, 168, 67, 0.15)',
-        green: '#4ade80',
-        red: '#f87171',
-        yellow: '#fbbf24',
+        bg: '#f0f2f5',
+        bgSecondary: '#ffffff',
+        bgCard: '#ffffff',
+        bgInput: '#f8f4ec',
+        border: 'rgba(0,0,0,0.1)',
+        text: '#1a1a2e',
+        textSecondary: 'rgba(0,0,0,0.5)',
+        gold: '#996515',
+        goldLight: '#d4af37',
+        goldDark: '#6b4f0a',
+        goldGlow: 'rgba(153, 101, 21, 0.12)',
+        green: '#16a34a',
+        red: '#dc2626',
+        yellow: '#d97706',
+        cardBg: "rgba(255,255,255,0.85)",
+        borderColor: "rgba(0,0,0,0.1)",
+        textColor: "#1a1a2e",
+        textMutedColor: "rgba(0,0,0,0.5)",
+        textSecondaryColor: "rgba(0,0,0,0.4)",
+        disabledBg: "rgba(0,0,0,0.05)",
+        badgeGreenBg: "rgba(22,163,74,0.12)",
+        badgeGreenText: "#16a34a",
+        badgeRedBg: "rgba(220,38,38,0.12)",
+        badgeRedText: "#dc2626",
+        badgeYellowBg: "rgba(217,119,6,0.12)",
+        badgeYellowText: "#d97706",
+        badgeBlueBg: "rgba(37,99,235,0.12)",
+        badgeBlueText: "#2563eb",
+        badgePurpleBg: "rgba(147,51,234,0.12)",
+        badgePurpleText: "#9333ea",
+        badgeAmberBg: "rgba(180,83,9,0.12)",
+        badgeAmberText: "#b45309",
+        accentBlue: "#0284c7",
+        inputBorder: "rgba(0,0,0,0.15)",
       };
+  const theme = themeColors;
 
   const fetchJobs = async () => {
     try {
@@ -277,45 +325,101 @@ function StudentDashboard() {
 
   const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
 
+  const sidebarItems = [
+    { key: "jobs", label: "Browse Jobs", icon: FaBuilding },
+    { key: "myapps", label: "My Applications", icon: FaFileAlt },
+    { key: "resume", label: "My Resume", icon: FaUpload },
+    { key: "interviews", label: "My Interviews", icon: FaVideo },
+    { key: "coding_tests", label: "Coding Assessments", icon: FaCode },
+    { key: "profile", label: "Profile", icon: FaSearch },
+    { key: "typing", label: "Typing Test", icon: FaClock },
+  ];
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+    <div className="min-h-screen login-neo relative overflow-hidden" style={{ backgroundColor: theme.bg, color: theme.text }}>
+
+      {/* Ambient Glow Background */}
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-[#d4af37]/[0.07] blur-[140px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[650px] h-[650px] rounded-full bg-[#d4af37]/[0.05] blur-[150px] pointer-events-none" />
+
       <Toast toasts={toasts} remove={removeToast} />
-      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+      <DashboardSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        items={sidebarItems}
+        activeKey={activeTab}
+        onSelect={(key) => { setActiveTab(key); setSidebarOpen(false); }}
+        onLogout={handleLogout}
+        theme={{
+          background: theme.bgSecondary,
+          card: theme.bgCard,
+          border: theme.border,
+          text: theme.text,
+          muted: theme.textSecondary,
+          accent: theme.gold,
+          activeBackground: isLpuStudent ? "rgba(255, 107, 43, 0.12)" : "rgba(212, 168, 67, 0.12)",
+        }}
+        userName={currentUser.name || currentUser.email || "User"}
+        userRole={currentUser.role || "User"}
+      />
+      <header className="backdrop-blur-2xl border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary + 'd9', borderColor: theme.border }}>
         <div className="flex items-center gap-3">
-          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
+          <button
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            className="rounded-xl p-2 transition hover:opacity-80"
+            style={{ backgroundColor: theme.bgCard, color: theme.gold, border: `1px solid ${theme.border}` }}
+            aria-label="Open sidebar"
+          >
+            <FaBars size={16} />
+          </button>
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-[#d4af37]/30 p-0.5" style={{ backgroundColor: theme.cardBg }} />
           <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
             {isLpuStudent ? "LPU Student" : "Student Portal"}
           </span>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>
-          <FaSignOutAlt size={16} /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setThemeMode((c) => (c === "dark" ? "light" : "dark"))}
+            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+            style={{
+              background: themeMode === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
+              borderColor: themeMode === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
+              boxShadow: themeMode === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
+            }}
+            aria-label="Toggle theme">
+            {themeMode === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
+          </button>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>
+            <FaSignOutAlt size={16} /> Sign out
+          </button>
+        </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className={`max-w-7xl mx-auto px-6 py-8 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         <h1 className="text-2xl font-semibold mb-6" style={{ color: theme.text }}>{isLpuStudent ? "LPU Student Dashboard" : "Student Dashboard"}</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Applications</div>
             <div className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Shortlisted</div>
-            <div className="text-2xl font-bold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.green }}>{statusSummary.shortlisted}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Pending</div>
-            <div className="text-2xl font-bold mt-1 text-amber-300">{statusSummary.pending}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.yellow }}>{statusSummary.pending}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Upcoming Interviews</div>
-            <div className="text-2xl font-bold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.accentBlue }}>{statusSummary.upcoming}</div>
           </div>
         </div>
 
         {isLpuStudent && (
-          <div className="rounded-xl border p-5 mb-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-5 mb-6 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
               <h2 className="text-lg font-semibold" style={{ color: theme.text }}>LPU Student Progress Tracker</h2>
               <span className="text-xs" style={{ color: theme.textSecondary }}>
@@ -323,23 +427,23 @@ function StudentDashboard() {
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgCard + 'd9' }}>
                 <div style={{ color: theme.textSecondary }}>Applications Submitted</div>
                 <div className="font-semibold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
               </div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgCard + 'd9' }}>
                 <div style={{ color: theme.textSecondary }}>Shortlisted Stage</div>
-                <div className="font-semibold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+                <div className="font-semibold mt-1" style={{ color: theme.green }}>{statusSummary.shortlisted}</div>
               </div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgCard + 'd9' }}>
                 <div style={{ color: theme.textSecondary }}>Interview Readiness</div>
-                <div className="font-semibold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+                <div className="font-semibold mt-1" style={{ color: theme.accentBlue }}>{statusSummary.upcoming}</div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex gap-2 mb-6 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex gap-2 mb-6" style={{ borderBottom: `1px solid ${theme.border}` }}>
           <button
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "jobs" ? "border-b-2" : ""}`}
             style={{ 
@@ -422,14 +526,8 @@ function StudentDashboard() {
                   placeholder="Search jobs by title, location, or HR..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none transition focus:ring-2"
-                  style={{ 
-                    backgroundColor: theme.bgInput,
-                    borderColor: theme.border,
-                    color: theme.text,
-                    border: `1px solid ${theme.border}`,
-                    placeholderColor: theme.textSecondary
-                  }}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none transition focus:ring-2 focus:ring-[#d4af37]/50"
+                  style={{ backgroundColor: theme.bgCard + 'd9', border: `1px solid ${theme.inputBorder}`, color: theme.textColor }}
                 />
               </div>
             </div>
@@ -443,7 +541,7 @@ function StudentDashboard() {
                   const applied = hasApplied(job._id);
                   const status = getStatus(job._id);
                   return (
-                    <div key={job._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div key={job._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
                         {isLpuStudent && (
@@ -459,11 +557,10 @@ function StudentDashboard() {
                       <p className="text-xs mt-1" style={{ color: theme.textSecondary }}>Requirements: {job.requirements}</p>
                       <div className="flex justify-between items-center mt-4">
                         {applied ? (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${
-                            status === "shortlisted" ? "bg-green-900/30 text-green-400" : 
-                            status === "rejected" ? "bg-red-900/30 text-red-400" : 
-                            "bg-yellow-900/30 text-yellow-400"
-                          }`}>{status}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                            backgroundColor: status === "shortlisted" ? theme.badgeGreenBg : status === "rejected" ? theme.badgeRedBg : theme.badgeYellowBg,
+                            color: status === "shortlisted" ? theme.badgeGreenText : status === "rejected" ? theme.badgeRedText : theme.badgeYellowText,
+                          }}>{status}</span>
                         ) : (
                           <button
                             onClick={async () => {
@@ -479,8 +576,7 @@ function StudentDashboard() {
                                 toast(err.response?.data?.message || "Application failed", "error");
                               }
                             }}
-                            className="text-white px-4 py-1 rounded text-sm transition hover:opacity-80"
-                            style={{ backgroundColor: theme.gold }}
+                            className="bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] px-4 py-1 rounded text-sm font-semibold transition hover:opacity-80"
                           >
                             Apply
                           </button>
@@ -496,10 +592,10 @@ function StudentDashboard() {
         )}
 
         {activeTab === "myapps" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl shadow-sm overflow-hidden backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
+              <table className="min-w-full divide-y" style={{ borderColor: theme.borderColor }}>
+                <thead className="bg-[#d4af37]/[0.1]">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Job</th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Location</th>
@@ -507,17 +603,16 @@ function StudentDashboard() {
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Applied On</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: theme.border }}>
+                <tbody className="divide-y" style={{ borderColor: theme.borderColor }}>
                   {myApps.map((app) => (
                     <tr key={app._id}>
                       <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{app.job.title}</td>
                       <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.job.location}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          app.status === "shortlisted" ? "bg-green-900/30 text-green-400" : 
-                          app.status === "rejected" ? "bg-red-900/30 text-red-400" : 
-                          "bg-yellow-900/30 text-yellow-400"
-                        }`}>{app.status}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                          backgroundColor: app.status === "shortlisted" ? theme.badgeGreenBg : app.status === "rejected" ? theme.badgeRedBg : theme.badgeYellowBg,
+                          color: app.status === "shortlisted" ? theme.badgeGreenText : app.status === "rejected" ? theme.badgeRedText : theme.badgeYellowText,
+                        }}>{app.status}</span>
                       </td>
                       <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(app.createdAt).toLocaleDateString()}</td>
                     </tr>
@@ -529,7 +624,7 @@ function StudentDashboard() {
         )}
 
         {activeTab === "resume" && (
-          <div className="rounded-xl border shadow-sm p-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl shadow-sm p-6 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
             <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Upload Your Resume/CV</h2>
             <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>Upload your resume (PDF, DOC, DOCX) to apply for jobs. The system will extract your details and store them securely.</p>
             <div className="mb-4">
@@ -539,16 +634,14 @@ function StudentDashboard() {
                 type="file"
                 accept=".pdf,.doc,.docx"
                 onChange={handleFileChange}
-                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium transition"
+                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium transition file:bg-gradient-to-r file:from-[#d4af37] file:via-[#c5a059] file:to-[#996515] file:text-[#0a0f1a] file:font-semibold"
                 style={{ 
-                  color: theme.textSecondary,
-                  fileBackground: theme.gold,
-                  fileColor: 'white'
+                  color: theme.textSecondary
                 }}
               />
             </div>
             {selectedFile && (
-              <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+              <div className="flex items-center gap-2 p-3 rounded-lg border bg-[#d4af37]/[0.05]" style={{ borderColor: theme.borderColor }}>
                 <FaFileAlt style={{ color: theme.gold }} />
                 <span className="text-sm font-medium" style={{ color: theme.text }}>{selectedFile.name}</span>
                 <button onClick={() => { setSelectedFile(null); document.getElementById("fileInput").value = ""; }} className="ml-auto text-sm hover:opacity-80" style={{ color: theme.red }}>Remove</button>
@@ -559,22 +652,22 @@ function StudentDashboard() {
               disabled={!selectedFile || uploading}
               className={`mt-4 px-6 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
                 !selectedFile || uploading 
-                  ? "opacity-50 cursor-not-allowed" 
-                  : "text-white hover:opacity-80"
+                  ? `opacity-50 cursor-not-allowed` 
+                  : "bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80"
               }`}
-              style={{ backgroundColor: !selectedFile || uploading ? theme.border : theme.gold }}
+              style={(!selectedFile || uploading) ? { backgroundColor: theme.disabledBg } : {}}
             >
               <FaUpload /> {uploading ? "Processing..." : "Upload & Process"}
             </button>
             {myResume && (
-              <div className="mt-6 border-t pt-4" style={{ borderColor: theme.border }}>
+              <div className="mt-6 border-t pt-4" style={{ borderColor: theme.borderColor }}>
                 <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Last Uploaded Resume</h3>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>File: {myResume.fileName}</p>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>Status: {myResume.status}</p>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>Uploaded: {new Date(myResume.createdAt).toLocaleString()}</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer font-medium hover:underline" style={{ color: theme.gold }}>View extracted data</summary>
-                  <div className="mt-2 p-3 rounded-lg text-sm border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+                    <div className="mt-2 p-3 rounded-lg text-sm border bg-[#d4af37]/[0.05]" style={{ borderColor: theme.borderColor }}>
                     <p><strong style={{ color: theme.gold }}>Email:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.email || "Not found"}</span></p>
                     <p><strong style={{ color: theme.gold }}>Contact:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.contact_no || "Not found"}</span></p>
                     <p><strong style={{ color: theme.gold }}>Skills:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.technical_skills || "Not found"}</span></p>
@@ -585,7 +678,7 @@ function StudentDashboard() {
                 </details>
 
                 {/* ── ATS Resume Generator ── */}
-                <div className="mt-4 p-4 rounded-xl border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+                <div className="mt-4 p-4 rounded-xl border bg-[#d4af37]/[0.05]" style={{ borderColor: theme.borderColor }}>
                   <div className="flex items-center gap-2 mb-2">
                     <FaMagic style={{ color: theme.gold }} />
                     <h4 className="font-semibold text-sm" style={{ color: theme.text }}>AI ATS Resume Generator</h4>
@@ -602,22 +695,20 @@ function StudentDashboard() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowAtsPreview(!showAtsPreview)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80"
-                          style={{ backgroundColor: theme.gold, color: '#fff' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a]"
                         >
                           <FaFileAlt size={11} /> {showAtsPreview ? "Hide Preview" : "Preview"}
                         </button>
                         <button
                           onClick={handleDownloadATS}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
-                          style={{ borderColor: theme.gold, color: theme.gold, backgroundColor: 'transparent' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-[#d4af37]/30 text-[#d4af37] bg-transparent transition hover:opacity-80"
                         >
                           <FaDownload size={11} /> Download HTML
                         </button>
                         <button
                           onClick={handleGenerateATS}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
-                          style={{ borderColor: theme.border, color: theme.textSecondary, backgroundColor: 'transparent' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border bg-transparent transition hover:opacity-80"
+                          style={{ borderColor: theme.borderColor, color: theme.textSecondaryColor }}
                         >
                           <FaMagic size={11} /> Regenerate
                         </button>
@@ -625,7 +716,7 @@ function StudentDashboard() {
 
                       {showAtsPreview && (
                         <div className="mt-3 rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
-                          <div className="p-2 text-xs font-medium border-b flex items-center justify-between" style={{ backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textSecondary }}>
+                          <div className="p-2 text-xs font-medium border-b flex items-center justify-between" style={{ borderColor: theme.border, backgroundColor: theme.bgInput + 'd9', color: theme.textSecondary }}>
                             <span>ATS Resume Preview</span>
                             <span className="text-[10px] opacity-60">HTML format</span>
                           </div>
@@ -641,9 +732,9 @@ function StudentDashboard() {
                       onClick={handleGenerateATS}
                       disabled={atsGenerating}
                       className={`px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
-                        atsGenerating ? "opacity-60 cursor-not-allowed" : "text-white hover:opacity-80"
+                        atsGenerating ? "opacity-60 cursor-not-allowed" : "bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80"
                       }`}
-                      style={{ backgroundColor: atsGenerating ? theme.border : theme.gold }}
+                      style={atsGenerating ? { backgroundColor: theme.disabledBg } : {}}
                     >
                       {atsGenerating ? (
                         <>
@@ -666,7 +757,7 @@ function StudentDashboard() {
           <div>
             <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Upcoming Interviews</h2>
             {interviews.length === 0 ? (
-              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+              <div className="rounded-xl shadow-sm p-8 text-center backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9', color: theme.textSecondary }}>
                 No interviews scheduled yet.
               </div>
             ) : (
@@ -674,7 +765,7 @@ function StudentDashboard() {
                 {interviews.map((interview) => {
                   const status = interview.status?.toLowerCase ? interview.status.toLowerCase() : interview.status;
                   return (
-                    <div key={interview._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div key={interview._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
                       <div className="flex items-start gap-3">
                         <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
                           <FaCalendarAlt style={{ color: theme.gold }} />
@@ -683,11 +774,11 @@ function StudentDashboard() {
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold" style={{ color: theme.text }}>{interview.job.title}</h3>
                             {interview.interviewMode === "ai" ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-purple-900/40 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1" style={{ backgroundColor: theme.badgePurpleBg, color: theme.badgePurpleText, border: `1px solid ${theme.badgePurpleText}40` }}>
                                 <FaRobot size={10} /> AI Voice Interview
                               </span>
                             ) : (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-900/40 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1" style={{ backgroundColor: theme.badgeBlueBg, color: theme.badgeBlueText, border: `1px solid ${theme.badgeBlueText}40` }}>
                                 <FaVideo size={10} /> Human Video
                               </span>
                             )}
@@ -702,11 +793,10 @@ function StudentDashboard() {
                             {interview.notes && (
                               <p className="text-sm" style={{ color: theme.textSecondary }}>📝 {interview.notes}</p>
                             )}
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              status === "completed" ? "bg-green-900/30 text-green-400" : 
-                              status === "cancelled" ? "bg-red-900/30 text-red-400" : 
-                              "bg-yellow-900/30 text-yellow-400"
-                            }`}>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                              backgroundColor: status === "completed" ? theme.badgeGreenBg : status === "cancelled" ? theme.badgeRedBg : theme.badgeYellowBg,
+                              color: status === "completed" ? theme.badgeGreenText : status === "cancelled" ? theme.badgeRedText : theme.badgeYellowText,
+                            }}>
                               {status}
                             </span>
 
@@ -714,17 +804,15 @@ function StudentDashboard() {
                             {status === "scheduled" && (
                               interview.interviewMode === "ai" ? (
                                 <button
-                                  onClick={() => navigate(`/ai-interview/${interview._id}`)}
-                                  className="mt-3 text-black font-semibold px-4 py-2 rounded-xl transition text-xs flex items-center gap-2 shadow-lg transform hover:scale-105"
-                                  style={{ backgroundColor: theme.gold }}
+                                  onClick={() => navigate(`/voice-interview/${interview._id}`)}
+                                  className="mt-3 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] font-semibold px-4 py-2 rounded-xl transition text-xs flex items-center gap-2 shadow-lg transform hover:scale-105"
                                 >
                                   <FaRobot size={13} /> Start AI Voice Interview
                                 </button>
                               ) : interview.callActive ? (
                                 <button
                                   onClick={() => setVideoCallRoom(interview._id)}
-                                  className="mt-2 text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
-                                  style={{ backgroundColor: theme.gold }}
+                                  className="mt-2 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
                                 >
                                   <FaVideo size={12} /> Join Call
                                 </button>
@@ -734,15 +822,13 @@ function StudentDashboard() {
                             )}
 
                             {interview.feedback && interview.feedback.decision && (
-                              <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                              <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.borderColor }}>
                                 <p className="text-sm font-medium" style={{ color: theme.text }}>Feedback:</p>
                                 <p className="text-sm" style={{ color: theme.textSecondary }}>Rating: {interview.feedback.rating}/5</p>
                                 <p className="text-sm" style={{ color: theme.textSecondary }}>Comments: {interview.feedback.comments}</p>
-                                <p className="text-sm font-medium">Decision: <span className={`${
-                                  interview.feedback.decision === "selected" ? "text-green-400" : 
-                                  interview.feedback.decision === "rejected" ? "text-red-400" : 
-                                  "text-yellow-400"
-                                }`}>{interview.feedback.decision}</span></p>
+                                <p className="text-sm font-medium">Decision: <span style={{
+                                  color: interview.feedback.decision === "selected" ? theme.badgeGreenText : interview.feedback.decision === "rejected" ? theme.badgeRedText : theme.badgeYellowText,
+                                }}>{interview.feedback.decision}</span></p>
                               </div>
                             )}
                           </div>
@@ -760,16 +846,16 @@ function StudentDashboard() {
           <div>
             <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Assigned Coding Assessments</h2>
             {codingTests.length === 0 ? (
-              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+              <div className="rounded-xl shadow-sm p-8 text-center backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9', color: theme.textSecondary }}>
                 No coding assessments assigned to you yet.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {codingTests.map((t) => (
-                  <div key={t._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition space-y-3" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                  <div key={t._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition space-y-3 backdrop-blur-2xl" style={{ border: `1px solid ${theme.border}`, backgroundColor: theme.bgSecondary + 'd9' }}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{t.title}</h3>
-                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30">
+                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold" style={{ backgroundColor: theme.badgePurpleBg, color: theme.badgePurpleText, border: `1px solid ${theme.badgePurpleText}40` }}>
                         {t.language}
                       </span>
                     </div>
@@ -783,20 +869,18 @@ function StudentDashboard() {
                       <span>Assigned by: {t.createdBy?.name || "HR"}</span>
                     </div>
 
-                    <div className="pt-2 flex items-center justify-between border-t" style={{ borderColor: theme.border }}>
+                    <div className="pt-2 flex items-center justify-between border-t" style={{ borderColor: theme.borderColor }}>
                       <div>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                          t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
-                          t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
-                          t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
-                          "bg-purple-900/40 text-purple-300 border border-purple-500/30"
-                        }`}>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{
+                          backgroundColor: t.status === "submitted" ? theme.badgeBlueBg : t.status === "reviewed" ? theme.badgeGreenBg : t.status === "in_progress" ? theme.badgeAmberBg : theme.badgePurpleBg,
+                          color: t.status === "submitted" ? theme.badgeBlueText : t.status === "reviewed" ? theme.badgeGreenText : t.status === "in_progress" ? theme.badgeAmberText : theme.badgePurpleText,
+                          border: `1px solid ${(t.status === "submitted" ? theme.badgeBlueText : t.status === "reviewed" ? theme.badgeGreenText : t.status === "in_progress" ? theme.badgeAmberText : theme.badgePurpleText)}40`,
+                          animation: t.status === "in_progress" ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" : "none",
+                        }}>
                           {t.status}
                         </span>
                         {t.verdict && (
-                          <span className={`ml-2 text-xs px-2 py-0.5 rounded font-bold uppercase ${
-                            t.verdict === "passed" ? "text-green-400" : "text-red-400"
-                          }`}>
+                          <span className="ml-2 text-xs px-2 py-0.5 rounded font-bold uppercase" style={{ color: t.verdict === "passed" ? theme.badgeGreenText : theme.badgeRedText }}>
                             ({t.verdict})
                           </span>
                         )}
@@ -805,12 +889,12 @@ function StudentDashboard() {
                       {t.status !== "submitted" && t.status !== "reviewed" ? (
                         <button
                           onClick={() => setActiveTestId(t._id)}
-                          className="px-4 py-1.5 rounded-lg text-white font-semibold text-xs flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md transition"
+                          className="px-4 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md transition" style={{ color: '#ffffff' }}
                         >
                           <FaCode size={12} /> {t.status === "in_progress" ? "Continue Test" : "Start Test (Full Screen)"}
                         </button>
                       ) : (
-                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="text-xs font-medium flex items-center gap-1" style={{ color: theme.badgeGreenText }}>
                           ✓ Test Completed
                         </span>
                       )}

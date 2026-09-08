@@ -16,7 +16,11 @@ import {
   FaSpinner,
   FaRobot,
   FaMicrophone,
+  FaSun,
+  FaMoon,
+  FaBars,
 } from "react-icons/fa";
+import DashboardSidebar from "../components/DashboardSidebar";
 import api from "../services/api";
 import VideoCall from "../components/VideoCall";
 import CodingTestView from "../components/CodingTestView";
@@ -42,41 +46,74 @@ function StudentDashboard() {
   const [currentUser, setCurrentUser] = useState(() => {
     return JSON.parse(localStorage.getItem("user") || "{}");
   });
+  const [themeMode, setThemeMode] = useState("dark");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const isLpuStudent = currentUser.role === "LPU Student";
 
-  const theme = isLpuStudent
-    ? {
-        bg: '#0d131f',
-        bgSecondary: '#111a2a',
-        bgCard: '#152238',
-        bgInput: '#0b1627',
-        border: '#24406b',
-        text: '#f6f7fb',
-        textSecondary: '#9db2d6',
-        gold: '#ff6b2b',
-        goldLight: '#ff8c52',
-        goldDark: '#d95511',
-        goldGlow: 'rgba(255, 107, 43, 0.18)',
-        green: '#4ade80',
-        red: '#f87171',
-        yellow: '#fbbf24',
-      }
-    : {
-        bg: '#0a0a0a',
-        bgSecondary: '#1a1a1a',
-        bgCard: '#1e1e1e',
-        bgInput: '#0d0d0d',
-        border: '#2a2a2a',
-        text: '#f5f0e8',
-        textSecondary: '#b8a88a',
-        gold: '#d4a843',
-        goldLight: '#f0d080',
-        goldDark: '#b8922f',
-        goldGlow: 'rgba(212, 168, 67, 0.15)',
-        green: '#4ade80',
-        red: '#f87171',
-        yellow: '#fbbf24',
-      };
+  const themeColors = themeMode === "dark" ? {
+    bg: '#0a0f1a',
+    bgSecondary: '#0e1422',
+    bgCard: '#0e1422',
+    bgInput: '#0e1422',
+    cardBg: "rgba(14,20,34,0.85)",
+    cardBgSolid: "#0e1422",
+    border: 'rgba(255,255,255,0.08)',
+    text: '#f8fafc',
+    textSecondary: '#94a3b8',
+    gold: '#d4af37',
+    goldLight: '#f3e5ab',
+    goldDark: '#996515',
+    goldGlow: 'rgba(212, 175, 55, 0.18)',
+    green: '#4ade80',
+    red: '#f87171',
+    yellow: '#fbbf24',
+    badgeGreenBg: "rgba(34,197,94,0.15)",
+    badgeGreenText: "#4ade80",
+    badgeRedBg: "rgba(239,68,68,0.15)",
+    badgeRedText: "#f87171",
+    badgeYellowBg: "rgba(234,179,8,0.15)",
+    badgeYellowText: "#fbbf24",
+    badgeBlueBg: "rgba(59,130,246,0.15)",
+    badgeBlueText: "#60a5fa",
+    badgePurpleBg: "rgba(168,85,247,0.15)",
+    badgePurpleText: "#c084fc",
+    badgeAmberBg: "rgba(245,158,11,0.15)",
+    badgeAmberText: "#fbbf24",
+    accentBlue: "#38bdf8",
+    inputBorder: "rgba(255,255,255,0.08)",
+  } : {
+    bg: '#f0f2f5',
+    bgSecondary: '#ffffff',
+    bgCard: '#ffffff',
+    bgInput: '#f5f5f5',
+    cardBg: "rgba(255,255,255,0.85)",
+    cardBgSolid: "#ffffff",
+    border: 'rgba(0,0,0,0.1)',
+    text: '#1a1a2e',
+    textSecondary: 'rgba(0,0,0,0.5)',
+    gold: '#996515',
+    goldLight: '#d4af37',
+    goldDark: '#7a4f10',
+    goldGlow: 'rgba(153, 101, 21, 0.12)',
+    green: '#16a34a',
+    red: '#dc2626',
+    yellow: '#ca8a04',
+    badgeGreenBg: "rgba(22,163,74,0.12)",
+    badgeGreenText: "#16a34a",
+    badgeRedBg: "rgba(220,38,38,0.12)",
+    badgeRedText: "#dc2626",
+    badgeYellowBg: "rgba(202,138,4,0.12)",
+    badgeYellowText: "#ca8a04",
+    badgeBlueBg: "rgba(37,99,235,0.12)",
+    badgeBlueText: "#2563eb",
+    badgePurpleBg: "rgba(147,51,234,0.12)",
+    badgePurpleText: "#9333ea",
+    badgeAmberBg: "rgba(180,83,9,0.12)",
+    badgeAmberText: "#b45309",
+    accentBlue: "#0284c7",
+    inputBorder: "rgba(0,0,0,0.15)",
+  };
+  const theme = themeColors;
 
   const fetchJobs = async () => {
     try {
@@ -236,44 +273,103 @@ function StudentDashboard() {
   const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: theme.bg, color: theme.text }}>
+    <div className="min-h-screen login-neo relative overflow-hidden" style={{ backgroundColor: theme.bg, color: theme.text }}>
       <Toast toasts={toasts} remove={removeToast} />
-      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
+      {/* Ambient Glow */}
+      <div className="pointer-events-none fixed top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#d4af37]/[0.07] blur-[120px]"></div>
+      <div className="pointer-events-none fixed bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-[#d4af37]/[0.05] blur-[150px]"></div>
+
+      {(() => {
+        const sidebarItems = [
+          { key: "jobs", label: "Browse Jobs", icon: FaBuilding },
+          { key: "myapps", label: "My Applications", icon: FaFileAlt },
+          { key: "resume", label: "My Resume", icon: FaUpload },
+          { key: "interviews", label: "My Interviews", icon: FaVideo },
+          { key: "coding_tests", label: "Coding Assessments", icon: FaCode },
+          { key: "profile", label: "Profile", icon: FaSearch },
+          { key: "typing", label: "Typing Test", icon: FaClock },
+        ];
+
+        return (
+          <DashboardSidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            items={sidebarItems}
+            activeKey={activeTab}
+            onSelect={(key) => { setActiveTab(key); setSidebarOpen(false); }}
+            onLogout={handleLogout}
+            theme={{
+              background: theme.bgSecondary,
+              border: theme.border,
+              card: theme.bgCard,
+              text: theme.text,
+              muted: theme.textSecondary,
+              accent: theme.gold,
+              danger: '#e57373',
+              dangerBackground: 'rgba(139,26,26,0.06)',
+              activeBackground: `rgba(212,175,55,0.12)`,
+            }}
+            userName={currentUser.name || currentUser.email || "User"}
+            userRole={currentUser.role || "Student"}
+          />
+        );
+      })()}
+
+      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur-2xl" style={{ borderColor: theme.border, backgroundColor: `${theme.bgSecondary}d9` }}>
         <div className="flex items-center gap-3">
-          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
-          <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-lg transition hover:opacity-80"
+            style={{ color: theme.textSecondary }}
+          >
+            <FaBars size={18} />
+          </button>
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg p-0.5 bg-black/30" style={{ borderColor: `${theme.gold}4d` }} />
+          <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${theme.gold}33`, color: theme.gold }}>
             LPU Student
           </span>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>
-          <FaSignOutAlt size={16} /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setThemeMode((c) => c === "dark" ? "light" : "dark")}
+            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+            style={{
+              background: themeMode === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
+              borderColor: themeMode === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
+              boxShadow: themeMode === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
+            }}
+            aria-label="Toggle theme">
+            {themeMode === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
+          </button>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-sm transition" style={{ color: theme.textSecondary }} onMouseEnter={(e) => e.currentTarget.style.color = theme.text} onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}>
+            <FaSignOutAlt size={16} /> Sign out
+          </button>
+        </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         <h1 className="text-2xl font-semibold mb-6" style={{ color: theme.text }}>{isLpuStudent ? "LPU Student Dashboard" : "Student Dashboard"}</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Applications</div>
             <div className="text-2xl font-bold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Shortlisted</div>
-            <div className="text-2xl font-bold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.green }}>{statusSummary.shortlisted}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Pending</div>
-            <div className="text-2xl font-bold mt-1 text-amber-300">{statusSummary.pending}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.yellow }}>{statusSummary.pending}</div>
           </div>
-          <div className="rounded-xl border p-4" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-4 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="text-xs uppercase" style={{ color: theme.textSecondary }}>Upcoming Interviews</div>
-            <div className="text-2xl font-bold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+            <div className="text-2xl font-bold mt-1" style={{ color: theme.accentBlue }}>{statusSummary.upcoming}</div>
           </div>
         </div>
 
         {isLpuStudent && (
-          <div className="rounded-xl border p-5 mb-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl p-5 mb-6 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
               <h2 className="text-lg font-semibold" style={{ color: theme.text }}>LPU Student Progress Tracker</h2>
               <span className="text-xs" style={{ color: theme.textSecondary }}>
@@ -281,23 +377,23 @@ function StudentDashboard() {
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                 <div style={{ color: theme.textSecondary }}>Applications Submitted</div>
                 <div className="font-semibold mt-1" style={{ color: theme.text }}>{statusSummary.total}</div>
               </div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                 <div style={{ color: theme.textSecondary }}>Shortlisted Stage</div>
-                <div className="font-semibold mt-1 text-emerald-400">{statusSummary.shortlisted}</div>
+                <div className="font-semibold mt-1" style={{ color: theme.green }}>{statusSummary.shortlisted}</div>
               </div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: theme.bgSecondary, border: `1px solid ${theme.border}` }}>
+              <div className="rounded-lg p-3" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                 <div style={{ color: theme.textSecondary }}>Interview Readiness</div>
-                <div className="font-semibold mt-1 text-sky-300">{statusSummary.upcoming}</div>
+                <div className="font-semibold mt-1" style={{ color: theme.accentBlue }}>{statusSummary.upcoming}</div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="flex gap-2 mb-6 border-b" style={{ borderColor: theme.border }}>
+        <div className="flex gap-2 mb-6" style={{ borderBottom: `1px solid ${theme.border}` }}>
           <button
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "jobs" ? "border-b-2" : ""}`}
             style={{ 
@@ -360,12 +456,13 @@ function StudentDashboard() {
                   placeholder="Search jobs by title, location, or HR..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none transition focus:ring-2"
-                  style={{ 
-                    backgroundColor: theme.bgInput,
-                    borderColor: theme.border,
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm outline-none transition focus:ring-2 focus:ring-[#d4af37]/50"
+                  style={{
                     color: theme.text,
-                    border: `1px solid ${theme.border}`,
+                    backgroundColor: theme.cardBg,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderStyle: "solid",
                     placeholderColor: theme.textSecondary
                   }}
                 />
@@ -381,7 +478,7 @@ function StudentDashboard() {
                   const applied = hasApplied(job._id);
                   const status = getStatus(job._id);
                   return (
-                    <div key={job._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div key={job._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
                         {isLpuStudent && (
@@ -417,8 +514,7 @@ function StudentDashboard() {
                                 toast(err.response?.data?.message || "Application failed", "error");
                               }
                             }}
-                            className="text-white px-4 py-1 rounded text-sm transition hover:opacity-80"
-                            style={{ backgroundColor: theme.gold }}
+                            className="bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] px-4 py-1 rounded text-sm transition hover:opacity-80 font-medium"
                           >
                             Apply
                           </button>
@@ -434,7 +530,7 @@ function StudentDashboard() {
         )}
 
         {activeTab === "myapps" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl shadow-sm overflow-hidden backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
                 <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
@@ -454,13 +550,12 @@ function StudentDashboard() {
                         <td className="px-6 py-4 text-sm font-medium" style={{ color: theme.text }}>{app.job?.title || "Role"}</td>
                         <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.job?.location || "Remote"}</td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                            app.status === "shortlisted" || app.status === "coding_test_passed" ? "bg-green-900/40 text-green-400 border border-green-500/30" : 
-                            app.status === "rejected" || app.status === "coding_test_failed" ? "bg-red-900/40 text-red-400 border border-red-500/30" : 
-                            app.status === "coding_test_assigned" ? "bg-purple-900/40 text-purple-300 border border-purple-500/30 animate-pulse" :
-                            app.status === "coding_test_submitted" ? "bg-blue-900/40 text-blue-300 border border-blue-500/30" :
-                            "bg-yellow-900/30 text-yellow-400 border border-yellow-500/30"
-                          }`}>
+                          <span className="text-xs px-2.5 py-1 rounded-full font-semibold" style={{
+                            backgroundColor: (app.status === "shortlisted" || app.status === "coding_test_passed") ? theme.badgeGreenBg : (app.status === "rejected" || app.status === "coding_test_failed") ? theme.badgeRedBg : app.status === "coding_test_assigned" ? theme.badgePurpleBg : app.status === "coding_test_submitted" ? theme.badgeBlueBg : theme.badgeYellowBg,
+                            color: (app.status === "shortlisted" || app.status === "coding_test_passed") ? theme.badgeGreenText : (app.status === "rejected" || app.status === "coding_test_failed") ? theme.badgeRedText : app.status === "coding_test_assigned" ? theme.badgePurpleText : app.status === "coding_test_submitted" ? theme.badgeBlueText : theme.badgeYellowText,
+                            border: `1px solid ${(app.status === "shortlisted" || app.status === "coding_test_passed") ? theme.badgeGreenText : (app.status === "rejected" || app.status === "coding_test_failed") ? theme.badgeRedText : app.status === "coding_test_assigned" ? theme.badgePurpleText : app.status === "coding_test_submitted" ? theme.badgeBlueText : theme.badgeYellowText}40`,
+                            animation: app.status === "coding_test_assigned" ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" : "none",
+                          }}>
                             {app.status === "coding_test_assigned" ? "Coding Test Assigned" :
                              app.status === "coding_test_submitted" ? "Coding Test Submitted" :
                              app.status === "coding_test_passed" ? "Coding Test Passed ✓" :
@@ -475,7 +570,7 @@ function StudentDashboard() {
                               onClick={() => {
                                 setActiveTestId(assignedTest._id);
                               }}
-                              className="px-3 py-1.5 rounded-lg text-white font-medium text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow transition flex items-center gap-1.5 ml-auto"
+                              className="px-3 py-1.5 rounded-lg font-medium text-xs bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80 shadow transition flex items-center gap-1.5 ml-auto"
                             >
                               <FaCode size={12} /> Start Assessment
                             </button>
@@ -493,7 +588,7 @@ function StudentDashboard() {
         )}
 
         {activeTab === "resume" && (
-          <div className="rounded-xl border shadow-sm p-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className="rounded-xl shadow-sm p-6 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
             <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Upload Your Resume/CV</h2>
             <p className="text-sm mb-4" style={{ color: theme.textSecondary }}>Upload your resume (PDF, DOC, DOCX) to apply for jobs. The system will extract your details and store them securely.</p>
             <div className="mb-4">
@@ -503,16 +598,12 @@ function StudentDashboard() {
                 type="file"
                 accept=".pdf,.doc,.docx"
                 onChange={handleFileChange}
-                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium transition"
-                style={{ 
-                  color: theme.textSecondary,
-                  fileBackground: theme.gold,
-                  fileColor: 'white'
-                }}
+                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium transition file:bg-gradient-to-r file:from-[#d4af37] file:via-[#c5a059] file:to-[#996515] file:text-[#0a0f1a]"
+                  style={{ color: theme.textSecondary }}
               />
             </div>
             {selectedFile && (
-              <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+              <div className="flex items-center gap-2 p-3 rounded-lg" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                 <FaFileAlt style={{ color: theme.gold }} />
                 <span className="text-sm font-medium" style={{ color: theme.text }}>{selectedFile.name}</span>
                 <button onClick={() => { setSelectedFile(null); document.getElementById("fileInput").value = ""; }} className="ml-auto text-sm hover:opacity-80" style={{ color: theme.red }}>Remove</button>
@@ -523,22 +614,21 @@ function StudentDashboard() {
               disabled={!selectedFile || uploading}
               className={`mt-4 px-6 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 ${
                 !selectedFile || uploading 
-                  ? "opacity-50 cursor-not-allowed" 
-                  : "text-white hover:opacity-80"
+                  ? "opacity-50 cursor-not-allowed bg-white/[0.08]" 
+                  : "bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80"
               }`}
-              style={{ backgroundColor: !selectedFile || uploading ? theme.border : theme.gold }}
             >
               <FaUpload /> {uploading ? "Processing..." : "Upload & Process"}
             </button>
             {myResume && (
-              <div className="mt-6 border-t pt-4" style={{ borderColor: theme.border }}>
+              <div className="mt-6 pt-4" style={{ borderTop: `1px solid ${theme.border}` }}>
                 <h3 className="font-semibold mb-2" style={{ color: theme.text }}>Last Uploaded Resume</h3>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>File: {myResume.fileName}</p>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>Status: {myResume.status}</p>
                 <p className="text-sm" style={{ color: theme.textSecondary }}>Uploaded: {new Date(myResume.createdAt).toLocaleString()}</p>
                 <details className="mt-2">
                   <summary className="cursor-pointer font-medium hover:underline" style={{ color: theme.gold }}>View extracted data</summary>
-                  <div className="mt-2 p-3 rounded-lg text-sm border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+                  <div className="mt-2 p-3 rounded-lg text-sm" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                     <p><strong style={{ color: theme.gold }}>Email:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.email || "Not found"}</span></p>
                     <p><strong style={{ color: theme.gold }}>Contact:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.contact_no || "Not found"}</span></p>
                     <p><strong style={{ color: theme.gold }}>Skills:</strong> <span style={{ color: theme.text }}>{myResume.extractedData?.technical_skills || "Not found"}</span></p>
@@ -549,7 +639,7 @@ function StudentDashboard() {
                 </details>
 
                 {/* ── ATS Resume Generator ── */}
-                <div className="mt-4 p-4 rounded-xl border" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', borderColor: theme.border }}>
+                <div className="mt-4 p-4 rounded-xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                   <div className="flex items-center gap-2 mb-2">
                     <FaMagic style={{ color: theme.gold }} />
                     <h4 className="font-semibold text-sm" style={{ color: theme.text }}>AI ATS Resume Generator</h4>
@@ -566,22 +656,20 @@ function StudentDashboard() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowAtsPreview(!showAtsPreview)}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80"
-                          style={{ backgroundColor: theme.gold, color: '#fff' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition hover:opacity-80 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a]"
                         >
                           <FaFileAlt size={11} /> {showAtsPreview ? "Hide Preview" : "Preview"}
                         </button>
                         <button
                           onClick={handleDownloadATS}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
-                          style={{ borderColor: theme.gold, color: theme.gold, backgroundColor: 'transparent' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border border-[#d4af37] text-[#d4af37] bg-transparent transition hover:opacity-80"
                         >
                           <FaDownload size={11} /> Download HTML
                         </button>
                         <button
                           onClick={handleGenerateATS}
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border transition hover:opacity-80"
-                          style={{ borderColor: theme.border, color: theme.textSecondary, backgroundColor: 'transparent' }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 border bg-transparent transition hover:opacity-80"
+                          style={{ borderColor: theme.border, color: theme.textSecondary }}
                         >
                           <FaMagic size={11} /> Regenerate
                         </button>
@@ -589,7 +677,7 @@ function StudentDashboard() {
 
                       {showAtsPreview && (
                         <div className="mt-3 rounded-lg border overflow-hidden" style={{ borderColor: theme.border }}>
-                          <div className="p-2 text-xs font-medium border-b flex items-center justify-between" style={{ backgroundColor: theme.bgInput, borderColor: theme.border, color: theme.textSecondary }}>
+                          <div className="p-2 text-xs font-medium flex items-center justify-between" style={{ backgroundColor: theme.cardBgSolid, borderBottom: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                             <span>ATS Resume Preview</span>
                             <span className="text-[10px] opacity-60">HTML format</span>
                           </div>
@@ -605,9 +693,8 @@ function StudentDashboard() {
                       onClick={handleGenerateATS}
                       disabled={atsGenerating}
                       className={`px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition ${
-                        atsGenerating ? "opacity-60 cursor-not-allowed" : "text-white hover:opacity-80"
+                        atsGenerating ? "opacity-60 cursor-not-allowed bg-white/[0.08]" : "bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80"
                       }`}
-                      style={{ backgroundColor: atsGenerating ? theme.border : theme.gold }}
                     >
                       {atsGenerating ? (
                         <>
@@ -630,7 +717,7 @@ function StudentDashboard() {
           <div>
             <h2 className="text-xl font-semibold mb-4" style={{ color: theme.text }}>Upcoming Interviews</h2>
             {interviews.length === 0 ? (
-              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+              <div className="rounded-xl shadow-sm p-8 text-center backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid", color: theme.textSecondary }}>
                 No interviews scheduled yet.
               </div>
             ) : (
@@ -638,20 +725,20 @@ function StudentDashboard() {
                 {interviews.map((interview) => {
                   const status = interview.status?.toLowerCase ? interview.status.toLowerCase() : interview.status;
                   return (
-                    <div key={interview._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                    <div key={interview._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                       <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
+                        <div className="p-2 rounded-lg bg-[#d4af37]/[0.1]">
                           <FaCalendarAlt style={{ color: theme.gold }} />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <h3 className="font-semibold" style={{ color: theme.text }}>{interview.job?.title || "Job Interview"}</h3>
                             {interview.interviewMode === "ai" ? (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-purple-900/40 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1" style={{ backgroundColor: theme.badgePurpleBg, color: theme.badgePurpleText, border: `1px solid ${theme.badgePurpleText}40` }}>
                                 <FaRobot size={10} /> AI Voice Interview
                               </span>
                             ) : (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-blue-900/40 text-blue-300 border border-blue-500/30 flex items-center gap-1">
+                              <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold flex items-center gap-1" style={{ backgroundColor: theme.badgeBlueBg, color: theme.badgeBlueText, border: `1px solid ${theme.badgeBlueText}40` }}>
                                 <FaVideo size={10} /> Human Video
                               </span>
                             )}
@@ -666,11 +753,10 @@ function StudentDashboard() {
                             {interview.notes && (
                               <p className="text-sm" style={{ color: theme.textSecondary }}>📝 {interview.notes}</p>
                             )}
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              status === "completed" ? "bg-green-900/30 text-green-400" : 
-                              status === "cancelled" ? "bg-red-900/30 text-red-400" : 
-                              "bg-yellow-900/30 text-yellow-400"
-                            }`}>
+                            <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                              backgroundColor: status === "completed" ? theme.badgeGreenBg : status === "cancelled" ? theme.badgeRedBg : theme.badgeYellowBg,
+                              color: status === "completed" ? theme.badgeGreenText : status === "cancelled" ? theme.badgeRedText : theme.badgeYellowText,
+                            }}>
                               {status}
                             </span>
 
@@ -679,16 +765,14 @@ function StudentDashboard() {
                               interview.interviewMode === "ai" ? (
                                 <button
                                   onClick={() => navigate(`/ai-interview/${interview._id}`)}
-                                  className="mt-3 text-black font-semibold px-4 py-2 rounded-xl transition text-xs flex items-center gap-2 shadow-lg transform hover:scale-105"
-                                  style={{ backgroundColor: theme.gold }}
+                                  className="mt-3 font-semibold px-4 py-2 rounded-xl transition text-xs flex items-center gap-2 shadow-lg transform hover:scale-105 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a]"
                                 >
                                   <FaRobot size={13} /> Start AI Voice Interview
                                 </button>
                               ) : interview.callActive ? (
                                 <button
                                   onClick={() => setVideoCallRoom(interview._id)}
-                                  className="mt-2 text-white px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
-                                  style={{ backgroundColor: theme.gold }}
+                                  className="mt-2 px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a]"
                                 >
                                   <FaVideo size={12} /> Join Call
                                 </button>
@@ -698,15 +782,13 @@ function StudentDashboard() {
                             )}
 
                             {interview.feedback && interview.feedback.decision && (
-                              <div className="mt-3 pt-2 border-t" style={{ borderColor: theme.border }}>
+                              <div className="mt-3 pt-2" style={{ borderTop: `1px solid ${theme.border}` }}>
                                 <p className="text-sm font-medium" style={{ color: theme.text }}>Feedback:</p>
                                 <p className="text-sm" style={{ color: theme.textSecondary }}>Rating: {interview.feedback.rating}/5</p>
                                 <p className="text-sm" style={{ color: theme.textSecondary }}>Comments: {interview.feedback.comments}</p>
-                                <p className="text-sm font-medium">Decision: <span className={`${
-                                  interview.feedback.decision === "selected" ? "text-green-400" : 
-                                  interview.feedback.decision === "rejected" ? "text-red-400" : 
-                                  "text-yellow-400"
-                                }`}>{interview.feedback.decision}</span></p>
+                                <p className="text-sm font-medium">Decision: <span style={{
+                                  color: interview.feedback.decision === "selected" ? theme.badgeGreenText : interview.feedback.decision === "rejected" ? theme.badgeRedText : theme.badgeYellowText,
+                                }}>{interview.feedback.decision}</span></p>
                               </div>
                             )}
                           </div>
@@ -722,7 +804,7 @@ function StudentDashboard() {
 
         {activeTab === "coding_tests" && (
           <div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 p-4 rounded-xl border bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-transparent" style={{ borderColor: theme.border }}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 p-4 rounded-xl backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
               <div>
                 <h2 className="text-xl font-semibold flex items-center gap-2" style={{ color: theme.text }}>
                   <FaCode className="text-purple-400" /> Assigned Coding Assessments
@@ -733,22 +815,22 @@ function StudentDashboard() {
               </div>
               <button
                 onClick={() => navigate("/test-compiler")}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 transition shadow flex items-center gap-2 shrink-0"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80 transition shadow flex items-center gap-2 shrink-0"
               >
                 <FaCode size={14} /> Open Practice Code Sandbox
               </button>
             </div>
             {codingTests.length === 0 ? (
-              <div className="rounded-xl border shadow-sm p-8 text-center" style={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.textSecondary }}>
+              <div className="rounded-xl shadow-sm p-8 text-center backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid", color: theme.textSecondary }}>
                 No coding assessments assigned to you yet.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {codingTests.map((t) => (
-                  <div key={t._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition space-y-3" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+                  <div key={t._id} className="rounded-xl shadow-sm p-5 hover:shadow-md transition space-y-3 backdrop-blur-2xl" style={{ backgroundColor: theme.cardBg, borderColor: theme.border, borderWidth: 1, borderStyle: "solid" }}>
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-lg" style={{ color: theme.text }}>{t.title}</h3>
-                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold bg-purple-900/40 text-purple-300 border border-purple-500/30">
+                      <span className="text-xs px-2.5 py-1 rounded-full uppercase font-mono font-bold" style={{ backgroundColor: theme.badgePurpleBg, color: theme.badgePurpleText, border: `1px solid ${theme.badgePurpleText}40` }}>
                         {t.language}
                       </span>
                     </div>
@@ -762,20 +844,18 @@ function StudentDashboard() {
                       <span>Assigned by: {t.createdBy?.name || "HR"}</span>
                     </div>
 
-                    <div className="pt-2 flex items-center justify-between border-t" style={{ borderColor: theme.border }}>
+                    <div className="pt-2 flex items-center justify-between" style={{ borderTop: `1px solid ${theme.border}` }}>
                       <div>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                          t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
-                          t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
-                          t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
-                          "bg-purple-900/40 text-purple-300 border border-purple-500/30"
-                        }`}>
+                        <span className="text-xs px-2.5 py-0.5 rounded-full font-medium" style={{
+                          backgroundColor: t.status === "submitted" ? theme.badgeBlueBg : t.status === "reviewed" ? theme.badgeGreenBg : t.status === "in_progress" ? theme.badgeAmberBg : theme.badgePurpleBg,
+                          color: t.status === "submitted" ? theme.badgeBlueText : t.status === "reviewed" ? theme.badgeGreenText : t.status === "in_progress" ? theme.badgeAmberText : theme.badgePurpleText,
+                          border: `1px solid ${(t.status === "submitted" ? theme.badgeBlueText : t.status === "reviewed" ? theme.badgeGreenText : t.status === "in_progress" ? theme.badgeAmberText : theme.badgePurpleText)}40`,
+                          animation: t.status === "in_progress" ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" : "none",
+                        }}>
                           {t.status}
                         </span>
                         {t.verdict && (
-                          <span className={`ml-2 text-xs px-2 py-0.5 rounded font-bold uppercase ${
-                            t.verdict === "passed" ? "text-green-400" : "text-red-400"
-                          }`}>
+                          <span className="ml-2 text-xs px-2 py-0.5 rounded font-bold uppercase" style={{ color: t.verdict === "passed" ? theme.badgeGreenText : theme.badgeRedText }}>
                             ({t.verdict})
                           </span>
                         )}
@@ -784,12 +864,12 @@ function StudentDashboard() {
                       {t.status !== "submitted" && t.status !== "reviewed" ? (
                         <button
                           onClick={() => setActiveTestId(t._id)}
-                          className="px-4 py-1.5 rounded-lg text-white font-semibold text-xs flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 shadow-md transition"
+                          className="px-4 py-1.5 rounded-lg font-semibold text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:opacity-80 shadow-md transition"
                         >
                           <FaCode size={12} /> {t.status === "in_progress" ? "Continue Test" : "Start Test (Full Screen)"}
                         </button>
                       ) : (
-                        <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="text-xs font-medium flex items-center gap-1" style={{ color: theme.badgeGreenText }}>
                           ✓ Test Completed
                         </span>
                       )}

@@ -5,6 +5,7 @@ import {
   FaSearch, FaDownload, FaFilter, FaChevronLeft, FaChevronRight,
   FaCheckCircle, FaTimesCircle, FaEye, FaTrash, FaChartBar,
   FaUserGraduate, FaUserTie, FaBriefcase, FaSpinner, FaFileAlt,
+  FaSun, FaMoon,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../services/api";
@@ -20,11 +21,11 @@ const TABS = [
   { key: "bulk",        label: "Bulk Upload", icon: FaUpload },
 ];
 
-function StatCard({ label, value, icon: Icon, color = "#ff6b2b", delay = 0 }) {
+function StatCard({ label, value, icon: Icon, color = "#d4af37", delay = 0, cardClass = "" }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl hover:shadow-2xl hover:border-[#ff6b2b]/20 transition-all duration-300 group">
+      className={`backdrop-blur-2xl rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 group ${cardClass || "bg-[#0e1422]/85 border border-white/[0.08] hover:border-[#d4af37]/20"}`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-medium text-white/40 uppercase tracking-wider">{label}</p>
@@ -38,19 +39,19 @@ function StatCard({ label, value, icon: Icon, color = "#ff6b2b", delay = 0 }) {
   );
 }
 
-function SearchBar({ value, onChange, placeholder, filter, filterOptions, onFilterChange, resultCount }) {
+function SearchBar({ value, onChange, placeholder, filter, filterOptions, onFilterChange, resultCount, T }) {
   return (
     <div className="flex flex-col sm:flex-row gap-3 mb-5">
       <div className="relative flex-1">
         <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm" />
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b] transition" />
+          className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 transition ${T.input} ${T.inputFocus}`} />
       </div>
       {filterOptions && (
         <div className="relative">
           <FaFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs" />
           <select value={filter} onChange={(e) => onFilterChange(e.target.value)}
-            className="pl-9 pr-8 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#ff6b2b] appearance-none cursor-pointer">
+            className={`pl-9 pr-8 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 appearance-none cursor-pointer ${T.input} ${T.inputFocus}`}>
             <option value="all">All</option>
             {filterOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -72,7 +73,7 @@ function Pagination({ page, total, onPageChange }) {
           className="p-1.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 disabled:opacity-30 transition"><FaChevronLeft size={12} /></button>
         {Array.from({ length: totalPages }, (_, i) => (
           <button key={i} onClick={() => onPageChange(i)}
-            className={`w-8 h-8 rounded-lg text-xs font-medium transition ${i === page ? "bg-[#ff6b2b] text-[#0d131f]" : "text-white/50 hover:bg-white/5"}`}>{i + 1}</button>
+            className={`w-8 h-8 rounded-lg text-xs font-medium transition ${i === page ? "bg-[#d4af37] text-[#0a0f1a]" : "text-white/50 hover:bg-white/5"}`}>{i + 1}</button>
         ))}
         <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages - 1}
           className="p-1.5 rounded-lg border border-white/10 text-white/50 hover:bg-white/5 disabled:opacity-30 transition"><FaChevronRight size={12} /></button>
@@ -83,7 +84,7 @@ function Pagination({ page, total, onPageChange }) {
 
 function Skeleton({ rows = 5, cols = 4 }) {
   return (
-    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden animate-pulse">
+    <div className="bg-[#0e1422]/85 backdrop-blur-2xl border border-white/[0.08] rounded-2xl overflow-hidden animate-pulse">
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="flex gap-4 px-6 py-4 border-b border-white/5">
           {Array.from({ length: cols }).map((_, c) => <div key={c} className="h-4 bg-white/5 rounded flex-1" />)}
@@ -136,6 +137,36 @@ export default function LpuAdminDashboard() {
   const [facultySearch, setFacultySearch] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [showFacultyDropdown, setShowFacultyDropdown] = useState(false);
+
+  const [theme, setTheme] = useState("dark");
+
+  const T = theme === "dark" ? {
+    page: "bg-[#0a0f1a] text-white",
+    surface: "bg-[#0e1422]/85 backdrop-blur-2xl border-b border-white/[0.08]",
+    card: "bg-[#0e1422]/85 backdrop-blur-2xl border border-white/[0.08]",
+    cardHover: "hover:border-[#d4af37]/20",
+    input: "bg-[#0e1422]/85 border border-white/[0.08] text-white placeholder:text-white/30",
+    inputFocus: "focus:ring-[#d4af37]/50 focus:border-[#d4af37]/50",
+    text: "text-white",
+    textMuted: "text-white/50",
+    textSecondary: "text-white/40",
+    border: "border-white/[0.08]",
+    accent: "#d4af37",
+    accentRgb: "212,175,55",
+  } : {
+    page: "bg-[#f0f2f5] text-gray-900",
+    surface: "bg-white/80 backdrop-blur-2xl border-b border-gray-200",
+    card: "bg-white border border-gray-200",
+    cardHover: "hover:border-[#d4af37]/40",
+    input: "bg-white border border-gray-300 text-gray-900 placeholder:text-gray-400",
+    inputFocus: "focus:ring-[#d4af37]/50 focus:border-[#d4af37]/50",
+    text: "text-gray-900",
+    textMuted: "text-gray-500",
+    textSecondary: "text-gray-400",
+    border: "border-gray-200",
+    accent: "#996515",
+    accentRgb: "153,101,21",
+  };
 
   // ═══════════════════════════════════════════════════════════
   // FETCH DATA
@@ -307,24 +338,24 @@ export default function LpuAdminDashboard() {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total LPU Users" value={users.length} icon={FaUsers} delay={0} />
-          <StatCard label="Total Jobs" value={stats?.totalJobs ?? jobs.length} icon={FaBriefcase} delay={0.05} />
-          <StatCard label="Applications" value={stats?.totalApplications ?? 0} icon={FaFileAlt} delay={0.1} />
-          <StatCard label="Resumes" value={stats?.totalResumes ?? 0} icon={FaEye} delay={0.15} />
+          <StatCard label="Total LPU Users" value={users.length} icon={FaUsers} delay={0} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="Total Jobs" value={stats?.totalJobs ?? jobs.length} icon={FaBriefcase} delay={0.05} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="Applications" value={stats?.totalApplications ?? 0} icon={FaFileAlt} delay={0.1} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="Resumes" value={stats?.totalResumes ?? 0} icon={FaEye} delay={0.15} cardClass={`${T.card} ${T.cardHover}`} />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Faculty Assigned" value={allocationSummary.facultyAssignedJobs} icon={FaUserTie} color="#4ade80" delay={0.2} />
-          <StatCard label="Student Assigned" value={allocationSummary.studentAssignedJobs} icon={FaUserGraduate} color="#60a5fa" delay={0.25} />
-          <StatCard label="Unassigned Jobs" value={allocationSummary.unassignedJobs} icon={FaBriefcase} color="#fbbf24" delay={0.3} />
-          <StatCard label="LPU Students" value={lpuStudents.length} icon={FaUserGraduate} color="#a78bfa" delay={0.35} />
+          <StatCard label="Faculty Assigned" value={allocationSummary.facultyAssignedJobs} icon={FaUserTie} color="#4ade80" delay={0.2} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="Student Assigned" value={allocationSummary.studentAssignedJobs} icon={FaUserGraduate} color="#60a5fa" delay={0.25} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="Unassigned Jobs" value={allocationSummary.unassignedJobs} icon={FaBriefcase} color="#fbbf24" delay={0.3} cardClass={`${T.card} ${T.cardHover}`} />
+          <StatCard label="LPU Students" value={lpuStudents.length} icon={FaUserGraduate} color="#a78bfa" delay={0.35} cardClass={`${T.card} ${T.cardHover}`} />
         </div>
 
         {/* Allocation Funnel */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-          <h4 className="text-sm font-semibold text-white/80 mb-4 flex items-center gap-2"><FaChartBar className="text-[#ff6b2b]" /> Job Allocation Overview</h4>
+        <div className={`${T.card} rounded-2xl p-6`}>
+          <h4 className="text-sm font-semibold text-white/80 mb-4 flex items-center gap-2"><FaChartBar className="text-[#d4af37]" /> Job Allocation Overview</h4>
           <div className="space-y-3">
             {[
-              { label: "Total Jobs", count: allocationSummary.totalJobs, color: "#ff6b2b" },
+              { label: "Total Jobs", count: allocationSummary.totalJobs, color: "#d4af37" },
               { label: "Faculty Assigned", count: allocationSummary.facultyAssignedJobs, color: "#4ade80" },
               { label: "Student Assigned", count: allocationSummary.studentAssignedJobs, color: "#60a5fa" },
               { label: "Unassigned", count: allocationSummary.unassignedJobs, color: "#fbbf24" },
@@ -343,7 +374,7 @@ export default function LpuAdminDashboard() {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+          <div className={`${T.card} rounded-2xl p-5`}>
             <h4 className="text-sm font-semibold text-white/80 mb-3">Recent Jobs</h4>
             {recentJobs.length === 0 ? <p className="text-sm text-white/30">No jobs</p> :
               recentJobs.map((job) => (
@@ -354,7 +385,7 @@ export default function LpuAdminDashboard() {
               ))
             }
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-5">
+          <div className={`${T.card} rounded-2xl p-5`}>
             <h4 className="text-sm font-semibold text-white/80 mb-3">User Distribution</h4>
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm py-1.5">
@@ -381,8 +412,8 @@ export default function LpuAdminDashboard() {
     return (
       <div>
         <SearchBar value={search} onChange={setSearch} placeholder="Search users by name, UID, or role…"
-          filter={filter} onFilterChange={setFilter} filterOptions={roleOpts} resultCount={filtered.total} />
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+          filter={filter} onFilterChange={setFilter} filterOptions={roleOpts} resultCount={filtered.total} T={T} />
+        <div className={`${T.card} rounded-2xl shadow-xl overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-white/5">
@@ -428,8 +459,8 @@ export default function LpuAdminDashboard() {
     if (loading) return <Skeleton rows={5} cols={5} />;
     return (
       <div>
-        <SearchBar value={search} onChange={setSearch} placeholder="Search jobs by title, location, or poster…" resultCount={filtered.total} />
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+        <SearchBar value={search} onChange={setSearch} placeholder="Search jobs by title, location, or poster…" resultCount={filtered.total} T={T} />
+        <div className={`${T.card} rounded-2xl shadow-xl overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-white/5">
@@ -486,18 +517,18 @@ export default function LpuAdminDashboard() {
           <div className="relative flex-1">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm" />
             <input type="text" value={assignmentSearch} onChange={(e) => setAssignmentSearch(e.target.value)}
-              placeholder="Search job, faculty, or student…" className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b] transition" />
+              placeholder="Search job, faculty, or student…" className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 transition ${T.input} ${T.inputFocus}`} />
           </div>
           <div className="flex gap-2">
             {[{ key: "all", label: "All" }, ...filterOpts].map((f) => (
               <button key={f.key} onClick={() => { setAssignmentFilter(f.key); setPage(0); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${assignmentFilter === f.key ? "bg-[#ff6b2b] text-[#0d131f]" : "bg-white/5 text-white/60 hover:bg-white/10"}`}>{f.label}</button>
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${assignmentFilter === f.key ? "bg-[#d4af37] text-[#0a0f1a]" : "bg-white/5 text-white/60 hover:bg-white/10"}`}>{f.label}</button>
             ))}
           </div>
           <button onClick={exportAssignmentReport}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#ff6b2b] border border-[#ff6b2b]/30 rounded-lg hover:bg-[#ff6b2b]/10 transition"><FaDownload /> Export</button>
+            className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#d4af37] border border-[#d4af37]/30 rounded-lg hover:bg-[#d4af37]/10 transition"><FaDownload /> Export</button>
         </div>
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+        <div className={`${T.card} rounded-2xl shadow-xl overflow-hidden`}>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-white/10">
               <thead className="bg-white/5">
@@ -537,60 +568,60 @@ export default function LpuAdminDashboard() {
   const renderBulk = () => (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       {/* Manual Create */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><FaUserPlus className="text-[#ff6b2b]" /> Manual User Creation</h2>
+      <div className={`${T.card} rounded-2xl p-6`}>
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><FaUserPlus className="text-[#d4af37]" /> Manual User Creation</h2>
         <form onSubmit={handleManualCreate} className="space-y-4">
           <input type="text" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
           <input type="text" placeholder="UID" value={form.uid} onChange={(e) => setForm({ ...form, uid: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
           <input type="password" placeholder="Password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]">
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`}>
             <option value="LPU Student">LPU Student</option>
             <option value="LPU Faculty">LPU Faculty</option>
           </select>
           <button type="submit" disabled={submitting}
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${submitting ? "opacity-60 cursor-not-allowed" : ""} bg-[#ff6b2b] text-[#0d131f] hover:brightness-110`}>
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${submitting ? "opacity-60 cursor-not-allowed" : ""} bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:brightness-110`}>
             {submitting && <FaSpinner className="animate-spin" />} {submitting ? "Creating…" : "Create User"}
           </button>
         </form>
       </div>
 
       {/* Bulk Upload */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><FaUpload className="text-[#ff6b2b]" /> Excel Bulk Upload</h2>
+      <div className={`${T.card} rounded-2xl p-6`}>
+        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><FaUpload className="text-[#d4af37]" /> Excel Bulk Upload</h2>
         <p className="text-sm text-white/50 mb-4">Upload an .xlsx file with columns: UID, Password, Name, Email (optional).</p>
         <form onSubmit={handleBulkUpload} className="space-y-4">
           <input type="file" accept=".xlsx, .xls" onChange={(e) => setFile(e.target.files[0])}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-[#ff6b2b] file:text-[#0d131f]" />
+            className={`w-full p-3 rounded-xl text-sm file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-gradient-to-r file:from-[#d4af37] file:via-[#c5a059] file:to-[#996515] file:text-[#0a0f1a] ${T.input}`} />
           <select value={uploadRole} onChange={(e) => setUploadRole(e.target.value)}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]">
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`}>
             <option value="LPU Student">LPU Student</option>
             <option value="LPU Faculty">LPU Faculty</option>
           </select>
           <button type="submit" disabled={submitting}
-            className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${submitting ? "opacity-60 cursor-not-allowed" : ""} bg-[#ff6b2b] text-[#0d131f] hover:brightness-110`}>
+            className={`w-full py-3 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2 ${submitting ? "opacity-60 cursor-not-allowed" : ""} bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] hover:brightness-110`}>
             {submitting && <FaSpinner className="animate-spin" />} {submitting ? "Uploading…" : "Bulk Upload Users"}
           </button>
         </form>
       </div>
 
       {/* Publish LPU Job */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 lg:col-span-2">
+      <div className={`${T.card} rounded-2xl p-6 lg:col-span-2`}>
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2"><FaBuilding className="text-[#d4af37]" /> Publish LPU Job</h2>
         <form onSubmit={handleCreateJob} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input type="text" placeholder="Job title" value={newJob.title} onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+              className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
             <input type="text" placeholder="Location" value={newJob.location} onChange={(e) => setNewJob({ ...newJob, location: e.target.value })}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+              className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
           </div>
           <textarea rows="3" placeholder="Description" value={newJob.description} onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
           <textarea rows="3" placeholder="Requirements" value={newJob.requirements} onChange={(e) => setNewJob({ ...newJob, requirements: e.target.value })}
-            className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b]" required />
+            className={`w-full p-3 rounded-xl text-sm focus:outline-none focus:ring-1 ${T.input} ${T.inputFocus}`} required />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -598,14 +629,14 @@ export default function LpuAdminDashboard() {
               <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs z-10" />
                 <input type="text" placeholder="Search faculty by name or UID…" value={facultySearch} onChange={(e) => { setFacultySearch(e.target.value); setShowFacultyDropdown(true); }} onFocus={() => setShowFacultyDropdown(true)}
-                  className="w-full pl-9 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b] transition" />
+                  className={`w-full pl-9 pr-10 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 transition ${T.input} ${T.inputFocus}`} />
                 <FaChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 text-xs rotate-90 pointer-events-none" />
                 {showFacultyDropdown && (
-                  <div onClick={(e) => e.stopPropagation()} className="absolute z-30 top-full mt-1 w-full max-h-48 overflow-auto bg-[#131b2c] border border-white/10 rounded-xl shadow-2xl">
+                  <div onClick={(e) => e.stopPropagation()} className="absolute z-30 top-full mt-1 w-full max-h-48 overflow-auto bg-[#0e1422] border border-white/[0.08] rounded-xl shadow-2xl">
                     <div className="px-3 py-2 text-xs text-white/40 border-b border-white/5 cursor-pointer hover:bg-white/5" onClick={() => { setNewJob({ ...newJob, allocatedFaculty: "" }); setShowFacultyDropdown(false); setFacultySearch(""); }}>No Faculty</div>
                     {facultyUsers.filter((f) => !facultySearch || `${f.name} ${f.uid || ""}`.toLowerCase().includes(facultySearch.toLowerCase())).map((f) => (
                       <div key={f._id} onClick={() => { setNewJob({ ...newJob, allocatedFaculty: f._id }); setFacultySearch(f.name); setShowFacultyDropdown(false); }}
-                        className={`px-3 py-2 text-sm cursor-pointer border-b border-white/5 last:border-0 transition ${newJob.allocatedFaculty === f._id ? "bg-[#ff6b2b]/10 text-[#ff6b2b]" : "text-white hover:bg-white/5"}`}>
+                        className={`px-3 py-2 text-sm cursor-pointer border-b border-white/5 last:border-0 transition ${newJob.allocatedFaculty === f._id ? "bg-[#d4af37]/10 text-[#d4af37]" : "text-white hover:bg-white/5"}`}>
                         {f.name} <span className="text-white/40 text-xs ml-1">({f.uid || "N/A"})</span>
                       </div>
                     ))}
@@ -616,26 +647,26 @@ export default function LpuAdminDashboard() {
                 )}
               </div>
             </div>
-            <div className="bg-black/20 p-3 rounded-xl border border-white/10 flex items-center justify-between">
+            <div className={`${T.card} p-3 rounded-xl flex items-center justify-between`}>
               <div><div className="text-xs text-white/50">Faculty</div><div className="font-semibold text-white">{selectedFaculty?.name || "None"}</div></div>
               <div><div className="text-xs text-white/50">Students</div><div className="font-semibold text-white">{newJob.allocatedStudents.length}</div></div>
             </div>
           </div>
 
           {newJob.allocatedFaculty && lpuStudents.length > 0 && (
-            <div className="bg-black/20 p-4 rounded-xl border border-white/10">
+            <div className={`${T.card} p-4 rounded-xl`}>
               <div className="text-sm font-semibold text-white mb-3">Assign LPU Students</div>
               <div className="relative mb-3">
                 <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-xs" />
                 <input type="text" placeholder="Search students by name or UID…" value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#ff6b2b] transition" />
+                  className={`w-full pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 transition ${T.input} ${T.inputFocus}`} />
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <button type="button" onClick={() => {
                   const filtered = lpuStudents.filter((s) => !studentSearch || `${s.name} ${s.uid || ""}`.toLowerCase().includes(studentSearch.toLowerCase()));
                   const allSelected = filtered.every((s) => newJob.allocatedStudents.includes(s._id));
                   setNewJob((prev) => ({ ...prev, allocatedStudents: allSelected ? prev.allocatedStudents.filter((id) => !filtered.find((s) => s._id === id)) : [...new Set([...prev.allocatedStudents, ...filtered.map((s) => s._id)])] }));
-                }} className="text-xs text-[#ff6b2b] hover:underline">{lpuStudents.filter((s) => !studentSearch || `${s.name} ${s.uid || ""}`.toLowerCase().includes(studentSearch.toLowerCase())).every((s) => newJob.allocatedStudents.includes(s._id)) ? "Unselect All" : "Select All"}</button>
+                }} className="text-xs text-[#d4af37] hover:underline">{lpuStudents.filter((s) => !studentSearch || `${s.name} ${s.uid || ""}`.toLowerCase().includes(studentSearch.toLowerCase())).every((s) => newJob.allocatedStudents.includes(s._id)) ? "Unselect All" : "Select All"}</button>
                 <span className="text-xs text-white/30">({newJob.allocatedStudents.length} selected)</span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-40 overflow-auto">
@@ -653,7 +684,7 @@ export default function LpuAdminDashboard() {
             </div>
           )}
 
-          <button type="submit" className="w-full py-3 bg-[#d4af37] text-[#0d131f] rounded-xl font-semibold text-sm hover:brightness-110 transition">
+          <button type="submit" className="w-full py-3 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] text-[#0a0f1a] rounded-xl font-semibold text-sm hover:brightness-110 transition">
             Publish Job {newJob.allocatedStudents.length > 0 ? `(${newJob.allocatedStudents.length} Students)` : ""}
           </button>
         </form>
@@ -665,21 +696,35 @@ export default function LpuAdminDashboard() {
   // MAIN RENDER
   // ═══════════════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d131f] via-[#1a2a40] to-[#0d131f] relative overflow-hidden">
+    <div className={`min-h-screen login-neo relative overflow-hidden ${T.page}`} data-theme={theme}>
       <Toast toasts={toasts} remove={removeToast} />
       <ConfirmModal {...confirm} onCancel={() => setConfirm({ open: false })} />
 
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGwxMiAxMi0xMiAxMi0xMi0xMiAxMi0xMnpNMTggMzZsMTIgMTItMTIgMTItMTItMTIgMTItMTJ6IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIwLjAyIi8+PC9nPjwvc3ZnPg==')] opacity-20"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-[#d4af37]/[0.07] rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-[#d4af37]/[0.05] rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* Header */}
-      <header className="relative z-20 bg-white/5 backdrop-blur-xl border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0">
+      <header className={`relative z-20 backdrop-blur-2xl px-6 py-3 flex items-center justify-between sticky top-0 ${T.surface}`}>
         <div className="flex items-center gap-3">
-          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/10 p-0.5 bg-black/30" />
-          <span className="ml-2 text-xs font-medium text-[#ff6b2b] bg-[#ff6b2b]/10 px-2 py-0.5 rounded-full border border-[#ff6b2b]/30">LPU Admin</span>
+          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border border-white/[0.08] p-0.5 bg-black/30" />
+          <span className="ml-2 text-xs font-medium text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded-full border border-[#d4af37]/30">LPU Admin</span>
         </div>
-        <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
-          <FaSignOutAlt size={16} /> Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setTheme((c) => c === "dark" ? "light" : "dark")}
+            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+            style={{
+              background: theme === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
+              borderColor: theme === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
+              boxShadow: theme === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
+            }}
+            aria-label="Toggle theme">
+            {theme === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
+          </button>
+          <button onClick={handleLogout} className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors">
+            <FaSignOutAlt size={16} /> Sign out
+          </button>
+        </div>
       </header>
 
       {/* Main */}
@@ -690,12 +735,12 @@ export default function LpuAdminDashboard() {
         <div className="flex flex-wrap gap-1 mb-6 border-b border-white/10">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setActiveTab(key)}
-              className={`px-4 py-2.5 text-sm font-medium capitalize transition flex items-center gap-2 relative ${activeTab === key ? "text-[#ff6b2b]" : "text-white/50 hover:text-white/80"}`}>
+              className={`px-4 py-2.5 text-sm font-medium capitalize transition flex items-center gap-2 relative ${activeTab === key ? "text-[#d4af37]" : "text-white/50 hover:text-white/80"}`}>
               <Icon size={14} />{label}
               {tabCounts[key] !== undefined && (
-                <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === key ? "bg-[#ff6b2b]/20 text-[#ff6b2b]" : "bg-white/10 text-white/40"}`}>{tabCounts[key]}</span>
+                <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === key ? "bg-[#d4af37]/20 text-[#d4af37]" : "bg-white/10 text-white/40"}`}>{tabCounts[key]}</span>
               )}
-              {activeTab === key && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#ff6b2b]" />}
+              {activeTab === key && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#d4af37]" />}
             </button>
           ))}
         </div>
