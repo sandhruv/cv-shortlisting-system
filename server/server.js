@@ -36,6 +36,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:3000",
+  "https://jaspreetimpex.com",
+  "https://www.jaspreetimpex.com",
   "https://cv-shortlisting-system-2.onrender.com",
   "https://cv-shortlisting-system-3.onrender.com",
   "https://cv-shortlisting-system.onrender.com",
