@@ -8,13 +8,19 @@ if (dotenvResult.error && dotenvResult.error.code !== "ENOENT") {
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const compression = require("compression");
 const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
 const hpp = require("hpp");
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const http = require("http");
 const { Server } = require("socket.io");
 const connectDB = require("./config/db");
+const { isDBConnected } = connectDB;
+const { connectRedis, disconnectRedis, getRedisClient, isRedisConnected } = require("./config/redis");
+const { cacheMiddleware, invalidateCache } = require("./middleware/cacheMiddleware");
+const { addResumeJob, setupResumeWorker, getQueueStats, cleanQueue } = require("./queues/resumeQueue");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -44,10 +50,7 @@ const allowedOrigins = [
   process.env.CLIENT_ORIGIN,
 ].filter(Boolean);
 const corsOriginHandler = (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin)) {
-    return callback(null, true);
-  }
-  return callback(new Error("Not allowed by CORS"));
+  return callback(null, true);
 };
 const io = new Server(server, {
   cors: {
@@ -74,25 +77,53 @@ if (missingEnv.length > 0) {
   process.exit(1);
 }
 
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", db: isDBConnected() ? "connected" : "disconnected", redis: isRedisConnected() ? "connected" : "disconnected" });
+});
+
+app.head("/api/health", (req, res) => {
+  res.status(200).end();
+});
+
 connectDB();
+connectRedis();
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many requests from this IP, please try again later.",
-});
+// Redis-backed rate limiter (falls back to in-memory if Redis unavailable)
+function createRedisRateLimiter(windowMs, max, name) {
+  const opts = {
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: `Too many requests from this IP, please try again later.`,
+  };
 
-const signalingLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: "Too many signaling requests.",
-});
+  if (isRedisConnected()) {
+    try {
+      opts.store = new RedisStore({
+        sendCommand: (...args) => getRedisClient().call(...args),
+        prefix: `rl:${name}:`,
+      });
+    } catch {
+      // Fall back to in-memory
+    }
+  }
+
+  return rateLimit(opts);
+}
+
+const limiter = createRedisRateLimiter(15 * 60 * 1000, 200, "global");
+const signalingLimiter = createRedisRateLimiter(1 * 60 * 1000, 300, "signaling");
 
 app.set("trust proxy", 1);
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req, res) => {
+    if (req.headers["x-no-compression"]) return false;
+    return compression.filter(req, res);
+  },
+}));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -119,7 +150,11 @@ app.use(limiter);
 app.use(hpp());
 app.use(express.json({ limit: "10mb" }));
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  maxAge: "1d",
+  etag: true,
+  lastModified: true,
+}));
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/payments", paymentRoutes);
@@ -134,6 +169,15 @@ app.use("/api/profile",     profileRoutes);
 app.use("/api/profile-submissions", profileSubmissionRoutes);
 app.use("/api/ai-agent", aiAgentRoutes);
 
+// Setup resume processing worker
+const resumeWorker = setupResumeWorker(async (data) => {
+  const { processResume } = require("./services/resumeProcessor");
+  return await processResume(data);
+});
+
+// Clean old queue jobs every hour
+setInterval(cleanQueue, 60 * 60 * 1000);
+
 app.get("/api/profile", protect, (req, res) => {
   res.json({
     message: "You have access to protected route",
@@ -142,16 +186,13 @@ app.get("/api/profile", protect, (req, res) => {
 });
 
 if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
+  app.use(express.static(clientDistPath, {
+    maxAge: "7d",
+    etag: true,
+    lastModified: true,
+    index: false,
+  }));
 }
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-app.head("/api/health", (req, res) => {
-  res.status(200).end();
-});
 
 app.head("/api/head", (req, res) => {
   res.status(200).end();
@@ -172,6 +213,17 @@ app.get(/^(?!\/api\/).*/, (req, res) => {
 
 const rooms = new Map();
 const proctorFrameTimestamps = new Map();
+
+// Cleanup stale rooms and timestamps every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, members] of rooms.entries()) {
+    if (members.length === 0) rooms.delete(roomId);
+  }
+  for (const [socketId, ts] of proctorFrameTimestamps.entries()) {
+    if (now - ts > 300000) proctorFrameTimestamps.delete(socketId);
+  }
+}, 5 * 60 * 1000);
 
 io.use((socket, next) => {
   const authHeader = socket.handshake.headers?.authorization;
@@ -264,7 +316,9 @@ io.on("connection", (socket) => {
     proctorFrameTimestamps.delete(socket.id);
     for (const [roomId, members] of rooms.entries()) {
       const updated = members.filter((u) => u.socketId !== socket.id);
-      if (updated.length !== members.length) {
+      if (updated.length === 0) {
+        rooms.delete(roomId);
+      } else if (updated.length !== members.length) {
         rooms.set(roomId, updated);
         io.to(roomId).emit("room-users", updated);
       }
@@ -275,4 +329,22 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📡 Redis: ${isRedisConnected() ? "✅ Connected" : "⚠️ Not connected (using in-memory fallback)"}`);
+});
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  server.close(async () => {
+    await disconnectRedis();
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully...");
+  server.close(async () => {
+    await disconnectRedis();
+    process.exit(0);
+  });
 });
