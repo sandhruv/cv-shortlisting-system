@@ -109,7 +109,7 @@ exports.scheduleInterview = async (req, res) => {
     }
     const application = await Application.findById(applicationId).populate("job");
     if (!application) return res.status(404).json({ message: "Application not found" });
-    const job = await Job.findById(application.job._id);
+    const job = application.job;
     if (!job) return res.status(404).json({ message: "Job not found." });
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to schedule for this job." });
@@ -153,7 +153,7 @@ exports.startInterviewCall = async (req, res) => {
     const { id } = req.params;
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
-    const job = await Job.findById(interview.job._id);
+    const job = interview.job;
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to start the call." });
     }
@@ -171,7 +171,7 @@ exports.stopInterviewCall = async (req, res) => {
     const { id } = req.params;
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
-    const job = await Job.findById(interview.job._id);
+    const job = interview.job;
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to stop the call." });
     }
@@ -190,13 +190,29 @@ exports.getMyInterviews = async (req, res) => {
     const applications = await Application.find({ student: req.user.id }).select("_id");
     const appIds = applications.map(a => a._id);
     if (appIds.length === 0) return res.json([]);
-    const interviews = await Interview.find({
+
+    const baseQuery = {
       application: { $in: appIds },
       status: { $in: ["scheduled", "rescheduled", "completed"] }
-    })
+    };
+
+    if (!req.query.page) {
+      const interviews = await Interview.find(baseQuery)
+        .populate("job", "title location")
+        .populate("application", "status")
+        .sort({ scheduledAt: 1 });
+      return res.json(interviews);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const interviews = await Interview.find(baseQuery)
       .populate("job", "title location")
       .populate("application", "status")
-      .sort({ scheduledAt: 1 });
+      .sort({ scheduledAt: 1 })
+      .skip(skip)
+      .limit(limit);
     res.json(interviews);
   } catch (err) {
     console.error("getMyInterviews error:", err);
@@ -225,6 +241,22 @@ exports.getJobInterviews = async (req, res) => {
       query.job = { $in: jobs.map(j => j._id) };
     }
 
+    if (!req.query.page) {
+      const interviews = await Interview.find(query)
+        .populate({
+          path: "application",
+          select: "status student",
+          populate: { path: "student", select: "name email" },
+        })
+        .populate("job", "title")
+        .populate("createdBy", "name")
+        .sort({ scheduledAt: -1 });
+      return res.json(interviews);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
     const interviews = await Interview.find(query)
       .populate({
         path: "application",
@@ -233,7 +265,9 @@ exports.getJobInterviews = async (req, res) => {
       })
       .populate("job", "title")
       .populate("createdBy", "name")
-      .sort({ scheduledAt: -1 });
+      .sort({ scheduledAt: -1 })
+      .skip(skip)
+      .limit(limit);
     res.json(interviews);
   } catch (err) {
     console.error("getJobInterviews error:", err);
@@ -252,7 +286,7 @@ exports.updateInterviewStatus = async (req, res) => {
     }
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
-    const job = await Job.findById(interview.job._id);
+    const job = interview.job;
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to update this interview." });
     }
@@ -278,7 +312,7 @@ exports.addFeedback = async (req, res) => {
     }
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
-    const job = await Job.findById(interview.job._id);
+    const job = interview.job;
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to add feedback." });
     }
@@ -780,7 +814,7 @@ exports.analyzeAudio = async (req, res) => {
     const interview = await Interview.findById(id).populate("job");
     if (!interview) return res.status(404).json({ message: "Interview not found." });
     
-    const job = await Job.findById(interview.job._id);
+    const job = interview.job;
     if (!canManageInterview(req, job)) {
       return res.status(403).json({ message: "Not authorized to add analysis." });
     }

@@ -353,7 +353,10 @@ export default function CodingTestView({ testId, onClose, onSubmitted }) {
     let frameIv = null;
 
     const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-    socketRef.current = io(isDev ? "http://localhost:5000" : window.location.origin, {
+    const socketOrigin = isDev ? "http://localhost:5000" : window.location.origin;
+    const isTunnel = socketOrigin.includes("trycloudflare.com");
+    socketRef.current = io(socketOrigin, {
+      transports: isTunnel ? ["polling"] : ["polling", "websocket"],
       auth: { token: localStorage.getItem("token") }
     });
 

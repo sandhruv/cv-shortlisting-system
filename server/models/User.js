@@ -38,6 +38,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    faceDescriptor: {
+      type: [Number],
+      default: null,
+    },
+    faceRegistered: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

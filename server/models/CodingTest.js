@@ -74,4 +74,9 @@ const codingTestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+codingTestSchema.index({ student: 1 });
+codingTestSchema.index({ createdBy: 1 });
+codingTestSchema.index({ job: 1 });
+codingTestSchema.index({ application: 1 });
+
 module.exports = mongoose.model("CodingTest", codingTestSchema);

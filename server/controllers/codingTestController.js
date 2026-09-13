@@ -343,16 +343,14 @@ exports.uploadSnapshot = async (req, res) => {
     }
 
     const uploadsDir = path.join(__dirname, "../uploads/proctoring", req.params.id);
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    await fs.promises.mkdir(uploadsDir, { recursive: true });
 
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const buffer = Buffer.from(base64Data, "base64");
     const filename = `snapshot_${Date.now()}.jpg`;
     const filePath = path.join(uploadsDir, filename);
 
-    fs.writeFileSync(filePath, buffer);
+    await fs.promises.writeFile(filePath, buffer);
 
     const relativePath = `/uploads/proctoring/${req.params.id}/${filename}`;
     test.proctorSnapshots.push({

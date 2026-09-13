@@ -1,9 +1,7 @@
 ﻿import axios from "axios";
 
 const isDevelopment = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const baseURL = isDevelopment
-  ? "http://localhost:5000/api"
-  : `${window.location.protocol}//${window.location.hostname}/api`;
+const baseURL = isDevelopment ? "http://localhost:5000/api" : "/api";
 
 const api = axios.create({
   baseURL,

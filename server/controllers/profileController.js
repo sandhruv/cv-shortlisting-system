@@ -11,13 +11,27 @@ const { extractProfile } = require("../services/groqProfileExtractor");
 const { validateLinkedInUrl, validateProfileExtraction, repairProfileData } = require("../validators/profileSchema");
 const { analyzeProfile } = require("../services/profileAnalyzer");
 const { extractTextFromPDF, parseLinkedInPDF } = require("../services/pdfExtractor");
+const { cacheGet, cacheSet, cacheDel, cacheDelPattern, isRedisConnected } = require("../config/redis");
 
 exports.getMyProfile = async (req, res) => {
   try {
+    // Check cache
+    const cacheKey = `profile:me:${req.user.id}`;
+    if (isRedisConnected()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     let profile = await Profile.findOne({ user: req.user.id }).populate("user", "name email uid role");
     if (!profile) {
       profile = await Profile.create({ user: req.user.id });
     }
+
+    // Cache for 2 minutes
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, profile, 120);
+    }
+
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -26,8 +40,19 @@ exports.getMyProfile = async (req, res) => {
 
 exports.getProfileById = async (req, res) => {
   try {
+    const cacheKey = `profile:user:${req.params.userId}`;
+    if (isRedisConnected()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     const profile = await Profile.findOne({ user: req.params.userId }).populate("user", "name email uid role");
     if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, profile, 120);
+    }
+
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -52,6 +77,13 @@ exports.updateProfile = async (req, res) => {
       });
     }
     const profile = await Profile.findOneAndUpdate({ user: req.user.id }, updates, { new: true, upsert: true, runValidators: true }).populate("user", "name email uid role");
+
+    // Invalidate profile cache
+    if (isRedisConnected()) {
+      await cacheDel(`profile:me:${req.user.id}`);
+      await cacheDel(`profile:user:${req.user.id}`);
+    }
+
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -63,6 +95,12 @@ exports.uploadPhoto = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const photoUrl = `/uploads/profiles/${req.file.filename}`;
     const profile = await Profile.findOneAndUpdate({ user: req.user.id }, { photo: photoUrl }, { new: true, upsert: true }).populate("user", "name email uid role");
+
+    if (isRedisConnected()) {
+      await cacheDel(`profile:me:${req.user.id}`);
+      await cacheDel(`profile:user:${req.user.id}`);
+    }
+
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -74,6 +112,12 @@ exports.uploadCoverPhoto = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const coverUrl = `/uploads/profiles/${req.file.filename}`;
     const profile = await Profile.findOneAndUpdate({ user: req.user.id }, { coverPhoto: coverUrl }, { new: true, upsert: true }).populate("user", "name email uid role");
+
+    if (isRedisConnected()) {
+      await cacheDel(`profile:me:${req.user.id}`);
+      await cacheDel(`profile:user:${req.user.id}`);
+    }
+
     res.json(profile);
   } catch (err) {
     res.status(500).json({ message: err.message });

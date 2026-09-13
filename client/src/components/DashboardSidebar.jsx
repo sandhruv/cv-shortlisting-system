@@ -16,77 +16,59 @@ function DashboardSidebar({ open, onClose, collapsed, onToggleCollapse, items, a
         style={{ backgroundColor: "rgba(0,0,0,0.5)" }} onClick={onClose} />
 
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 z-40 h-screen border-r transition-all duration-300 ease-in-out flex flex-col
+      <aside className={`fixed left-0 top-0 z-40 h-screen flex flex-col transition-all duration-300 ease-in-out
         ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        ${isCollapsed ? "w-[72px]" : "w-64"}`}
-        style={{ backgroundColor: theme.background || "#0f1219", borderColor: theme.border || "rgba(255,255,255,0.06)" }}>
+        ${isCollapsed ? "w-[72px]" : "w-[260px]"}`}
+        style={{ background: "#0f1729" }}>
 
         {/* Logo area */}
-        <div className={`flex items-center border-b shrink-0 ${isCollapsed ? "justify-center px-2 py-4" : "justify-between px-5 py-5"}`}
-          style={{ borderColor: theme.border || "rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center justify-between px-5 py-5 border-b shrink-0"
+          style={{ borderColor: "rgba(255,255,255,0.1)" }}>
           {!isCollapsed && (
             <div className="flex items-center gap-3 min-w-0">
-              <div className={`p-2 rounded-2xl border ${theme.border?.includes("255") ? "border-white/10" : "border-[#c5a059]/40"}`}
-                style={{ backgroundColor: theme.card || "rgba(255,255,255,0.03)" }}>
-                <img src="/vettora-logo.png" alt="Vettora" className="h-7 object-contain rounded-lg" />
+              <div className="w-[45px] h-[45px] rounded-xl flex items-center justify-center text-[1.2rem] font-bold text-white shrink-0"
+                style={{ backgroundColor: "#0d6e6e" }}>
+                VI
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.15em] truncate"
-                  style={{ color: theme.muted || "rgba(255,255,255,0.45)" }}>{displayRole === "Student" ? "Student Panel" : displayRole === "HR" ? "HR Panel" : "Admin Panel"}</div>
-                <div className="text-sm font-bold truncate" style={{ color: theme.text || "#fff" }}>Workspace</div>
-              </div>
+              <span className="text-[1.1rem] font-bold text-white font-['Montserrat',sans-serif]">Admin Panel</span>
             </div>
           )}
-          <button onClick={onToggleCollapse}
-            className="rounded-xl p-1.5 transition-all hover:opacity-80 shrink-0 hidden lg:flex"
-            style={{ backgroundColor: theme.card || "rgba(255,255,255,0.03)", color: theme.muted || "rgba(255,255,255,0.45)" }}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
-            {isCollapsed ? <FaChevronRight size={11} /> : <FaChevronLeft size={11} />}
-          </button>
+          {isCollapsed && (
+            <div className="w-[45px] h-[45px] rounded-xl flex items-center justify-center text-[1.2rem] font-bold text-white mx-auto"
+              style={{ backgroundColor: "#0d6e6e" }}>
+              VI
+            </div>
+          )}
           {!isCollapsed && (
             <button onClick={onClose}
-              className="rounded-xl p-1.5 transition-all hover:opacity-80 lg:hidden"
-              style={{ backgroundColor: theme.card || "rgba(255,255,255,0.03)", color: theme.muted || "rgba(255,255,255,0.45)" }}
+              className="text-white text-[1.3rem] bg-none border-none cursor-pointer lg:hidden"
               aria-label="Close sidebar">
-              <FaChevronLeft size={11} />
+              ×
             </button>
           )}
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-5 px-0">
           {items.map((item) => {
             const Icon = item.icon;
             const selected = activeKey === item.key;
             return (
               <button key={item.key} onClick={() => onSelect(item.key)} title={isCollapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 rounded-2xl transition-all duration-200 group relative
-                  ${isCollapsed ? "justify-center px-2 py-3" : "px-3 py-2.5"}
-                  ${selected ? "" : "hover:opacity-90"}`}
+                className={`w-full flex items-center gap-3 border-none cursor-pointer transition-all duration-200 font-['Montserrat',sans-serif]
+                  ${isCollapsed ? "justify-center px-2 py-3.5" : "px-5 py-3.5"}
+                  ${selected ? "" : "hover:bg-white/5"}`}
                 style={{
-                  backgroundColor: selected ? (theme.activeBackground || "rgba(212,175,55,0.08)") : "transparent",
-                  color: selected ? (theme.accent || "#d4af37") : (theme.muted || "rgba(255,255,255,0.45)"),
+                  background: selected ? "#0d6e6e" : "transparent",
+                  color: selected ? "#fff" : "rgba(255,255,255,0.7)",
+                  fontSize: "0.95rem",
+                  textAlign: "left",
                 }}>
-                {selected && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-                    style={{ backgroundColor: theme.accent || "#d4af37" }} />
-                )}
-                <Icon size={16} className="shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="font-medium flex-1 text-left text-[13px]">{item.label}</span>
-                    {item.count !== undefined && item.count > 0 && (
-                      <span className="min-w-[20px] rounded-lg px-1.5 py-0.5 text-center text-[10px] font-bold"
-                        style={{
-                          backgroundColor: selected ? `${theme.accent || "#d4af37"}20` : "rgba(255,255,255,0.04)",
-                          color: selected ? (theme.accent || "#d4af37") : (theme.muted || "rgba(255,255,255,0.35)"),
-                        }}>{item.count}</span>
-                    )}
-                  </>
-                )}
+                <Icon size={18} className="shrink-0" />
+                {!isCollapsed && <span>{item.label}</span>}
                 {isCollapsed && (
-                  <div className="absolute left-full ml-2 px-2.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none"
-                    style={{ backgroundColor: theme.card || "rgba(255,255,255,0.06)", color: theme.text || "#fff", border: `1px solid ${theme.border || "rgba(255,255,255,0.08)"}`, boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
+                  <div className="absolute left-full ml-2 px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none"
+                    style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "#fff", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 4px 12px rgba(0,0,0,0.3)" }}>
                     {item.label}
                   </div>
                 )}
@@ -95,37 +77,47 @@ function DashboardSidebar({ open, onClose, collapsed, onToggleCollapse, items, a
           })}
         </nav>
 
-        {/* User section */}
-        <div className={`border-t shrink-0 ${isCollapsed ? "px-2 py-3" : "px-4 py-4"}`}
-          style={{ borderColor: theme.border || "rgba(255,255,255,0.06)" }}>
+        {/* User section at bottom */}
+        <div className="px-5 py-4 border-t shrink-0"
+          style={{ borderColor: "rgba(255,255,255,0.1)" }}>
           {!isCollapsed ? (
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ backgroundColor: `${theme.accent || "#d4af37"}15`, color: theme.accent || "#d4af37" }}>
-                {displayName.charAt(0).toUpperCase()}
+            <>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[1rem] font-bold text-white shrink-0"
+                  style={{ backgroundColor: "#0d6e6e" }}>
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[0.9rem] font-semibold text-white truncate">{displayName}</div>
+                  <div className="text-[0.75rem] text-white/60 capitalize">{displayRole}</div>
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-bold truncate" style={{ color: theme.text || "#fff" }}>{displayName}</div>
-                <div className="text-[11px] truncate" style={{ color: theme.muted || "rgba(255,255,255,0.35)" }}>{displayRole}</div>
-              </div>
-            </div>
+              {onLogout && (
+                <button type="button" onClick={onLogout}
+                  className="w-full flex items-center gap-2 px-3 py-3 rounded-lg text-[0.9rem] text-white/80 cursor-pointer transition-all border-none hover:bg-red-500/20 hover:text-red-400"
+                  style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <FaSignOutAlt size={14} />
+                  <span>Logout</span>
+                </button>
+              )}
+            </>
           ) : (
-            <div className="flex justify-center mb-3">
-              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                title={displayName} style={{ backgroundColor: `${theme.accent || "#d4af37"}15`, color: theme.accent || "#d4af37" }}>
-                {displayName.charAt(0).toUpperCase()}
+            <>
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-[1rem] font-bold text-white"
+                  title={displayName} style={{ backgroundColor: "#0d6e6e" }}>
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
               </div>
-            </div>
-          )}
-          {onLogout && (
-            <button type="button" onClick={onLogout}
-              className={`w-full flex items-center gap-3 rounded-2xl border text-left text-[13px] font-bold transition-all duration-200 hover:opacity-80
-                ${isCollapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"}`}
-              style={{ borderColor: "rgba(139,26,26,0.2)", color: theme.danger || "#e57373", backgroundColor: theme.dangerBackground || "rgba(139,26,26,0.06)" }}
-              title={isCollapsed ? "Sign out" : undefined}>
-              <FaSignOutAlt size={14} className="shrink-0" />
-              {!isCollapsed && <span>Sign out</span>}
-            </button>
+              {onLogout && (
+                <button type="button" onClick={onLogout}
+                  className="w-full flex items-center justify-center px-2 py-2.5 rounded-lg text-white/80 cursor-pointer transition-all border-none hover:bg-red-500/20 hover:text-red-400"
+                  style={{ background: "rgba(255,255,255,0.05)" }}
+                  title="Sign out">
+                  <FaSignOutAlt size={14} />
+                </button>
+              )}
+            </>
           )}
         </div>
       </aside>

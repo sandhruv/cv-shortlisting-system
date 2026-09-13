@@ -12,4 +12,10 @@ const applicationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+applicationSchema.index({ job: 1 });
+applicationSchema.index({ student: 1 });
+applicationSchema.index({ job: 1, student: 1 });
+applicationSchema.index({ status: 1 });
+
 module.exports = mongoose.model("Application", applicationSchema);

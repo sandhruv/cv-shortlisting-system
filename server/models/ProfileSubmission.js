@@ -28,4 +28,8 @@ const profileSubmissionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+profileSubmissionSchema.index({ student: 1, hr: 1 });
+profileSubmissionSchema.index({ hr: 1, status: 1 });
+profileSubmissionSchema.index({ student: 1 });
+
 module.exports = mongoose.model("ProfileSubmission", profileSubmissionSchema);

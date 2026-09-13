@@ -2,11 +2,19 @@
 const Application = require("../models/Application");
 const User = require("../models/User");
 const Resume = require("../models/Resume");
+const { cacheGet, cacheSet, cacheDelPattern, isRedisConnected } = require("../config/redis");
 
 exports.getHRStats = async (req, res) => {
   try {
     if (!["HR", "Admin", "LPU Admin", "LPU Faculty"].includes(req.user.role)) {
       return res.status(403).json({ message: "Access denied." });
+    }
+
+    // Check cache first
+    const cacheKey = `analytics:hr:${req.user.id}`;
+    if (isRedisConnected()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return res.json(cached);
     }
 
     let jobQuery = {};
@@ -20,36 +28,42 @@ exports.getHRStats = async (req, res) => {
 
     const totalJobs = jobs.length;
 
-    const applications = await Application.find({ job: { $in: jobIds } });
-    const totalApplications = applications.length;
-    const shortlisted = applications.filter(a => a.status === "shortlisted").length;
-    const rejected = applications.filter(a => a.status === "rejected").length;
-    const pending = applications.filter(a => a.status === "pending").length;
+    const [statusCounts, appsPerJob, recentApps] = await Promise.all([
+      Application.aggregate([
+        { $match: { job: { $in: jobIds } } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      Application.aggregate([
+        { $match: { job: { $in: jobIds } } },
+        { $group: { _id: "$job", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+      ]),
+      Application.find({ job: { $in: jobIds } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("student", "name")
+        .populate("job", "title"),
+    ]);
 
-    const appsPerJob = jobIds.map(jobId => {
-      const count = applications.filter(a => a.job.toString() === jobId.toString()).length;
-      const jobTitle = jobs.find(j => j._id.toString() === jobId.toString())?.title || "Unknown";
-      return { jobId, title: jobTitle, applications: count };
-    }).sort((a, b) => b.applications - a.applications);
+    const totalApplications = statusCounts.reduce((sum, s) => sum + s.count, 0);
+    const shortlisted = statusCounts.find(s => s._id === "shortlisted")?.count || 0;
+    const rejected = statusCounts.find(s => s._id === "rejected")?.count || 0;
+    const pending = statusCounts.find(s => s._id === "pending")?.count || 0;
 
-    const recentApps = await Application.find({ job: { $in: jobIds } })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("student", "name")
-      .populate("job", "title");
+    const titleMap = {};
+    jobs.forEach(j => { titleMap[j._id.toString()] = j.title; });
+    const appsPerJobResult = appsPerJob.map(a => ({
+      title: titleMap[a._id.toString()] || "Unknown",
+      applications: a.count,
+    }));
 
-    const shortlistRate = totalApplications > 0 ? (shortlisted / totalApplications) * 100 : 0;
+    // Cache for 2 minutes
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, result, 120);
+    }
 
-    res.json({
-      totalJobs,
-      totalApplications,
-      shortlisted,
-      rejected,
-      pending,
-      shortlistRate: Math.round(shortlistRate * 10) / 10,
-      appsPerJob: appsPerJob.slice(0, 10),
-      recentApps,
-    });
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -57,6 +71,13 @@ exports.getHRStats = async (req, res) => {
 
 exports.getAdminStats = async (req, res) => {
   try {
+    // Check cache first
+    const cacheKey = "analytics:admin";
+    if (isRedisConnected()) {
+      const cached = await cacheGet(cacheKey);
+      if (cached) return res.json(cached);
+    }
+
     const totalUsers = await User.countDocuments();
     const totalJobs = await Job.countDocuments();
     const totalApplications = await Application.countDocuments();
@@ -67,13 +88,20 @@ exports.getAdminStats = async (req, res) => {
     const pending = await Application.countDocuments({ status: "pending" });
 
     const jobIds = await Job.find().select("_id title");
-    const appsPerJob = await Promise.all(jobIds.map(async (job) => {
-      const count = await Application.countDocuments({ job: job._id });
-      return { title: job.title, applications: count };
+    const appsPerJob = await Application.aggregate([
+      { $match: { job: { $in: jobIds.map(j => j._id) } } },
+      { $group: { _id: "$job", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+    ]);
+    const titleMap = {};
+    jobIds.forEach(j => { titleMap[j._id.toString()] = j.title; });
+    const appsPerJobResult = appsPerJob.map(a => ({
+      title: titleMap[a._id.toString()] || "Unknown",
+      applications: a.count,
     }));
-    appsPerJob.sort((a, b) => b.applications - a.applications);
 
-    res.json({
+    const result = {
       totalUsers,
       totalJobs,
       totalApplications,
@@ -81,9 +109,17 @@ exports.getAdminStats = async (req, res) => {
       shortlisted,
       rejected,
       pending,
-      appsPerJob: appsPerJob.slice(0, 10),
-    });
+      appsPerJob: appsPerJobResult,
+    };
+
+    // Cache for 3 minutes
+    if (isRedisConnected()) {
+      await cacheSet(cacheKey, result, 180);
+    }
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_URL || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000" : window.location.origin);
 
 const C = {
   bg:      "#0b0b12",
@@ -38,8 +38,10 @@ export default function ProctoringViewer({ test, onClose }) {
 
     const isDev = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
     const socketUrl = isDev ? "http://localhost:5000" : window.location.origin;
+    const isTunnel = socketUrl.includes("trycloudflare.com");
 
     const socket = io(socketUrl, {
+      transports: isTunnel ? ["polling"] : ["polling", "websocket"],
       auth: { token: localStorage.getItem("token") },
     });
     socketRef.current = socket;

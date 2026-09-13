@@ -52,4 +52,9 @@ const interviewSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
+interviewSchema.index({ job: 1 });
+interviewSchema.index({ application: 1 });
+interviewSchema.index({ createdBy: 1 });
+interviewSchema.index({ status: 1 });
+
 module.exports = mongoose.model("Interview", interviewSchema);

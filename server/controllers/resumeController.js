@@ -18,9 +18,8 @@ const extractTextFromFile = async (filePath, fileName) => {
   let text = "";
 
   if (ext === ".pdf") {
-    const dataBuffer = fs.readFileSync(filePath);
+    const dataBuffer = await fs.promises.readFile(filePath);
     try {
-      // ✅ Use .default if it's an ES module
       const parser = pdfParse.default || pdfParse;
       const pdfData = await parser(dataBuffer);
       text = pdfData.text;
@@ -28,7 +27,7 @@ const extractTextFromFile = async (filePath, fileName) => {
       throw new Error("PDF parsing failed: " + err.message);
     }
   } else if (ext === ".doc" || ext === ".docx") {
-    text = fs.readFileSync(filePath, "utf8");
+    text = await fs.promises.readFile(filePath, "utf8");
   } else {
     throw new Error("Unsupported file type. Only PDF, DOC, DOCX allowed.");
   }
@@ -110,7 +109,7 @@ exports.uploadCV = async (req, res) => {
     try {
       extractedText = await extractTextFromFile(filePath, fileName);
     } catch (err) {
-      fs.unlinkSync(filePath);
+      await fs.promises.unlink(filePath).catch(() => {});
       return res.status(400).json({ message: "Could not extract text: " + err.message });
     }
 
@@ -118,7 +117,7 @@ exports.uploadCV = async (req, res) => {
     try {
       parsedData = await analyzeWithGroq(extractedText);
     } catch (err) {
-      fs.unlinkSync(filePath);
+      await fs.promises.unlink(filePath).catch(() => {});
       return res.status(500).json({ message: "AI analysis failed: " + err.message });
     }
 
@@ -130,7 +129,7 @@ exports.uploadCV = async (req, res) => {
       status: "processed",
     });
 
-    fs.unlinkSync(filePath);
+    await fs.promises.unlink(filePath).catch(() => {});
     await User.findByIdAndUpdate(studentId, { $set: { resume: resume._id } });
 
     res.status(201).json({
@@ -139,8 +138,8 @@ exports.uploadCV = async (req, res) => {
     });
 
   } catch (err) {
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    if (req.file) {
+      await fs.promises.unlink(req.file.path).catch(() => {});
     }
     res.status(500).json({ message: err.message });
   }

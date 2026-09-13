@@ -569,8 +569,9 @@ const VideoCall = ({ roomId, user, onClose }) => {
     getAvailableDevices();
 
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const isTunnel = SOCKET_SERVER_URL.includes("trycloudflare.com");
     const socket = io(SOCKET_SERVER_URL, {
-      transports: ["websocket", "polling"],
+      transports: isTunnel ? ["polling"] : ["polling", "websocket"],
       auth: {
         token: token || "",
         role: user?.role || "Student",
@@ -613,26 +614,6 @@ const VideoCall = ({ roomId, user, onClose }) => {
         }
       };
 
-      pc.ontrack = (event) => {
-        const incomingStream = event.streams?.[0] || (event.track ? new MediaStream([event.track]) : null);
-        if (incomingStream) {
-          attachRemoteStream(incomingStream);
-          setStatus("Connected");
-          setConnectionReady(true);
-          setIsConnecting(false);
-
-          // Connect remote stream to AI audio destination if available
-          if (aiAudioContextRef.current && aiAudioDestRef.current) {
-            try {
-              const remoteSource = aiAudioContextRef.current.createMediaStreamSource(incomingStream);
-              remoteSource.connect(aiAudioDestRef.current);
-            } catch (err) {
-              console.error("Failed to connect remote audio to AI recorder:", err);
-            }
-          }
-        }
-      };
-
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === "connected") {
           setStatus("Connected");
@@ -654,12 +635,12 @@ const VideoCall = ({ roomId, user, onClose }) => {
           console.warn("ICE failed, attempting ICE restart...");
           pc.restartIce();
           pc.createOffer({ iceRestart: true })
-            .then((offer) => pc.setLocalDescription(offer))
-            .then(() => {
+            .then((offer) => {
+              pc.setLocalDescription(offer);
               socket.emit("signal", {
                 roomId,
                 to: remoteSocketId,
-                signal: pc.localDescription,
+                signal: offer,
               });
             })
             .catch((err) => {
@@ -668,17 +649,17 @@ const VideoCall = ({ roomId, user, onClose }) => {
             });
         }
         if (pc.iceConnectionState === "disconnected") {
-          console.warn("ICE disconnected, attempting restart...");
+          console.warn("ICE disconnected, attempting restart in 3s...");
           setTimeout(() => {
-            if (pc.iceConnectionState === "disconnected") {
+            if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
               pc.restartIce();
               pc.createOffer({ iceRestart: true })
-                .then((offer) => pc.setLocalDescription(offer))
-                .then(() => {
+                .then((offer) => {
+                  pc.setLocalDescription(offer);
                   socket.emit("signal", {
                     roomId,
                     to: remoteSocketId,
-                    signal: pc.localDescription,
+                    signal: offer,
                   });
                 })
                 .catch(() => {});
@@ -687,8 +668,23 @@ const VideoCall = ({ roomId, user, onClose }) => {
         }
       };
 
-      pc.onaddstream = (event) => {
-        attachRemoteStream(event.stream);
+      pc.ontrack = (event) => {
+        const incomingStream = event.streams?.[0] || (event.track ? new MediaStream([event.track]) : null);
+        if (incomingStream) {
+          attachRemoteStream(incomingStream);
+          setStatus("Connected");
+          setConnectionReady(true);
+          setIsConnecting(false);
+
+          if (aiAudioContextRef.current && aiAudioDestRef.current) {
+            try {
+              const remoteSource = aiAudioContextRef.current.createMediaStreamSource(incomingStream);
+              remoteSource.connect(aiAudioDestRef.current);
+            } catch (err) {
+              console.error("Failed to connect remote audio to AI recorder:", err);
+            }
+          }
+        }
       };
 
       peersRef.current[remoteSocketId] = pc;

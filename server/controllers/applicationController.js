@@ -28,10 +28,27 @@ exports.getApplicants = async (req, res) => {
       ? { student: { $in: job.allocatedStudents } }
       : {};
 
-    const applications = await Application.find({ job: jobId, ...studentFilter })
-      .populate("student", "name email uid")
-      .populate("job", "title allocatedStudents allocatedFaculty");
-    res.json(applications);
+    const baseQuery = { job: jobId, ...studentFilter };
+
+    if (!req.query.page) {
+      const applications = await Application.find(baseQuery)
+        .populate("student", "name email uid")
+        .populate("job", "title allocatedStudents allocatedFaculty");
+      return res.json(applications);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const [applications, total] = await Promise.all([
+      Application.find(baseQuery)
+        .populate("student", "name email uid")
+        .populate("job", "title allocatedStudents allocatedFaculty")
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(baseQuery),
+    ]);
+    res.json({ data: applications, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -120,10 +137,28 @@ exports.getMyApplications = async (req, res) => {
     if (!(["Student", "LPU Student"].includes(req.user.role))) {
       return res.status(403).json({ message: "Only students can access" });
     }
-    const applications = await Application.find({ student: req.user.id })
-      .populate("job", "title description location")
-      .sort({ createdAt: -1 });
-    res.json(applications);
+
+    const baseQuery = { student: req.user.id };
+
+    if (!req.query.page) {
+      const applications = await Application.find(baseQuery)
+        .populate("job", "title description location")
+        .sort({ createdAt: -1 });
+      return res.json(applications);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const [applications, total] = await Promise.all([
+      Application.find(baseQuery)
+        .populate("job", "title description location")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Application.countDocuments(baseQuery),
+    ]);
+    res.json({ data: applications, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

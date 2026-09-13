@@ -21,6 +21,7 @@ import {
   FaSun,
   FaMoon,
   FaBars,
+  FaBell,
 } from "react-icons/fa";
 import DashboardSidebar from "../components/DashboardSidebar";
 import {
@@ -43,6 +44,118 @@ import CompilerEmbed from "../components/CompilerEmbed";
 import ProctoringViewer from "../components/ProctoringViewer";
 import Toast, { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME PALETTES (JaspreetImpex: teal + navy + amber)
+═══════════════════════════════════════════════════════════════ */
+const T = {
+  dark: {
+    page: "bg-[#0a0f1e] text-slate-100",
+    card: "bg-[#0f1729]/85 border-white/15",
+    cardText: "text-white",
+    cardSub: "text-slate-400",
+    input: "bg-[#0d1225] border-slate-700/80 text-white placeholder:text-slate-500 focus:border-[#0d6e6e]",
+    label: "text-slate-300",
+    icon: "text-slate-400",
+    divider: "border-slate-800",
+    footer: "text-slate-500",
+    badge: "text-[#0d6e6e]",
+    featureCard: "bg-white/[0.03] border-white/10",
+    featureTitle: "text-slate-200",
+    featureDesc: "text-slate-400",
+    link: "text-[#0d6e6e]",
+    btnGold: "from-[#0d6e6e] via-[#0f7d7d] to-[#095454] text-white",
+    btnGoldDisabled: "bg-[#0d6e6e]/30 text-slate-300",
+    tableHead: "bg-white/[0.04]",
+    tableRow: "hover:bg-white/[0.03]",
+    tableBorder: "border-white/[0.06]",
+    tableBorderLight: "border-white/[0.04]",
+    hoverLight: "hover:bg-white/5",
+    hoverTextStrong: "hover:text-white",
+    surface: "bg-[#0f1729]/85 border-white/[0.08]",
+    surfaceHover: "hover:border-[#0d6e6e]/20",
+    textMuted: "text-white/40",
+    textMutedLight: "text-white/50",
+    textMutedDark: "text-white/30",
+    textBright: "text-white/80",
+    accentBg: "bg-[#0d6e6e]/10",
+    accentText: "text-[#0d6e6e]",
+    accentBorder: "border-[#0d6e6e]/30",
+    dangerBg: "bg-red-500/10",
+    dangerText: "text-red-400",
+    dangerHover: "hover:bg-red-500/20",
+    successBg: "bg-emerald-500/10",
+    successText: "text-emerald-400",
+    warningBg: "bg-amber-500/10",
+    warningText: "text-amber-400",
+    infoBg: "bg-blue-500/10",
+    infoText: "text-blue-400",
+    gridLine: "#ffffff05",
+    logoBg: "bg-[#080d1a]",
+    logoBorder: "border-[#0d6e6e]/30",
+    logoShadow: "shadow-[0_0_30px_rgba(13,110,110,0.12)]",
+    sidebarBg: "#0b1020",
+    sidebarBorder: "rgba(255,255,255,0.06)",
+    sidebarCard: "rgba(255,255,255,0.03)",
+    sidebarMuted: "rgba(255,255,255,0.45)",
+    sidebarActive: "rgba(13,110,110,0.10)",
+    sidebarDanger: "#e57373",
+    sidebarDangerBg: "rgba(139,26,26,0.06)",
+  },
+  light: {
+    page: "bg-[#f4f7fa] text-[#333333]",
+    card: "bg-white/90 border-[#0d6e6e]/15 shadow-xl",
+    cardText: "text-[#333333]",
+    cardSub: "text-[#666666]",
+    input: "bg-[#f8f9fa] border-[#0d6e6e]/25 text-[#333333] placeholder:text-[#9ca3af] focus:border-[#0d6e6e]",
+    label: "text-[#333333]",
+    icon: "text-[#6c757d]",
+    divider: "border-[#0d6e6e]/15",
+    footer: "text-[#6c757d]",
+    badge: "text-[#0d6e6e]",
+    featureCard: "bg-[#f4f7fa]/80 border-[#0d6e6e]/12",
+    featureTitle: "text-[#0f1729]",
+    featureDesc: "text-[#666666]",
+    link: "text-[#0d6e6e]",
+    btnGold: "from-[#0d6e6e] via-[#0f7d7d] to-[#095454] text-white",
+    btnGoldDisabled: "bg-[#0d6e6e]/25 text-[#6c757d]",
+    tableHead: "bg-[#f4f7fa]/80",
+    tableRow: "hover:bg-[#f4f7fa]/60",
+    tableBorder: "border-[#0d6e6e]/12",
+    tableBorderLight: "border-[#0d6e6e]/08",
+    hoverLight: "hover:bg-black/5",
+    hoverTextStrong: "hover:text-[#333333]",
+    surface: "bg-white/80 border-[#0d6e6e]/15",
+    surfaceHover: "hover:border-[#0d6e6e]/30",
+    textMuted: "text-[#666666]",
+    textMutedLight: "text-[#9ca3af]",
+    textMutedDark: "text-[#6c757d]",
+    textBright: "text-[#333333]",
+    accentBg: "bg-[#0d6e6e]/10",
+    accentText: "text-[#0d6e6e]",
+    accentBorder: "border-[#0d6e6e]/30",
+    dangerBg: "bg-red-500/10",
+    dangerText: "text-red-600",
+    dangerHover: "hover:bg-red-500/15",
+    successBg: "bg-emerald-500/10",
+    successText: "text-emerald-600",
+    warningBg: "bg-amber-500/10",
+    warningText: "text-amber-600",
+    infoBg: "bg-blue-500/10",
+    infoText: "text-blue-600",
+    gridLine: "#00000005",
+    logoBg: "bg-[#f4f7fa]",
+    logoBorder: "border-[#0d6e6e]/25",
+    logoShadow: "shadow-[0_0_20px_rgba(13,110,110,0.08)]",
+    sidebarBg: "#ffffff",
+    sidebarBorder: "rgba(13,110,110,0.15)",
+    sidebarCard: "rgba(255,255,255,0.7)",
+    sidebarMuted: "#6c757d",
+    sidebarActive: "rgba(13,110,110,0.08)",
+    sidebarDanger: "#8b1a1a",
+    sidebarDangerBg: "rgba(139,26,26,0.05)",
+  },
+};
 
 function HRDashboard() {
   const navigate = useNavigate();
@@ -461,47 +574,37 @@ function HRDashboard() {
 
   const getInterviewRoom = (interview) => interview.roomName || `interview-${interview._id}`;
 
-  // Golden theme colors
-  const themeColors = themeMode === "dark" ? {
-    bg: '#0a0f1a',
-    bgSecondary: '#0e1422',
-    bgCard: '#0e1422',
-    border: 'rgba(255,255,255,0.08)',
-    text: '#f8fafc',
-    textSecondary: '#94a3b8',
-    gold: '#d4af37',
-    goldLight: '#f3e5ab',
-    goldDark: '#996515',
-    goldGlow: 'rgba(212, 175, 55, 0.18)',
-    cardBg: "rgba(14,20,34,0.85)",
-    borderColor: "rgba(255,255,255,0.08)",
-    textColor: "#ffffff",
-    textMutedColor: "rgba(255,255,255,0.5)",
-    textSecondaryColor: "rgba(255,255,255,0.4)",
-  } : {
-    bg: '#f0f2f5',
-    bgSecondary: '#ffffff',
-    bgCard: '#ffffff',
-    border: 'rgba(0,0,0,0.1)',
-    text: '#1a1a2e',
-    textSecondary: 'rgba(0,0,0,0.5)',
-    gold: '#996515',
-    goldLight: '#d4af37',
-    goldDark: '#7a4f10',
-    goldGlow: 'rgba(153, 101, 21, 0.12)',
-    cardBg: "rgba(255,255,255,0.85)",
-    borderColor: "rgba(0,0,0,0.1)",
-    textColor: "#1a1a2e",
-    textMutedColor: "rgba(0,0,0,0.5)",
-    textSecondaryColor: "rgba(0,0,0,0.4)",
+  // Theme colors (matching AdminDashboard T palette)
+  const t = T[themeMode];
+  const theme = {
+    bg: themeMode === "dark" ? "#0a0f1e" : "#0d6e6e",
+    bgSecondary: themeMode === "dark" ? "#0e1422" : "#ffffff",
+    bgCard: themeMode === "dark" ? "#0e1422" : "#ffffff",
+    border: themeMode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(197,160,89,0.2)",
+    text: themeMode === "dark" ? "#f8fafc" : "#1a1510",
+    textSecondary: themeMode === "dark" ? "#94a3b8" : "#6b5a3a",
+    gold: "#0d6e6e",
+    goldLight: "#f3e5ab",
+    goldDark: "#095454",
+    goldGlow: "rgba(13,110,110,0.18)",
   };
-  const theme = themeColors;
+  const themeColors = {
+    cardBg: themeMode === "dark" ? "rgba(14,20,34,0.85)" : "rgba(255,255,255,0.85)",
+    borderColor: themeMode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)",
+    textColor: themeMode === "dark" ? "#ffffff" : "#1a1a2e",
+    textSecondaryColor: themeMode === "dark" ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)",
+    textMutedColor: themeMode === "dark" ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)",
+  };
 
   return (
-    <div className="min-h-screen login-neo relative overflow-hidden" style={{ backgroundColor: themeColors.bg, color: theme.text }}>
-      {/* Ambient glow elements */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#d4af37]/[0.07] rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-[#d4af37]/[0.05] rounded-full blur-3xl pointer-events-none" />
+    <div className={`login-neo min-h-screen ${t.page} relative overflow-hidden font-sans transition-colors duration-500`} data-theme={themeMode}>
+      {/* Ambient Glow Background */}
+      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[140px] pointer-events-none transition-colors duration-500"
+        style={{ background: themeMode === "dark" ? "linear-gradient(to bottom right, rgba(13,110,110,0.08), rgba(139,26,26,0.08), transparent)" : "linear-gradient(to bottom right, rgba(13,110,110,0.10), rgba(139,26,26,0.05), transparent)" }} />
+      <div className="absolute -bottom-40 -right-40 w-[650px] h-[650px] rounded-full blur-[150px] pointer-events-none transition-colors duration-500"
+        style={{ background: themeMode === "dark" ? "linear-gradient(to top left, rgba(13,110,110,0.08), rgba(88,28,135,0.12), transparent)" : "linear-gradient(to top left, rgba(13,110,110,0.06), rgba(139,26,26,0.03), transparent)" }} />
+      <div className="absolute inset-0 bg-[size:32px_32px] opacity-30 pointer-events-none"
+        style={{ backgroundImage: `linear-gradient(to right, ${t.gridLine} 1px, transparent 1px), linear-gradient(to bottom, ${t.gridLine} 1px, transparent 1px)` }} />
       <Toast toasts={toasts} remove={removeToast} />
       <DashboardSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -515,66 +618,63 @@ function HRDashboard() {
         activeKey={activeTab}
         onSelect={(key) => { setActiveTab(key); setSidebarOpen(false); }}
         onLogout={handleLogout}
-        theme={{ background: theme.bgSecondary, border: theme.border, card: theme.bgCard, text: theme.text, muted: theme.textSecondary, accent: theme.gold, danger: '#e57373', dangerBackground: 'rgba(139,26,26,0.06)', activeBackground: `rgba(212,175,55,0.12)` }}
+        theme={{ background: t.sidebarBg, border: t.sidebarBorder, card: t.sidebarCard, text: t.cardText, muted: t.sidebarMuted, accent: "#0d6e6e", danger: t.sidebarDanger, dangerBackground: t.sidebarDangerBg, activeBackground: t.sidebarActive }}
         userName={currentUser.name || currentUser.email || "HR User"} userRole={currentUser.role || "HR"}
       />
-      <header className="border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur-2xl" style={{ backgroundColor: theme.bgSecondary + 'D9', borderColor: theme.border }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-lg transition hover:opacity-80" style={{ color: theme.text }}>
-            <FaBars size={18} />
-          </button>
-          <img src="/vettora-logo.png" alt="Vettora Logo" className="h-9 object-contain rounded-lg border p-0.5 bg-black/30" style={{ borderColor: theme.border }} />
-          <span className="ml-1 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.2)', color: theme.gold }}>
-            HR
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setThemeMode((c) => c === "dark" ? "light" : "dark")}
-            className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
-            style={{
-              background: themeMode === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
-              borderColor: themeMode === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
-              boxShadow: themeMode === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
-            }}
-            aria-label="Toggle theme">
-            {themeMode === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
-          </button>
-          <button 
-            onClick={handleLogout} 
-            className="flex items-center gap-2 text-sm transition"
-            style={{ color: theme.textSecondary }}
-            onMouseEnter={(e) => e.currentTarget.style.color = theme.text}
-            onMouseLeave={(e) => e.currentTarget.style.color = theme.textSecondary}
-          >
-            <FaSignOutAlt size={16} /> Sign out
-          </button>
+      <header className={`sticky top-0 z-20 backdrop-blur-xl border-b transition-colors duration-300 ${t.surface}`}>
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setSidebarOpen(true)} className={`p-2 rounded-xl border ${t.tableBorder} ${t.textMuted} ${t.hoverLight} transition-all lg:hidden`} aria-label="Open navigation">
+              <FaBars size={16} />
+            </button>
+            <div>
+              <h1 className={`text-lg font-bold ${t.cardText}`}>HR Dashboard</h1>
+              <p className={`text-[11px] mt-0.5 ${t.textMutedDark}`}>CV Shortlisting & Management</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setThemeMode((c) => c === "dark" ? "light" : "dark")}
+              className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
+              style={{
+                background: themeMode === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
+                borderColor: themeMode === "dark" ? "rgba(13,110,110,0.3)" : "rgba(139,105,20,0.3)",
+                boxShadow: themeMode === "dark" ? "0 0 20px rgba(13,110,110,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
+              }}
+              aria-label="Toggle theme">
+              {themeMode === "dark" ? <FaSun className="text-[#0d6e6e] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
+            </button>
+            <button className={`relative p-2 rounded-xl border ${t.tableBorder} ${t.textMuted} ${t.hoverLight} transition-all`}>
+              <FaBell size={15} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
+            </button>
+          </div>
         </div>
       </header>
 
       <div className={`transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="px-6 py-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold" style={{ color: theme.text }}>HR Dashboard</h1>
+          <div>
+            <h1 className={`text-lg font-bold ${t.cardText}`}>HR Dashboard</h1>
+            <p className={`text-[11px] mt-0.5 ${t.textMutedDark}`}>Manage jobs, applicants & CV shortlisting</p>
+          </div>
           <button 
             onClick={() => setShowModal(true)} 
-            className="text-[#0a0f1a] px-4 py-2 rounded-lg flex items-center gap-2 text-sm transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-            style={{ backgroundColor: theme.gold }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.goldDark}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.gold}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-2xl bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition-all`}
           >
             <FaPlus /> Post Job
           </button>
         </div>
 
         {currentUser.role === "HR" && (
-          <div className="rounded-xl border shadow-sm p-5 mb-8" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300 mb-8`}>
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>HR Subscription</p>
-                <p className="text-lg font-semibold mt-1" style={{ color: theme.text }}>
-                  Current plan: <span className="text-[#d4af37]">{currentUser.subscriptionPlan || "trial"}</span>
+                <p className={`text-xs font-medium uppercase tracking-wider ${t.textMutedDark}`}>HR Subscription</p>
+                <p className={`text-lg font-semibold mt-1 ${t.cardText}`}>
+                  Current plan: <span className={t.accentText}>{currentUser.subscriptionPlan || "trial"}</span>
                 </p>
-                <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>
+                <p className={`text-sm mt-1 ${t.cardSub}`}>
                   {currentUser.planEndsAt ? `Valid until ${new Date(currentUser.planEndsAt).toLocaleDateString()}` : "Use trial or upgrade with Razorpay"}
                 </p>
               </div>
@@ -582,8 +682,7 @@ function HRDashboard() {
                 <select
                   value={paymentPlan}
                   onChange={(e) => setPaymentPlan(e.target.value)}
-                  className="px-3 py-2 rounded-lg text-sm"
-                  style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
+                  className={`px-3 py-2 rounded-2xl text-sm ${t.input} border outline-none transition-all`}
                 >
                   <option value="monthly">Monthly - ₹200</option>
                   <option value="yearly">Yearly - ₹1800</option>
@@ -600,30 +699,30 @@ function HRDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-          <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Total Jobs</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{stats.totalJobs}</p>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
+            <p className={`text-xs font-medium uppercase tracking-wider ${t.textMutedDark}`}>Total Jobs</p>
+            <p className={`text-2xl font-semibold mt-1 ${t.cardText}`}>{stats.totalJobs}</p>
           </div>
-          <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Total Applicants</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.text }}>{stats.totalApplicants}</p>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
+            <p className={`text-xs font-medium uppercase tracking-wider ${t.textMutedDark}`}>Total Applicants</p>
+            <p className={`text-2xl font-semibold mt-1 ${t.cardText}`}>{stats.totalApplicants}</p>
           </div>
-          <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Shortlisted</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: theme.gold }}>{stats.shortlisted}</p>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
+            <p className={`text-xs font-medium uppercase tracking-wider ${t.textMutedDark}`}>Shortlisted</p>
+            <p className={`text-2xl font-semibold mt-1 ${t.accentText}`}>{stats.shortlisted}</p>
           </div>
-          <div className="p-5 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Pending</p>
-            <p className="text-2xl font-semibold mt-1" style={{ color: '#f0a030' }}>{stats.pending}</p>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
+            <p className={`text-xs font-medium uppercase tracking-wider ${t.textMutedDark}`}>Pending</p>
+            <p className={`text-2xl font-semibold mt-1 ${t.warningText}`}>{stats.pending}</p>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 border-b" style={{ borderColor: theme.border }}>
+        <div className={`flex gap-2 mb-6 border-b ${t.tableBorder}`}>
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "jobs" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "jobs" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "jobs" ? theme.gold : 'transparent'
+              color: activeTab === "jobs" ? (themeMode === "dark" ? "#ffffff" : "#1a1510") : theme.textSecondary,
+              borderColor: activeTab === "jobs" ? "#0d6e6e" : 'transparent'
             }}
             onClick={() => setActiveTab("jobs")}
           >
@@ -632,8 +731,8 @@ function HRDashboard() {
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "applicants" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "applicants" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "applicants" ? theme.gold : 'transparent'
+              color: activeTab === "applicants" ? (themeMode === "dark" ? "#ffffff" : "#1a1510") : theme.textSecondary,
+              borderColor: activeTab === "applicants" ? "#0d6e6e" : 'transparent'
             }}
             onClick={handleApplicantsClick}
           >
@@ -642,8 +741,8 @@ function HRDashboard() {
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "interviews" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "interviews" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "interviews" ? theme.gold : 'transparent'
+              color: activeTab === "interviews" ? (themeMode === "dark" ? "#ffffff" : "#1a1510") : theme.textSecondary,
+              borderColor: activeTab === "interviews" ? "#0d6e6e" : 'transparent'
             }}
             onClick={() => { setActiveTab("interviews"); fetchHRInterviews(); }}
           >
@@ -652,8 +751,8 @@ function HRDashboard() {
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "coding_tests" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "coding_tests" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "coding_tests" ? theme.gold : 'transparent'
+              color: activeTab === "coding_tests" ? (themeMode === "dark" ? "#ffffff" : "#1a1510") : theme.textSecondary,
+              borderColor: activeTab === "coding_tests" ? "#0d6e6e" : 'transparent'
             }}
             onClick={() => { setActiveTab("coding_tests"); fetchHRCodingTests(); }}
           >
@@ -662,8 +761,8 @@ function HRDashboard() {
           <button 
             className={`px-4 py-2 text-sm font-medium transition ${activeTab === "analytics" ? "border-b-2" : ""}`}
             style={{ 
-              color: activeTab === "analytics" ? theme.text : theme.textSecondary,
-              borderColor: activeTab === "analytics" ? theme.gold : 'transparent'
+              color: activeTab === "analytics" ? (themeMode === "dark" ? "#ffffff" : "#1a1510") : theme.textSecondary,
+              borderColor: activeTab === "analytics" ? "#0d6e6e" : 'transparent'
             }}
             onClick={() => { setActiveTab("analytics"); fetchAnalytics(); }}
           >
@@ -674,16 +773,16 @@ function HRDashboard() {
         {activeTab === "jobs" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
-              <div key={job._id} className="rounded-xl border shadow-sm p-5 hover:shadow-md transition" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{job.title}</h3>
-                <p className="text-sm mt-1" style={{ color: theme.textSecondary }}>{job.location}</p>
-                <p className="text-sm mt-2 line-clamp-2" style={{ color: theme.textSecondary }}>{job.description}</p>
+              <div key={job._id} className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300 hover:${t.surfaceHover}`}>
+                <h3 className={`text-lg font-bold ${t.cardText}`}>{job.title}</h3>
+                <p className={`text-sm mt-1 ${t.cardSub}`}>{job.location}</p>
+                <p className={`text-sm mt-2 line-clamp-2 ${t.cardSub}`}>{job.description}</p>
                 <div className="flex justify-between items-center mt-4">
-                  <button onClick={() => fetchApplicants(job._id)} className="text-sm hover:underline flex items-center gap-1" style={{ color: theme.gold }}>
+                  <button onClick={() => fetchApplicants(job._id)} className={`text-sm hover:underline flex items-center gap-1 ${t.link}`}>
                     <FaEye size={14} /> View Applicants
                   </button>
-                  <button onClick={() => handleDeleteJob(job._id)} className="hover:text-[#ff6b6b] transition" style={{ color: '#ff4444' }}>
-                    <FaTrash />
+                  <button onClick={() => handleDeleteJob(job._id)} className={`${t.dangerText} hover:text-red-400 transition p-1.5 ${t.dangerBg} rounded-xl`}>
+                    <FaTrash size={13} />
                   </button>
                 </div>
               </div>
@@ -692,28 +791,22 @@ function HRDashboard() {
         )}
 
         {activeTab === "applicants" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl overflow-hidden border transition-colors duration-300`}>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Student</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Resume</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: theme.border }}>
+              <table className="min-w-full">
+                <thead><tr className={`border-b ${t.tableBorder}`}>
+                  {["Student","Email","Status","Resume","Actions"].map((h) => <th key={h} className={`px-6 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider ${t.textMutedDark}`}>{h}</th>)}
+                </tr></thead>
+                <tbody className={`divide-y ${t.tableBorderLight}`}>
                   {applications.map((app) => (
-                    <tr key={app._id}>
-                      <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{app.student?.name || "Unknown"}</td>
-                      <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{app.student?.email || ""}</td>
+                    <tr key={app._id} className={`${t.tableRow} transition-colors`}>
+                      <td className={`px-6 py-4 text-sm font-medium ${t.textBright}`}>{app.student?.name || "Unknown"}</td>
+                      <td className={`px-6 py-4 text-sm ${t.textMuted}`}>{app.student?.email || ""}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          app.status === "shortlisted" ? "bg-green-900/30 text-green-400" : 
-                          app.status === "rejected" ? "bg-red-900/30 text-red-400" : 
-                          "bg-yellow-900/30 text-yellow-400"
+                        <span className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
+                          app.status === "shortlisted" ? `${t.accentBg} ${t.accentText}` : 
+                          app.status === "rejected" ? `${t.dangerBg} ${t.dangerText}` : 
+                          `${t.featureCard} ${t.textMuted}`
                         }`}>
                           {app.status}
                         </span>
@@ -725,54 +818,51 @@ function HRDashboard() {
                             app.job?.title || "",
                             app.job?.description || ""
                           )}
-                          className="hover:underline flex items-center gap-1"
-                          style={{ color: theme.gold }}
+                          className={`${t.accentText} font-medium hover:underline text-xs flex items-center gap-1.5`}
                         >
-                          <FaFileAlt size={14} /> View
+                          <FaFileAlt size={11} /> View
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-sm flex items-center flex-wrap gap-2">
-                        <button
-                          onClick={() => {
-                            const sub = profileSubmissions.find(s => s.student?._id === app.student?._id);
-                            if (sub) {
-                              setSelectedSubmission(sub);
-                              setHrComment("");
-                              setShowSubmissionModal(true);
-                            }
-                          }}
-                          className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1"
-                          style={{ backgroundColor: theme.gold, opacity: profileSubmissions.some(s => s.student?._id === app.student?._id) ? 1 : 0.4 }}
-                        >
-                          <FaEye size={12} /> View Profile
-                        </button>
-
-                        {["shortlisted", "coding_test_passed"].includes(app.status) && (
-                          <button onClick={() => openInterviewModal(app)} className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1" style={{ backgroundColor: theme.gold }}>
-                            <FaCalendarAlt size={12} /> Schedule Interview
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => openCodingTestModal(app)}
-                          className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                        >
-                          <FaCode size={12} /> Assign Coding Test
-                        </button>
-
-                        {app.status !== "shortlisted" && (
-                          <button 
-                            onClick={() => handleStatusUpdate(app._id, "shortlisted")} 
-                            className="text-[#0a0f1a] px-3 py-1 rounded hover:opacity-80 transition text-xs"
-                            style={{ backgroundColor: theme.gold }}
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => {
+                              const sub = profileSubmissions.find(s => s.student?._id === app.student?._id);
+                              if (sub) {
+                                setSelectedSubmission(sub);
+                                setHrComment("");
+                                setShowSubmissionModal(true);
+                              }
+                            }}
+                            className={`${t.accentBg} ${t.accentText} px-3 py-1.5 rounded-xl hover:brightness-110 transition text-xs font-medium flex items-center gap-1`}
+                            style={{ opacity: profileSubmissions.some(s => s.student?._id === app.student?._id) ? 1 : 0.4 }}
                           >
-                            Shortlist
+                            <FaEye size={12} /> View Profile
                           </button>
-                        )}
 
-                        <button onClick={() => handleStatusUpdate(app._id, "rejected")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs">
-                          Reject
-                        </button>
+                          {["shortlisted", "coding_test_passed"].includes(app.status) && (
+                            <button onClick={() => openInterviewModal(app)} className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition`}>
+                              <FaCalendarAlt size={12} /> Schedule Interview
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => openCodingTestModal(app)}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition`}
+                          >
+                            <FaCode size={12} /> Assign Coding Test
+                          </button>
+
+                          {app.status !== "shortlisted" && (
+                            <button onClick={() => handleStatusUpdate(app._id, "shortlisted")} className={`${t.accentBg} ${t.accentText} px-3 py-1.5 rounded-xl hover:brightness-110 transition text-xs font-medium disabled:opacity-30`} disabled={app.status === "shortlisted"}>
+                              Shortlist
+                            </button>
+                          )}
+
+                          <button onClick={() => handleStatusUpdate(app._id, "rejected")} className={`${t.dangerBg} ${t.dangerText} px-3 py-1.5 rounded-xl ${t.dangerHover} transition text-xs font-medium disabled:opacity-30`} disabled={app.status === "rejected"}>
+                            Reject
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -783,55 +873,48 @@ function HRDashboard() {
         )}
 
         {activeTab === "interviews" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: theme.border }}>
-              <h2 className="text-lg font-semibold" style={{ color: theme.text }}>Scheduled Interviews</h2>
-              <button onClick={fetchHRInterviews} className="transition" style={{ color: theme.textSecondary }}>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl overflow-hidden border transition-colors duration-300`}>
+            <div className={`flex justify-between items-center p-4 border-b ${t.tableBorder}`}>
+              <h2 className={`text-lg font-bold ${t.cardText}`}>Scheduled Interviews</h2>
+              <button onClick={fetchHRInterviews} className={`transition ${t.textMuted} ${t.hoverLight} p-2 rounded-xl`}>
                 <FaSync />
               </button>
             </div>
             {loadingInterviews ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>Loading...</div>
+              <div className={`p-8 text-center ${t.textMuted}`}>Loading...</div>
             ) : hrInterviews.length === 0 ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No interviews scheduled yet.</div>
+              <div className={`p-8 text-center ${t.textMuted}`}>No interviews scheduled yet.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                  <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Job</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Candidate</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Mode</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Date & Time</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y" style={{ borderColor: theme.border }}>
+                <table className="min-w-full">
+                  <thead><tr className={`border-b ${t.tableBorder}`}>
+                    {["Job","Candidate","Mode","Date & Time","Status","Actions"].map((h) => <th key={h} className={`px-6 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider ${t.textMutedDark}`}>{h}</th>)}
+                  </tr></thead>
+                  <tbody className={`divide-y ${t.tableBorderLight}`}>
                     {hrInterviews.map((iv) => {
                       const status = iv.status?.toLowerCase ? iv.status.toLowerCase() : iv.status;
                       const isAi = iv.interviewMode === "ai";
                       return (
-                        <tr key={iv._id}>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{iv.job?.title || "Unknown"}</td>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{iv.application?.student?.name || "Unknown"}</td>
+                        <tr key={iv._id} className={`${t.tableRow} transition-colors`}>
+                          <td className={`px-6 py-4 text-sm font-medium ${t.textBright}`}>{iv.job?.title || "Unknown"}</td>
+                          <td className={`px-6 py-4 text-sm ${t.textBright}`}>{iv.application?.student?.name || "Unknown"}</td>
                           <td className="px-6 py-4 text-sm">
                             {isAi ? (
-                              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-purple-900/40 text-purple-300 border border-purple-500/30 inline-flex items-center gap-1.5">
+                              <span className="text-[11px] px-2.5 py-1 rounded-lg font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 inline-flex items-center gap-1.5">
                                 <FaRobot size={11} /> AI Voice
                               </span>
                             ) : (
-                              <span className="text-[11px] px-2.5 py-1 rounded-full font-semibold bg-blue-900/40 text-blue-300 border border-blue-500/30 inline-flex items-center gap-1.5">
+                              <span className="text-[11px] px-2.5 py-1 rounded-lg font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 inline-flex items-center gap-1.5">
                                 <FaVideo size={11} /> Human Video
                               </span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{new Date(iv.scheduledAt).toLocaleString()}</td>
+                          <td className={`px-6 py-4 text-sm ${t.textMuted}`}>{new Date(iv.scheduledAt).toLocaleString()}</td>
                           <td className="px-6 py-4">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              status === "completed" ? "bg-green-900/30 text-green-400" : 
-                              status === "cancelled" ? "bg-red-900/30 text-red-400" : 
-                              "bg-yellow-900/30 text-yellow-400"
+                            <span className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
+                              status === "completed" ? `${t.successBg} ${t.successText}` : 
+                              status === "cancelled" ? `${t.dangerBg} ${t.dangerText}` : 
+                              `${t.warningBg} ${t.warningText}`
                             }`}>
                               {status}
                             </span>
@@ -841,13 +924,12 @@ function HRDashboard() {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => handleViewAiReport(iv)}
-                                  className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs flex items-center gap-1.5 shadow bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                                  style={{ backgroundColor: theme.gold }}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition`}
                                 >
                                   <FaRobot size={12} /> View AI Report
                                 </button>
                                 {status === "scheduled" && (
-                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600/80 text-white px-2.5 py-1 rounded hover:bg-red-700 transition text-xs">
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className={`${t.dangerBg} ${t.dangerText} px-2.5 py-1 rounded-xl ${t.dangerHover} transition text-xs font-medium`}>
                                     Cancel
                                   </button>
                                 )}
@@ -855,16 +937,16 @@ function HRDashboard() {
                             ) : (
                               status === "scheduled" && (
                                 <>
-                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs" style={{ backgroundColor: theme.gold }}>
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "completed")} className={`${t.accentBg} ${t.accentText} px-3 py-1.5 rounded-xl hover:brightness-110 transition text-xs font-medium mr-2`}>
                                     Complete
                                   </button>
-                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs">
+                                  <button onClick={() => handleUpdateInterviewStatus(iv._id, "cancelled")} className={`${t.dangerBg} ${t.dangerText} px-3 py-1.5 rounded-xl ${t.dangerHover} transition text-xs font-medium`}>
                                     Cancel
                                   </button>
                                   {!iv.callActive ? (
                                     <button
                                       onClick={() => handleStartInterviewCall(iv)}
-                                        className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
+                                      className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition ml-2`}
                                     >
                                       <FaVideo size={12} /> Start Call
                                     </button>
@@ -872,13 +954,13 @@ function HRDashboard() {
                                     <>
                                       <button
                                         onClick={() => setVideoCallRoom(iv._id)}
-                                      className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
+                                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition ml-2`}
                                       >
                                         <FaVideo size={12} /> Join Call
                                       </button>
                                       <button
                                         onClick={() => handleStopInterviewCall(iv)}
-                                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-xs"
+                                        className={`${t.dangerBg} ${t.dangerText} px-3 py-1.5 rounded-xl ${t.dangerHover} transition text-xs font-medium ml-2`}
                                       >
                                         End Call
                                       </button>
@@ -894,8 +976,8 @@ function HRDashboard() {
                                   setFeedbackData(iv.feedback || { rating: 3, comments: "", decision: "" });
                                   setShowFeedbackModal(true);
                                 }}
-                                className="text-[#0a0f1a] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                                style={{ backgroundColor: theme.gold }}
+                                className="text-[#0f1729] px-3 py-1 rounded mr-2 hover:opacity-80 transition text-xs flex items-center gap-1 inline-flex bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454]"
+                                style={{ backgroundColor: "#0d6e6e" }}
                               >
                                 ✨ AI Analysis & Feedback
                               </button>
@@ -912,84 +994,76 @@ function HRDashboard() {
         )}
 
         {activeTab === "coding_tests" && (
-          <div className="rounded-xl border shadow-sm overflow-hidden" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-            <div className="flex justify-between items-center p-4 border-b" style={{ borderColor: theme.border }}>
-              <h2 className="text-lg font-semibold" style={{ color: theme.text }}>Assigned Coding Assessments</h2>
-              <button onClick={fetchHRCodingTests} className="transition hover:opacity-80" style={{ color: theme.textSecondary }}>
+          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl overflow-hidden border transition-colors duration-300`}>
+            <div className={`flex justify-between items-center p-4 border-b ${t.tableBorder}`}>
+              <h2 className={`text-lg font-bold ${t.cardText}`}>Assigned Coding Assessments</h2>
+              <button onClick={fetchHRCodingTests} className={`transition ${t.textMuted} ${t.hoverLight} p-2 rounded-xl`}>
                 <FaSync />
               </button>
             </div>
             {loadingCodingTests ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>Loading coding assessments...</div>
+              <div className={`p-8 text-center ${t.textMuted}`}>Loading coding assessments...</div>
             ) : codingTests.length === 0 ? (
-              <div className="p-8 text-center" style={{ color: theme.textSecondary }}>No coding tests assigned yet. Click "Assign Coding Test" under Applicants to send a test.</div>
+              <div className={`p-8 text-center ${t.textMuted}`}>No coding tests assigned yet. Click "Assign Coding Test" under Applicants to send a test.</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y" style={{ borderColor: theme.border }}>
-                  <thead style={{ backgroundColor: 'rgba(212, 168, 67, 0.1)' }}>
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Job</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Candidate</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Test Title & Language</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Duration</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Verdict</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: theme.textSecondary }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y" style={{ borderColor: theme.border }}>
-                    {codingTests.map((t) => (
-                      <tr key={t._id}>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>{t.job?.title || "Role"}</td>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.text }}>
-                          {t.student?.name || "Candidate"}
-                          <div className="text-xs" style={{ color: theme.textSecondary }}>{t.student?.email}</div>
+                <table className="min-w-full">
+                  <thead><tr className={`border-b ${t.tableBorder}`}>
+                    {["Job","Candidate","Test Title & Language","Duration","Status","Verdict","Actions"].map((h) => <th key={h} className={`px-6 py-3.5 text-left text-[11px] font-bold uppercase tracking-wider ${t.textMutedDark}`}>{h}</th>)}
+                  </tr></thead>
+                  <tbody className={`divide-y ${t.tableBorderLight}`}>
+                    {codingTests.map((ct) => (
+                      <tr key={ct._id} className={`${t.tableRow} transition-colors`}>
+                        <td className={`px-6 py-4 text-sm font-medium ${t.textBright}`}>{ct.job?.title || "Role"}</td>
+                        <td className={`px-6 py-4 text-sm ${t.textBright}`}>
+                          {ct.student?.name || "Candidate"}
+                          <div className={`text-xs ${t.textMuted}`}>{ct.student?.email}</div>
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          <div className="font-semibold" style={{ color: theme.text }}>{t.title}</div>
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 border border-purple-500/30 uppercase font-mono mt-1 inline-block">
-                            {t.language}
+                          <div className={`font-semibold ${t.textBright}`}>{ct.title}</div>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase font-mono mt-1 inline-block">
+                            {ct.language}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm" style={{ color: theme.textSecondary }}>{t.durationMinutes} mins</td>
+                        <td className={`px-6 py-4 text-sm ${t.textMuted}`}>{ct.durationMinutes} mins</td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                            t.status === "submitted" ? "bg-blue-900/40 text-blue-400 border border-blue-500/30" :
-                            t.status === "reviewed" ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30" :
-                            t.status === "in_progress" ? "bg-amber-900/40 text-amber-400 border border-amber-500/30 animate-pulse" :
-                            ""
-                          }`} style={t.status !== "submitted" && t.status !== "reviewed" && t.status !== "in_progress" ? { backgroundColor: themeColors.cardBg, color: themeColors.textSecondaryColor, borderColor: themeColors.borderColor } : {}}>
-                            {t.status}
+                          <span className={`text-[11px] px-2.5 py-1 rounded-lg font-medium ${
+                            ct.status === "submitted" ? `${t.infoBg} ${t.infoText}` :
+                            ct.status === "reviewed" ? `${t.successBg} ${t.successText}` :
+                            ct.status === "in_progress" ? `${t.warningBg} ${t.warningText} animate-pulse` :
+                            `${t.featureCard} ${t.textMuted}`
+                          }`}>
+                            {ct.status}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          {t.verdict ? (
-                            <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${
-                              t.verdict === "passed" ? "bg-green-900/50 text-green-400 border border-green-500/40" :
-                              "bg-red-900/50 text-red-400 border border-red-500/40"
+                          {ct.verdict ? (
+                            <span className={`text-[11px] px-2.5 py-1 rounded-lg font-bold uppercase ${
+                              ct.verdict === "passed" ? `${t.successBg} ${t.successText}` :
+                              `${t.dangerBg} ${t.dangerText}`
                             }`}>
-                              {t.verdict}
+                              {ct.verdict}
                             </span>
                           ) : (
-                            <span className="text-xs" style={{ color: themeColors.textSecondaryColor }}>Pending Review</span>
+                            <span className={`text-xs ${t.textMuted}`}>Pending Review</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                          <button
-                            onClick={() => openReviewModal(t)}
-                            className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                            style={{ backgroundColor: theme.gold }}
-                          >
-                            <FaEye size={12} /> Review Code
-                          </button>
-                          <button
-                            onClick={() => { setProctoringTest(t); setShowProctoringViewer(true); }}
-                            className="text-[#0a0f1a] px-3 py-1.5 rounded-lg hover:opacity-80 transition text-xs flex items-center gap-1 font-medium bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                            style={{ background: t.status === "in_progress" ? "#15803d" : "#1e3a5f" }}
-                            title={t.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
-                          >
-                            📷 {t.status === "in_progress" ? "🔴 Live" : `Snaps (${(t.proctorSnapshots || []).length})`}
-                          </button>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              onClick={() => openReviewModal(ct)}
+                              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${t.btnGold} hover:brightness-110 transition`}
+                            >
+                              <FaEye size={12} /> Review Code
+                            </button>
+                            <button
+                              onClick={() => { setProctoringTest(ct); setShowProctoringViewer(true); }}
+                              className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r ${ct.status === "in_progress" ? "from-emerald-500 to-emerald-600" : "from-blue-500 to-blue-600"} text-white hover:brightness-110 transition`}
+                              title={ct.status === "in_progress" ? "Watch live camera" : "View captured snapshots"}
+                            >
+                              📷 {ct.status === "in_progress" ? "🔴 Live" : `Snaps (${(ct.proctorSnapshots || []).length})`}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1007,44 +1081,44 @@ function HRDashboard() {
             ) : analyticsData ? (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <p className="text-xs font-medium" style={{ color: theme.textSecondary }}>Total Jobs</p>
-                    <p className="text-2xl font-semibold" style={{ color: theme.text }}>{analyticsData.totalJobs}</p>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <p className={`text-xs font-medium ${t.textMutedDark}`}>Total Jobs</p>
+                    <p className={`text-2xl font-semibold ${t.cardText}`}>{analyticsData.totalJobs}</p>
                   </div>
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <p className="text-xs font-medium" style={{ color: theme.textSecondary }}>Applications</p>
-                    <p className="text-2xl font-semibold" style={{ color: theme.text }}>{analyticsData.totalApplications}</p>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <p className={`text-xs font-medium ${t.textMutedDark}`}>Applications</p>
+                    <p className={`text-2xl font-semibold ${t.cardText}`}>{analyticsData.totalApplications}</p>
                   </div>
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <p className="text-xs font-medium" style={{ color: theme.textSecondary }}>Shortlisted</p>
-                    <p className="text-2xl font-semibold" style={{ color: theme.gold }}>{analyticsData.shortlisted}</p>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <p className={`text-xs font-medium ${t.textMutedDark}`}>Shortlisted</p>
+                    <p className={`text-2xl font-semibold ${t.accentText}`}>{analyticsData.shortlisted}</p>
                   </div>
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <p className="text-xs font-medium" style={{ color: theme.textSecondary }}>Rejected</p>
-                    <p className="text-2xl font-semibold" style={{ color: '#ff4444' }}>{analyticsData.rejected}</p>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <p className={`text-xs font-medium ${t.textMutedDark}`}>Rejected</p>
+                    <p className={`text-2xl font-semibold ${t.dangerText}`}>{analyticsData.rejected}</p>
                   </div>
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <p className="text-xs font-medium" style={{ color: theme.textSecondary }}>Shortlist Rate</p>
-                    <p className="text-2xl font-semibold" style={{ color: theme.gold }}>{analyticsData.shortlistRate}%</p>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <p className={`text-xs font-medium ${t.textMutedDark}`}>Shortlist Rate</p>
+                    <p className={`text-2xl font-semibold ${t.accentText}`}>{analyticsData.shortlistRate}%</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <h3 className="text-sm font-semibold mb-4" style={{ color: theme.text }}>Applications per Job</h3>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <h3 className={`text-sm font-bold mb-4 ${t.cardText}`}>Applications per Job</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={analyticsData.appsPerJob}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={theme.border} />
-                        <XAxis dataKey="title" tick={{ fontSize: 10, fill: theme.textSecondary }} />
-                        <YAxis tick={{ fill: theme.textSecondary }} />
-                        <Tooltip contentStyle={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.text }} />
-                        <Legend wrapperStyle={{ color: theme.text }} />
-                        <Bar dataKey="applications" fill={theme.gold} />
+                        <CartesianGrid strokeDasharray="3 3" stroke={themeMode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(197,160,89,0.15)"} />
+                        <XAxis dataKey="title" tick={{ fontSize: 10, fill: themeMode === "dark" ? "#94a3b8" : "#6b5a3a" }} />
+                        <YAxis tick={{ fill: themeMode === "dark" ? "#94a3b8" : "#6b5a3a" }} />
+                        <Tooltip contentStyle={{ backgroundColor: themeMode === "dark" ? "#0e1422" : "#ffffff", borderColor: themeMode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(197,160,89,0.2)", color: themeMode === "dark" ? "#ffffff" : "#1a1510" }} />
+                        <Legend wrapperStyle={{ color: themeMode === "dark" ? "#ffffff" : "#1a1510" }} />
+                        <Bar dataKey="applications" fill="#0d6e6e" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div className="p-4 rounded-xl border shadow-sm" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                    <h3 className="text-sm font-semibold mb-4" style={{ color: theme.text }}>Status Distribution</h3>
+                  <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300`}>
+                    <h3 className={`text-sm font-bold mb-4 ${t.cardText}`}>Status Distribution</h3>
                     <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
@@ -1057,31 +1131,31 @@ function HRDashboard() {
                           cy="50%"
                           label
                         >
-                          <Cell fill={theme.gold} />
-                          <Cell fill="#ff4444" />
-                          <Cell fill="#f0a030" />
+                          <Cell fill="#0d6e6e" />
+                          <Cell fill="#ef4444" />
+                          <Cell fill="#f59e0b" />
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: theme.bgCard, borderColor: theme.border, color: theme.text }} />
-                        <Legend wrapperStyle={{ color: theme.text }} />
+                        <Tooltip contentStyle={{ backgroundColor: themeMode === "dark" ? "#0e1422" : "#ffffff", borderColor: themeMode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(197,160,89,0.2)", color: themeMode === "dark" ? "#ffffff" : "#1a1510" }} />
+                        <Legend wrapperStyle={{ color: themeMode === "dark" ? "#ffffff" : "#1a1510" }} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl border shadow-sm mt-6" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
-                  <h3 className="text-sm font-semibold mb-4" style={{ color: theme.text }}>Recent Applications</h3>
-                  <ul className="divide-y" style={{ borderColor: theme.border }}>
+                <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-4 border transition-colors duration-300 mt-6`}>
+                  <h3 className={`text-sm font-bold mb-4 ${t.cardText}`}>Recent Applications</h3>
+                  <ul className={`divide-y ${t.tableBorderLight}`}>
                     {analyticsData.recentApps && analyticsData.recentApps.map((app) => (
                       <li key={app._id} className="py-2 text-sm">
-                        <span className="font-medium" style={{ color: theme.text }}>{app.student?.name || "Unknown"}</span> applied to <span className="font-medium" style={{ color: theme.gold }}>{app.job?.title || "Job"}</span>
-                        <span className="text-xs ml-2" style={{ color: theme.textSecondary }}>{new Date(app.createdAt).toLocaleDateString()}</span>
+                        <span className={`font-medium ${t.textBright}`}>{app.student?.name || "Unknown"}</span> applied to <span className={`font-medium ${t.accentText}`}>{app.job?.title || "Job"}</span>
+                        <span className={`text-xs ml-2 ${t.textMuted}`}>{new Date(app.createdAt).toLocaleDateString()}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               </>
             ) : (
-              <div className="text-center py-12" style={{ color: theme.textSecondary }}>No analytics data available.</div>
+              <div className={`text-center py-12 ${t.textMuted}`}>No analytics data available.</div>
             )}
           </div>
         )}
@@ -1090,29 +1164,28 @@ function HRDashboard() {
 
       {/* Resume Modal */}
       {showResumeModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" style={{ backdropFilter: "blur(4px)" }}>
-          <div className="rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl border" style={{ backgroundColor: theme.bgCard, borderColor: theme.border }}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`${t.card} backdrop-blur-2xl rounded-3xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl transition-colors duration-300`}>
 
             {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b" style={{ borderColor: theme.border }}>
+            <div className={`flex justify-between items-center p-5 border-b ${t.tableBorder}`}>
               <div>
-                <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: theme.text }}>
-                  <FaFileAlt style={{ color: theme.gold }} /> Resume Details
+                <h2 className={`text-lg font-bold flex items-center gap-2 ${t.cardText}`}>
+                  <FaFileAlt className={t.accentText} /> Resume Details
                 </h2>
                 {resumeJobCtx.title && (
-                  <p className="text-xs mt-0.5" style={{ color: theme.textSecondary }}>Job: {resumeJobCtx.title}</p>
+                  <p className={`text-xs mt-0.5 ${t.cardSub}`}>Job: {resumeJobCtx.title}</p>
                 )}
               </div>
               <button
                 onClick={() => { setShowResumeModal(false); setSelectedResume(null); setAiInterviewQs([]); }}
-                className="hover:opacity-70 text-xl"
-                style={{ color: theme.textSecondary }}
+                className={`${t.textMuted} hover:text-white text-xl transition`}
               >✕</button>
             </div>
 
             <div className="p-5">
               {loadingResume ? (
-                <p className="text-center py-8" style={{ color: theme.textSecondary }}>Loading resume…</p>
+                <p className={`text-center py-8 ${t.textMuted}`}>Loading resume…</p>
               ) : selectedResume ? (
                 <>
                   {/* CV Data */}
@@ -1125,36 +1198,31 @@ function HRDashboard() {
                       ["🛠 Skills", selectedResume.extractedData?.technical_skills],
                       ["🏆 Certifications", selectedResume.extractedData?.certifications],
                     ].map(([label, val]) => val && val !== "Not found" && (
-                      <div key={label} className="rounded-lg p-3" style={{ background: themeColors.cardBg, border: `1px solid ${theme.border}` }}>
-                        <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>{label}</div>
-                        <div className="text-xs" style={{ color: theme.text }}>{val}</div>
+                      <div key={label} className={`${t.featureCard} rounded-xl p-3 border`}>
+                        <div className={`text-xs font-semibold mb-1 ${t.accentText}`}>{label}</div>
+                        <div className={`text-xs ${t.cardText}`}>{val}</div>
                       </div>
                     ))}
                   </div>
 
                   {selectedResume.extractedData?.project_details && selectedResume.extractedData.project_details !== "Not found" && (
-                    <div className="rounded-lg p-3 mb-5" style={{ background: themeColors.cardBg, border: `1px solid ${theme.border}` }}>
-                      <div className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>🗂 Projects</div>
-                      <div className="text-xs" style={{ color: theme.text }}>{selectedResume.extractedData.project_details}</div>
+                    <div className={`${t.featureCard} rounded-xl p-3 mb-5 border`}>
+                      <div className={`text-xs font-semibold mb-1 ${t.accentText}`}>🗂 Projects</div>
+                      <div className={`text-xs ${t.cardText}`}>{selectedResume.extractedData.project_details}</div>
                     </div>
                   )}
 
                   {/* AI Interview Questions Button */}
-                  <div className="border-t pt-4" style={{ borderColor: theme.border }}>
+                  <div className={`border-t pt-4 ${t.tableBorder}`}>
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm font-bold" style={{ color: theme.text }}>🤖 AI Interview Questions</p>
-                        <p className="text-xs" style={{ color: theme.textSecondary }}>Generated from CV + Job profile via Groq AI</p>
+                        <p className={`text-sm font-bold ${t.cardText}`}>🤖 AI Interview Questions</p>
+                        <p className={`text-xs ${t.cardSub}`}>Generated from CV + Job profile via Groq AI</p>
                       </div>
                       <button
                         onClick={generateInterviewQs}
                         disabled={loadingAiQs}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition hover:opacity-85 disabled:opacity-50"
-                        style={{
-                          background: `linear-gradient(135deg, #8B1A1A, #c4831a)`,
-                          color: "#fff",
-                          boxShadow: "0 2px 12px rgba(139,26,26,0.35)",
-                        }}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition bg-gradient-to-r ${t.btnGold} hover:brightness-110 disabled:opacity-50`}
                       >
                         {loadingAiQs ? (
                           <>
@@ -1175,7 +1243,7 @@ function HRDashboard() {
                         {aiInterviewQs.map((q, i) => (
                           <div key={i} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.border}` }}>
                             <div className="flex items-start gap-3 p-3" style={{ background: "rgba(139,26,26,0.12)" }}>
-                              <span className="text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shrink-0" style={{ background: theme.gold, color: "#000" }}>{q.no || i + 1}</span>
+                              <span className="text-xs font-black rounded-full w-6 h-6 flex items-center justify-center shrink-0" style={{ background: "#0d6e6e", color: "#000" }}>{q.no || i + 1}</span>
                               <div className="flex-1">
                                 <span className="text-xs px-2 py-0.5 rounded-full font-semibold mr-2" style={{
                                   background: q.type === "Technical" ? "#1e3a5f" : q.type === "Behavioral" ? "#1a3a1a" : "#3a1a3a",
@@ -1185,7 +1253,7 @@ function HRDashboard() {
                               </div>
                             </div>
                             <div className="p-3" style={{ background: themeColors.cardBg }}>
-                              <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>✅ Model Answer</p>
+                              <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>✅ Model Answer</p>
                               <p className="text-xs leading-relaxed" style={{ color: theme.textSecondary }}>{q.answer}</p>
                             </div>
                           </div>
@@ -1267,7 +1335,7 @@ function HRDashboard() {
                   value={interviewData.scheduledAt}
                   onChange={(e) => setInterviewData({ ...interviewData, scheduledAt: e.target.value })}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1284,7 +1352,7 @@ function HRDashboard() {
                   onChange={(e) => setInterviewData({ ...interviewData, duration: parseInt(e.target.value) })}
                   min="15"
                   step="5"
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1298,7 +1366,7 @@ function HRDashboard() {
                 <select
                   value={interviewData.location}
                   onChange={(e) => setInterviewData({ ...interviewData, location: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1318,7 +1386,7 @@ function HRDashboard() {
                   placeholder="https://meet.google.com/..."
                   value={interviewData.meetingLink}
                   onChange={(e) => setInterviewData({ ...interviewData, meetingLink: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1334,7 +1402,7 @@ function HRDashboard() {
                   placeholder="Any additional instructions..."
                   value={interviewData.notes}
                   onChange={(e) => setInterviewData({ ...interviewData, notes: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1347,7 +1415,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => { setShowInterviewModal(false); setSelectedApplication(null); }} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition font-semibold bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
+                <button type="submit" className="text-[#0f1729] px-4 py-2 text-sm rounded-lg transition font-semibold bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454]">
                   {interviewData.interviewMode === "ai" ? "Schedule AI Interview" : "Schedule Interview"}
                 </button>
               </div>
@@ -1382,7 +1450,7 @@ function HRDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl border flex flex-col items-center justify-center text-center" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
                   <div className="text-xs font-semibold uppercase mb-1" style={{ color: theme.textSecondary }}>Overall Score</div>
-                  <div className="text-3xl font-extrabold" style={{ color: theme.gold }}>
+                  <div className="text-3xl font-extrabold" style={{ color: "#0d6e6e" }}>
                     {selectedAiReport.feedback?.rating ? `${selectedAiReport.feedback.rating}/5` : "Pending"}
                   </div>
                   <div className="text-[11px] mt-1" style={{ color: themeColors.textSecondaryColor }}>AI Evaluated</div>
@@ -1414,7 +1482,7 @@ function HRDashboard() {
               {/* 🛡️ AI Proctoring & Speech Telemetry Card */}
               {selectedAiReport.proctoring && (
                 <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
-                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: theme.gold }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: "#0d6e6e" }}>
                     <span>🛡️ AI Proctoring & Speech Telemetry</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-green-900/40 text-green-400 border border-green-500/30">
                       INTEGRITY: {selectedAiReport.proctoring.integrityScore || 100}%
@@ -1461,7 +1529,7 @@ function HRDashboard() {
               {/* Candidate Resume Profile */}
               {selectedAiReport.candidateResume && (
                 <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
-                  <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: theme.gold }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: "#0d6e6e" }}>
                     <span>📄 Candidate Resume Highlights</span>
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -1495,7 +1563,7 @@ function HRDashboard() {
 
               {/* AI Summary / Feedback */}
               <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: theme.gold }}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5" style={{ color: "#0d6e6e" }}>
                   <span>📋 Executive Feedback & Suggestions</span>
                 </h3>
                 <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap" style={{ color: theme.text }}>
@@ -1506,7 +1574,7 @@ function HRDashboard() {
               {/* AI Interview Questions & Candidate Answers Breakdown */}
               {((selectedAiReport.aiInterview?.qaList && selectedAiReport.aiInterview.qaList.length > 0) || (selectedAiReport.aiInterview?.questions && selectedAiReport.aiInterview.questions.length > 0)) && (
                 <div className="p-4 rounded-xl border" style={{ backgroundColor: theme.bgSecondary, borderColor: theme.border }}>
-                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: theme.gold }}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider mb-3 flex items-center justify-between" style={{ color: "#0d6e6e" }}>
                     <span>❓ Detailed Questions & Candidate Answers</span>
                     <span className="text-[10px] font-normal" style={{ color: themeColors.textSecondaryColor }}>Question-by-Question AI Breakdown</span>
                   </h3>
@@ -1576,7 +1644,7 @@ function HRDashboard() {
               <button
                 onClick={() => { setShowAiReportModal(false); setSelectedAiReport(null); }}
                 className="px-5 py-2 text-xs font-semibold rounded-lg shadow transition hover:opacity-90"
-                style={{ backgroundColor: theme.gold, color: "#000" }}
+                style={{ backgroundColor: "#0d6e6e", color: "#000" }}
               >
                 Close Report
               </button>
@@ -1607,7 +1675,7 @@ function HRDashboard() {
                   value={feedbackData.rating}
                   onChange={(e) => setFeedbackData({ ...feedbackData, rating: parseInt(e.target.value) })}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1623,7 +1691,7 @@ function HRDashboard() {
                   placeholder="Feedback comments..."
                   value={feedbackData.comments}
                   onChange={(e) => setFeedbackData({ ...feedbackData, comments: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1637,7 +1705,7 @@ function HRDashboard() {
                 <select
                   value={feedbackData.decision || ""}
                   onChange={(e) => setFeedbackData({ ...feedbackData, decision: e.target.value })}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1655,7 +1723,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => { setShowFeedbackModal(false); setSelectedInterviewForFeedback(null); }} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
+                <button type="submit" className="text-[#0f1729] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454]">
                   Save Feedback
                 </button>
               </div>
@@ -1677,7 +1745,7 @@ function HRDashboard() {
                   value={newJob.title} 
                   onChange={(e) => setNewJob({ ...newJob, title: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1691,7 +1759,7 @@ function HRDashboard() {
                   onChange={(e) => setNewJob({ ...newJob, description: e.target.value })} 
                   required 
                   rows="3" 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1705,7 +1773,7 @@ function HRDashboard() {
                   value={newJob.requirements} 
                   onChange={(e) => setNewJob({ ...newJob, requirements: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1719,7 +1787,7 @@ function HRDashboard() {
                   value={newJob.location} 
                   onChange={(e) => setNewJob({ ...newJob, location: e.target.value })} 
                   required 
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ 
                     backgroundColor: theme.bg, 
                     borderColor: theme.border, 
@@ -1732,7 +1800,7 @@ function HRDashboard() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-sm rounded-lg transition" style={{ border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
                   Cancel
                 </button>
-                <button type="submit" className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]">
+                <button type="submit" className="text-[#0f1729] px-4 py-2 text-sm rounded-lg transition bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454]">
                   Create
                 </button>
               </div>
@@ -1763,7 +1831,7 @@ function HRDashboard() {
                   required
                   value={codingTestForm.title}
                   onChange={(e) => setCodingTestForm({ ...codingTestForm, title: e.target.value })}
-                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                 />
               </div>
@@ -1776,7 +1844,7 @@ function HRDashboard() {
                   value={codingTestForm.description}
                   onChange={(e) => setCodingTestForm({ ...codingTestForm, description: e.target.value })}
                   placeholder="Describe the coding problem, input constraints, and expected logic..."
-                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                 />
               </div>
@@ -1788,7 +1856,7 @@ function HRDashboard() {
                   <select
                     value={codingTestForm.language}
                     onChange={(e) => setCodingTestForm({ ...codingTestForm, language: e.target.value })}
-                    className="flex-1 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50 capitalize"
+                    className="flex-1 rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#0d6e6e]/50 capitalize"
                     style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                   >
                     <option value="python">Python</option>
@@ -1807,7 +1875,7 @@ function HRDashboard() {
                   <button
                     type="button"
                     onClick={() => setShowCompilerPreview(true)}
-                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition whitespace-nowrap"
+                    className="shrink-0 px-3 py-2 text-xs font-semibold rounded-xl text-[#0f1729] bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454] hover:opacity-80 transition whitespace-nowrap"
                     title="Preview student compiler"
                   >
                     Preview IDE
@@ -1823,7 +1891,7 @@ function HRDashboard() {
                     required
                     value={codingTestForm.durationMinutes}
                     onChange={(e) => setCodingTestForm({ ...codingTestForm, durationMinutes: parseInt(e.target.value) || 30 })}
-                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                    className="w-full rounded-xl px-3.5 py-2 text-xs outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                     style={{ backgroundColor: theme.bg, borderColor: theme.border, color: theme.text, border: `1px solid ${theme.border}` }}
                   />
                 </div>
@@ -1893,7 +1961,7 @@ function HRDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition"
+                  className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0f1729] bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454] hover:opacity-80 transition"
                 >
                   Send Coding Test
                 </button>
@@ -2058,7 +2126,7 @@ function HRDashboard() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0a0f1a] bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:opacity-80 transition"
+                    className="px-5 py-2 text-xs font-semibold rounded-xl text-[#0f1729] bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454] hover:opacity-80 transition"
                   >
                     Save Review & Update Candidate
                   </button>
@@ -2115,30 +2183,30 @@ function HRDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 168, 67, 0.05)', border: `1px solid ${theme.border}` }}>
+              <div className="flex items-center gap-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(13,110,110, 0.05)', border: `1px solid ${theme.border}` }}>
                 {selectedSubmission.profile?.photo && (
-                  <img src={selectedSubmission.profile.photo} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: theme.gold }} />
+                  <img src={selectedSubmission.profile.photo} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2" style={{ borderColor: "#0d6e6e" }} />
                 )}
                 <div>
                   <h3 className="text-lg font-semibold" style={{ color: theme.text }}>{selectedSubmission.student?.name}</h3>
                   <p className="text-sm" style={{ color: theme.textSecondary }}>{selectedSubmission.student?.email}</p>
-                  {selectedSubmission.profile?.headline && <p className="text-sm mt-1" style={{ color: theme.gold }}>{selectedSubmission.profile.headline}</p>}
+                  {selectedSubmission.profile?.headline && <p className="text-sm mt-1" style={{ color: "#0d6e6e" }}>{selectedSubmission.profile.headline}</p>}
                 </div>
               </div>
 
               {selectedSubmission.profile?.about && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>About</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>About</p>
                   <p className="text-sm" style={{ color: theme.text }}>{selectedSubmission.profile.about}</p>
                 </div>
               )}
 
               {selectedSubmission.profile?.skills?.length > 0 && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Skills</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>Skills</p>
                   <div className="flex flex-wrap gap-1">
                     {selectedSubmission.profile.skills.map((skill, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(212, 168, 67, 0.15)', color: theme.gold }}>{skill}</span>
+                      <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(13,110,110, 0.15)', color: "#0d6e6e" }}>{skill}</span>
                     ))}
                   </div>
                 </div>
@@ -2146,7 +2214,7 @@ function HRDashboard() {
 
               {selectedSubmission.profile?.experiences?.length > 0 && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Experience</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>Experience</p>
                   {selectedSubmission.profile.experiences.map((exp, i) => (
                     <div key={i} className="text-sm mb-1" style={{ color: theme.text }}>
                       <strong>{exp.title}</strong> at {exp.company} ({exp.startDate} - {exp.endDate || "Present"})
@@ -2157,7 +2225,7 @@ function HRDashboard() {
 
               {selectedSubmission.profile?.education?.length > 0 && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Education</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>Education</p>
                   {selectedSubmission.profile.education.map((edu, i) => (
                     <div key={i} className="text-sm mb-1" style={{ color: theme.text }}>
                       <strong>{edu.school}</strong> - {edu.degree} {edu.fieldOfStudy} ({edu.startYear} - {edu.endYear})
@@ -2168,7 +2236,7 @@ function HRDashboard() {
 
               {selectedSubmission.message && (
                 <div className="p-3 rounded-lg" style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}` }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: theme.gold }}>Student Message</p>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#0d6e6e" }}>Student Message</p>
                   <p className="text-sm" style={{ color: theme.text }}>{selectedSubmission.message}</p>
                 </div>
               )}
@@ -2180,7 +2248,7 @@ function HRDashboard() {
                   placeholder="Add feedback for the student..."
                   value={hrComment}
                   onChange={(e) => setHrComment(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#d4af37]/50"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d6e6e]/50"
                   style={{ backgroundColor: theme.bg, border: `1px solid ${theme.border}`, color: theme.text }}
                 />
               </div>
@@ -2194,8 +2262,8 @@ function HRDashboard() {
                 </button>
                 <button
                   onClick={() => handleSubmissionStatus(selectedSubmission._id, "approved")}
-                  className="text-[#0a0f1a] px-4 py-2 text-sm rounded-lg transition hover:opacity-80 bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515]"
-                  style={{ backgroundColor: theme.gold }}
+                  className="text-[#0f1729] px-4 py-2 text-sm rounded-lg transition hover:opacity-80 bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454]"
+                  style={{ backgroundColor: "#0d6e6e" }}
                 >
                   Approve
                 </button>

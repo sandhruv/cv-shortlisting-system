@@ -50,11 +50,29 @@ exports.sendProfileToHR = async (req, res) => {
 // Student: get my sent submissions
 exports.getMySubmissions = async (req, res) => {
   try {
-    const submissions = await ProfileSubmission.find({ student: req.user.id })
-      .populate("hr", "name email")
-      .populate("profile", "headline photo")
-      .sort({ createdAt: -1 });
-    res.json(submissions);
+    const baseQuery = { student: req.user.id };
+
+    if (!req.query.page) {
+      const submissions = await ProfileSubmission.find(baseQuery)
+        .populate("hr", "name email")
+        .populate("profile", "headline photo")
+        .sort({ createdAt: -1 });
+      return res.json(submissions);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const [submissions, total] = await Promise.all([
+      ProfileSubmission.find(baseQuery)
+        .populate("hr", "name email")
+        .populate("profile", "headline photo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      ProfileSubmission.countDocuments(baseQuery),
+    ]);
+    res.json({ data: submissions, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -63,35 +81,91 @@ exports.getMySubmissions = async (req, res) => {
 // HR: get all profile submissions sent to me
 exports.getMyReceivedSubmissions = async (req, res) => {
   try {
-    // Auto-sync: find applications to HR's jobs that have no profile submission yet
+    // Auto-sync: batch fetch applications, existing submissions, and profiles
     try {
-      const applications = await Application.find()
-        .populate({ path: "job", select: "postedBy", match: { postedBy: req.user.id } })
-        .populate("student", "name email");
-      for (const app of applications) {
+      const [hrApplications, existingSubmissions] = await Promise.all([
+        Application.find()
+          .populate({ path: "job", select: "postedBy", match: { postedBy: req.user.id } })
+          .populate("student", "name email"),
+        ProfileSubmission.find({ hr: req.user.id }).select("student"),
+      ]);
+
+      const existingStudentIds = new Set(existingSubmissions.map(s => s.student.toString()));
+      const newSubmissions = [];
+
+      for (const app of hrApplications) {
         if (!app.job || !app.student) continue;
-        const exists = await ProfileSubmission.findOne({ hr: req.user.id, student: app.student._id });
-        if (!exists) {
-          const profile = await Profile.findOne({ user: app.student._id });
-          if (profile) {
-            await ProfileSubmission.create({
-              hr: req.user.id,
-              student: app.student._id,
-              profile: profile._id,
-              status: "pending",
-            });
-          }
+        if (existingStudentIds.has(app.student._id.toString())) continue;
+        existingStudentIds.add(app.student._id.toString());
+
+        const profile = await Profile.findOne({ user: app.student._id });
+        if (profile) {
+          newSubmissions.push({
+            hr: req.user.id,
+            student: app.student._id,
+            profile: profile._id,
+            status: "pending",
+          });
         }
+      }
+
+      if (newSubmissions.length > 0) {
+        await ProfileSubmission.insertMany(newSubmissions);
       }
     } catch (syncErr) {
       console.error("Profile sync error:", syncErr.message);
     }
 
-    const submissions = await ProfileSubmission.find({ hr: req.user.id })
-      .populate("student", "name email")
-      .populate("profile")
-      .sort({ createdAt: -1 });
-    res.json(submissions);
+    const baseQuery = { hr: req.user.id };
+
+    if (!req.query.page) {
+      const submissions = await ProfileSubmission.find(baseQuery)
+        .populate("student", "name email")
+        .populate("profile")
+        .sort({ createdAt: -1 });
+      return res.json(submissions);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const [submissions, total] = await Promise.all([
+      ProfileSubmission.find(baseQuery)
+        .populate("student", "name email")
+        .populate("profile")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      ProfileSubmission.countDocuments(baseQuery),
+    ]);
+    res.json({ data: submissions, total, page, pages: Math.ceil(total / limit) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// HR: get all HR users (for student to pick who to send to)
+exports.getHRUsers = async (req, res) => {
+  try {
+    if (!req.query.page) {
+      const hrUsers = await User.find({ role: { $in: ["HR", "Admin"] } })
+        .select("name email role")
+        .sort({ name: 1 });
+      return res.json(hrUsers);
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+    const [hrUsers, total] = await Promise.all([
+      User.find({ role: { $in: ["HR", "Admin"] } })
+        .select("name email role")
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit),
+      User.countDocuments({ role: { $in: ["HR", "Admin"] } }),
+    ]);
+    res.json({ data: hrUsers, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -123,14 +197,4 @@ exports.updateSubmissionStatus = async (req, res) => {
   }
 };
 
-// HR: get all HR users (for student to pick who to send to)
-exports.getHRUsers = async (req, res) => {
-  try {
-    const hrUsers = await User.find({ role: { $in: ["HR", "Admin"] } })
-      .select("name email role")
-      .sort({ name: 1 });
-    res.json(hrUsers);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+

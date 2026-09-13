@@ -12,41 +12,41 @@ import api from "../services/api";
 import DashboardSidebar from "../components/DashboardSidebar";
 
 /* ═══════════════════════════════════════════════════════════════
-   THEME PALETTES (matching Login page)
+   THEME PALETTES (JaspreetImpex: teal + navy + amber)
 ═══════════════════════════════════════════════════════════════ */
 const T = {
   dark: {
-    page: "bg-[#080c14] text-slate-100",
-    card: "bg-[#0e1422]/85 border-white/15",
+    page: "bg-[#0a0f1e] text-slate-100",
+    card: "bg-[#0f1729]/85 border-white/15",
     cardText: "text-white",
     cardSub: "text-slate-400",
-    input: "bg-[#070a12] border-slate-700/80 text-white placeholder:text-slate-500 focus:border-[#d4af37]",
+    input: "bg-[#0d1225] border-slate-700/80 text-white placeholder:text-slate-500 focus:border-[#0d6e6e]",
     label: "text-slate-300",
     icon: "text-slate-400",
     divider: "border-slate-800",
     footer: "text-slate-500",
-    badge: "text-[#d4af37]",
+    badge: "text-[#0d6e6e]",
     featureCard: "bg-white/[0.03] border-white/10",
     featureTitle: "text-slate-200",
     featureDesc: "text-slate-400",
-    link: "text-[#d4af37]",
-    btnGold: "from-[#d4af37] via-[#c5a059] to-[#996515] text-[#070a12]",
-    btnGoldDisabled: "bg-[#d4af37]/30 text-slate-300",
+    link: "text-[#0d6e6e]",
+    btnGold: "from-[#0d6e6e] via-[#0f7d7d] to-[#095454] text-white",
+    btnGoldDisabled: "bg-[#0d6e6e]/30 text-slate-300",
     tableHead: "bg-white/[0.04]",
     tableRow: "hover:bg-white/[0.03]",
     tableBorder: "border-white/[0.06]",
     tableBorderLight: "border-white/[0.04]",
     hoverLight: "hover:bg-white/5",
     hoverTextStrong: "hover:text-white",
-    surface: "bg-[#0e1422]/85 border-white/[0.08]",
-    surfaceHover: "hover:border-[#d4af37]/20",
+    surface: "bg-[#0f1729]/85 border-white/[0.08]",
+    surfaceHover: "hover:border-[#0d6e6e]/20",
     textMuted: "text-white/40",
     textMutedLight: "text-white/50",
     textMutedDark: "text-white/30",
     textBright: "text-white/80",
-    accentBg: "bg-[#d4af37]/10",
-    accentText: "text-[#d4af37]",
-    accentBorder: "border-[#d4af37]/30",
+    accentBg: "bg-[#0d6e6e]/10",
+    accentText: "text-[#0d6e6e]",
+    accentBorder: "border-[#0d6e6e]/30",
     dangerBg: "bg-red-500/10",
     dangerText: "text-red-400",
     dangerHover: "hover:bg-red-500/20",
@@ -57,49 +57,49 @@ const T = {
     infoBg: "bg-blue-500/10",
     infoText: "text-blue-400",
     gridLine: "#ffffff05",
-    logoBg: "bg-[#090d16]",
-    logoBorder: "border-[#d4af37]/30",
-    logoShadow: "shadow-[0_0_30px_rgba(212,175,55,0.12)]",
-    sidebarBg: "#0f1219",
+    logoBg: "bg-[#080d1a]",
+    logoBorder: "border-[#0d6e6e]/30",
+    logoShadow: "shadow-[0_0_30px_rgba(13,110,110,0.12)]",
+    sidebarBg: "#0b1020",
     sidebarBorder: "rgba(255,255,255,0.06)",
     sidebarCard: "rgba(255,255,255,0.03)",
     sidebarMuted: "rgba(255,255,255,0.45)",
-    sidebarActive: "rgba(212,175,55,0.08)",
+    sidebarActive: "rgba(13,110,110,0.10)",
     sidebarDanger: "#e57373",
     sidebarDangerBg: "rgba(139,26,26,0.06)",
   },
   light: {
-    page: "bg-[#f5f0e8] text-[#1a1510]",
-    card: "bg-white/90 border-[#c5a059]/20 shadow-xl",
-    cardText: "text-[#1a1510]",
-    cardSub: "text-[#6b5a3a]",
-    input: "bg-[#f8f4ec] border-[#c5a059]/30 text-[#1a1510] placeholder:text-[#a09070] focus:border-[#8B6914]",
-    label: "text-[#4a3a20]",
-    icon: "text-[#a09070]",
-    divider: "border-[#c5a059]/20",
-    footer: "text-[#a09070]",
-    badge: "text-[#8B6914]",
-    featureCard: "bg-[#f0e8d8]/60 border-[#c5a059]/15",
-    featureTitle: "text-[#3a2a10]",
-    featureDesc: "text-[#6b5a3a]",
-    link: "text-[#8B6914]",
-    btnGold: "from-[#8B6914] via-[#a07820] to-[#6b4f0a] text-white",
-    btnGoldDisabled: "bg-[#c5a059]/30 text-[#4a3a20]",
-    tableHead: "bg-[#f0e8d8]/60",
-    tableRow: "hover:bg-[#f0e8d8]/40",
-    tableBorder: "border-[#c5a059]/15",
-    tableBorderLight: "border-[#c5a059]/10",
+    page: "bg-[#f4f7fa] text-[#333333]",
+    card: "bg-white/90 border-[#0d6e6e]/15 shadow-xl",
+    cardText: "text-[#333333]",
+    cardSub: "text-[#666666]",
+    input: "bg-[#f8f9fa] border-[#0d6e6e]/25 text-[#333333] placeholder:text-[#9ca3af] focus:border-[#0d6e6e]",
+    label: "text-[#333333]",
+    icon: "text-[#6c757d]",
+    divider: "border-[#0d6e6e]/15",
+    footer: "text-[#6c757d]",
+    badge: "text-[#0d6e6e]",
+    featureCard: "bg-[#f4f7fa]/80 border-[#0d6e6e]/12",
+    featureTitle: "text-[#0f1729]",
+    featureDesc: "text-[#666666]",
+    link: "text-[#0d6e6e]",
+    btnGold: "from-[#0d6e6e] via-[#0f7d7d] to-[#095454] text-white",
+    btnGoldDisabled: "bg-[#0d6e6e]/25 text-[#6c757d]",
+    tableHead: "bg-[#f4f7fa]/80",
+    tableRow: "hover:bg-[#f4f7fa]/60",
+    tableBorder: "border-[#0d6e6e]/12",
+    tableBorderLight: "border-[#0d6e6e]/08",
     hoverLight: "hover:bg-black/5",
-    hoverTextStrong: "hover:text-[#1a1510]",
-    surface: "bg-white/80 border-[#c5a059]/18",
-    surfaceHover: "hover:border-[#d4af37]/30",
-    textMuted: "text-[#6b5a3a]",
-    textMutedLight: "text-[#8a7a5a]",
-    textMutedDark: "text-[#a09070]",
-    textBright: "text-[#2a1f10]",
-    accentBg: "bg-[#d4af37]/10",
-    accentText: "text-[#8B6914]",
-    accentBorder: "border-[#c5a059]/30",
+    hoverTextStrong: "hover:text-[#333333]",
+    surface: "bg-white/80 border-[#0d6e6e]/15",
+    surfaceHover: "hover:border-[#0d6e6e]/30",
+    textMuted: "text-[#666666]",
+    textMutedLight: "text-[#9ca3af]",
+    textMutedDark: "text-[#6c757d]",
+    textBright: "text-[#333333]",
+    accentBg: "bg-[#0d6e6e]/10",
+    accentText: "text-[#0d6e6e]",
+    accentBorder: "border-[#0d6e6e]/30",
     dangerBg: "bg-red-500/10",
     dangerText: "text-red-600",
     dangerHover: "hover:bg-red-500/15",
@@ -110,14 +110,14 @@ const T = {
     infoBg: "bg-blue-500/10",
     infoText: "text-blue-600",
     gridLine: "#00000005",
-    logoBg: "bg-[#f0e8d8]",
-    logoBorder: "border-[#c5a059]/40",
-    logoShadow: "shadow-[0_0_20px_rgba(212,175,55,0.10)]",
-    sidebarBg: "#fffaf0",
-    sidebarBorder: "rgba(197,160,89,0.2)",
+    logoBg: "bg-[#f4f7fa]",
+    logoBorder: "border-[#0d6e6e]/25",
+    logoShadow: "shadow-[0_0_20px_rgba(13,110,110,0.08)]",
+    sidebarBg: "#ffffff",
+    sidebarBorder: "rgba(13,110,110,0.15)",
     sidebarCard: "rgba(255,255,255,0.7)",
-    sidebarMuted: "#927f61",
-    sidebarActive: "rgba(212,175,55,0.1)",
+    sidebarMuted: "#6c757d",
+    sidebarActive: "rgba(13,110,110,0.08)",
     sidebarDanger: "#8b1a1a",
     sidebarDangerBg: "rgba(139,26,26,0.05)",
   },
@@ -165,12 +165,12 @@ function Toast({ toasts, remove, t }) {
                 ? "bg-emerald-950/90 border-emerald-500/20 text-emerald-200"
                 : toast.type === "error"
                 ? "bg-rose-950/90 border-rose-500/20 text-rose-200"
-                : `${t.card} ${t.cardText}`
+                : "bg-white border-gray-200 text-gray-900"
             }`}
           >
             {toast.type === "success" ? <FaCheckCircle className="text-emerald-400 shrink-0" /> :
              toast.type === "error" ? <FaTimesCircle className="text-rose-400 shrink-0" /> :
-             <FaInfoCircle className={t.accentText + " shrink-0"} />}
+             <FaInfoCircle className="text-[#0d6e6e] shrink-0" />}
             <span className="text-sm flex-1">{toast.message}</span>
             <button onClick={() => remove(toast.id)} className="text-white/30 hover:text-white shrink-0"><FaTimes size={12} /></button>
           </motion.div>
@@ -188,14 +188,14 @@ function ConfirmModal({ open, title, message, onConfirm, onCancel, t }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <motion.div initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-        className={`${t.card} backdrop-blur-2xl rounded-3xl p-7 w-full max-w-sm shadow-2xl transition-colors duration-300`}>
+        className="bg-white rounded-2xl p-7 w-full max-w-sm shadow-2xl transition-colors duration-300">
         <div className="flex items-center gap-3 mb-3">
-          <div className="p-2.5 rounded-2xl bg-red-500/10"><FaExclamationTriangle className="text-red-400" /></div>
-          <h3 className={`text-lg font-bold ${t.cardText}`}>{title}</h3>
+          <div className="p-2.5 rounded-2xl bg-red-50"><FaExclamationTriangle className="text-red-500" /></div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
         </div>
-        <p className={`text-sm mb-6 pl-[52px] ${t.cardSub}`}>{message}</p>
+        <p className="text-sm mb-6 pl-[52px] text-gray-500">{message}</p>
         <div className="flex justify-end gap-3">
-          <button onClick={onCancel} className={`px-5 py-2.5 text-sm border rounded-2xl transition-all ${t.tableBorder} ${t.textMuted} ${t.hoverLight}`}>Cancel</button>
+          <button onClick={onCancel} className="px-5 py-2.5 text-sm border border-gray-200 rounded-2xl transition-all text-gray-600 hover:bg-gray-50">Cancel</button>
           <button onClick={onConfirm} className="px-5 py-2.5 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl hover:brightness-110 transition-all font-bold">Delete</button>
         </div>
       </motion.div>
@@ -229,13 +229,13 @@ function SearchBar({ value, onChange, placeholder, filter, filterOptions, onFilt
       <div className="relative flex-1 group">
         <FaSearch className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.icon} group-focus-within:${t.accentText} text-sm transition-colors`} />
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-          className={`w-full pl-11 pr-4 py-3 ${t.input} border rounded-2xl text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20`} />
+          className={`w-full pl-11 pr-4 py-3 ${t.input} border rounded-2xl text-sm outline-none transition-all duration-300 focus:ring-2 focus:ring-[#0d6e6e]/20`} />
       </div>
       {filterOptions && (
         <div className="relative group">
           <FaFilter className={`absolute left-4 top-1/2 -translate-y-1/2 ${t.icon} text-xs transition-colors`} />
           <select value={filter} onChange={(e) => onFilterChange(e.target.value)}
-            className={`pl-10 pr-8 py-3 ${t.input} border rounded-2xl text-sm outline-none appearance-none cursor-pointer transition-all duration-300 focus:ring-2 focus:ring-[#d4af37]/20`}>
+            className={`pl-10 pr-8 py-3 ${t.input} border rounded-2xl text-sm outline-none appearance-none cursor-pointer transition-all duration-300 focus:ring-2 focus:ring-[#0d6e6e]/20`}>
             <option value="all">All</option>
             {filterOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -267,7 +267,7 @@ function Pagination({ page, total, onPageChange, t }) {
         {Array.from({ length: totalPages }, (_, i) => (
           <button key={i} onClick={() => onPageChange(i)}
             className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
-              i === page ? "bg-gradient-to-br from-[#d4af37] via-[#c5a059] to-[#996515] text-[#070a12] shadow-lg shadow-[#d4af37]/20" : `${t.textMuted} ${t.hoverLight}`
+              i === page ? "bg-gradient-to-br from-[#0d6e6e] via-[#0f7d7d] to-[#095454] text-[#0f1729] shadow-lg shadow-[#0d6e6e]/20" : `${t.textMuted} ${t.hoverLight}`
             }`}>{i + 1}</button>
         ))}
         <button onClick={() => onPageChange(page + 1)} disabled={page === totalPages - 1}
@@ -294,22 +294,21 @@ function exportCSV(headers, rows, filename) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STAT CARD (Login-style feature card)
+   STAT CARD (Exact JaspreetImpex style)
 ═══════════════════════════════════════════════════════════════ */
-function StatCard({ label, value, icon: Icon, color = "#d4af37", delay = 0, t }) {
+function StatCard({ label, value, icon: Icon, color = "#0d6e6e", delay = 0, t }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.4 }}
-      className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border ${t.surfaceHover} transition-all duration-300 group`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className={`text-[11px] font-semibold uppercase tracking-wider ${t.textMutedDark}`}>{label}</p>
-          <p className={`text-2xl font-bold mt-1.5 tracking-tight ${t.cardText}`}>{value ?? "—"}</p>
-        </div>
-        <div className="p-2.5 rounded-2xl transition-all duration-300"
-          style={{ backgroundColor: `${color}12` }}>
-          <Icon className="text-lg" style={{ color }} />
-        </div>
+      className="flex items-center gap-5 p-6 bg-white rounded-xl transition-all duration-300 hover:-translate-y-0.5"
+      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+      <div className="w-[60px] h-[60px] rounded-xl flex items-center justify-center shrink-0"
+        style={{ backgroundColor: `${color}1a` }}>
+        <Icon className="text-[1.5rem]" style={{ color }} />
+      </div>
+      <div className="min-w-0">
+        <span className="block text-[0.9rem] text-gray-500">{label}</span>
+        <span className="block text-[2rem] font-bold text-[#0f1729] leading-tight mt-1">{value ?? "—"}</span>
       </div>
     </motion.div>
   );
@@ -321,15 +320,17 @@ function StatCard({ label, value, icon: Icon, color = "#d4af37", delay = 0, t })
 function FunnelBar({ label, count, total, color, t }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
-    <div className="flex items-center gap-4 text-sm">
-      <span className={`w-28 text-right text-[13px] ${t.textMuted}`}>{label}</span>
-      <div className={`flex-1 h-7 rounded-2xl overflow-hidden ${t.featureCard}`}>
+    <div className="flex items-center gap-3">
+      <span className="w-[120px] text-[0.85rem] text-[#333] shrink-0">{label}</span>
+      <div className="flex-1 h-6 bg-[#f4f7fa] rounded-xl overflow-hidden">
         <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="h-full rounded-2xl" style={{ background: `linear-gradient(90deg, ${color}cc, ${color})` }} />
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="h-full rounded-xl flex items-center justify-end pr-2.5 min-w-[30px]"
+          style={{ background: `linear-gradient(90deg, ${color}, ${color}cc)` }}>
+          <span className="text-[0.75rem] font-semibold text-white">{count}</span>
+        </motion.div>
       </div>
-      <span className={`w-14 font-semibold text-[13px] ${t.cardText}`}>{count}</span>
-      <span className={`w-12 text-xs text-right ${t.textMutedDark}`}>{pct.toFixed(0)}%</span>
+      <span className="w-10 text-right text-[0.8rem] text-gray-400">{pct.toFixed(0)}%</span>
     </div>
   );
 }
@@ -354,7 +355,7 @@ function DetailRow({ label, value, icon: Icon, t }) {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState(null);
@@ -493,46 +494,96 @@ export default function AdminDashboard() {
     if (loading) return <Skeleton rows={4} cols={4} t={t} />;
     const { s, totalApps, shortlisted, rejected, pending, completedInterviews } = overviewStats;
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Users" value={s.totalUsers} icon={FaUsers} color="#d4af37" delay={0} t={t} />
-          <StatCard label="Total Jobs" value={s.totalJobs} icon={FaBriefcase} color="#c5a059" delay={0.05} t={t} />
-          <StatCard label="Applications" value={totalApps} icon={FaFileAlt} color="#e5c158" delay={0.1} t={t} />
-          <StatCard label="Resumes" value={s.totalResumes} icon={FaFileAlt} color="#996515" delay={0.15} t={t} />
+      <div className="space-y-7">
+        {/* Website Stats — 3 columns (jaspreetimpex website-stats-grid) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <StatCard label="Total Applications" value={totalApps} icon={FaFileAlt} color="#0d6e6e" delay={0} t={t} />
+          <StatCard label="Shortlisted" value={shortlisted} icon={FaCheckCircle} color="#10b981" delay={0.05} t={t} />
+          <StatCard label="Pending Review" value={pending} icon={FaEye} color="#f59e0b" delay={0.1} t={t} />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Shortlisted" value={shortlisted} icon={FaCheckCircle} color="#10b981" delay={0.2} t={t} />
-          <StatCard label="Rejected" value={rejected} icon={FaTimesCircle} color="#ef4444" delay={0.25} t={t} />
-          <StatCard label="Pending Review" value={pending} icon={FaEye} color="#f59e0b" delay={0.3} t={t} />
-          <StatCard label="Interviews Done" value={completedInterviews} icon={FaCalendarAlt} color="#3b82f6" delay={0.35} t={t} />
+
+        {/* Dashboard Grid — 2 columns (jaspreetimpex dashboard-grid) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Recent Applications (left) */}
+          <div className="bg-white rounded-xl p-6" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+            <h3 className="text-[1.1rem] font-bold text-[#0f1729] mb-5">Recent Applications</h3>
+            <div className="flex flex-col gap-3">
+              {(stats?.recentApps || []).length === 0 ? <p className="text-[0.9rem] text-gray-400">No applications yet</p> : (
+                stats.recentApps.map((app) => (
+                  <div key={app._id} className="flex justify-between items-center py-3 px-4 bg-[#f4f7fa] rounded-lg">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-[0.95rem] text-[#333] truncate">{app.student?.name}</span>
+                      <span className="text-[0.85rem] text-gray-400">{app.job?.title}</span>
+                    </div>
+                    <span className={`inline-block px-3 py-1 rounded-full text-[0.8rem] font-medium capitalize shrink-0 ml-2 ${
+                      app.status === "shortlisted" ? "bg-[#10b981]/10 text-[#10b981]" :
+                      app.status === "rejected" ? "bg-[#ef4444]/10 text-[#ef4444]" :
+                      "bg-[#f59e0b]/10 text-[#f59e0b]"
+                    }`}>{app.status}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats (right) — 2x2 grid (jaspreetimpex quick-stats) */}
+          <div className="bg-white rounded-xl p-6" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+            <h3 className="text-[1.1rem] font-bold text-[#0f1729] mb-5">Quick Stats</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Total Users", value: s.totalUsers, icon: FaUsers, color: "#3b82f6" },
+                { label: "Total Jobs", value: s.totalJobs, icon: FaBriefcase, color: "#10b981" },
+                { label: "Rejected", value: rejected, icon: FaTimesCircle, color: "#ef4444" },
+                { label: "Interviews Done", value: completedInterviews, icon: FaCalendarAlt, color: "#8b5cf6" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-3 p-3 bg-[#f4f7fa] rounded-lg">
+                  <div className="text-[1.5rem]" style={{ color: item.color }}>
+                    <item.icon />
+                  </div>
+                  <div>
+                    <span className="block text-[1.3rem] font-bold text-[#0f1729] leading-tight">{item.value ?? 0}</span>
+                    <span className="text-[0.8rem] text-gray-400">{item.label}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-6 border transition-colors duration-300`}>
-          <h4 className={`text-sm font-bold mb-5 flex items-center gap-2 ${t.cardText}`}>
-            <div className="p-1.5 rounded-xl bg-[#d4af37]/10"><FaChartBar className="text-[#d4af37] text-xs" /></div>
-            Hiring Funnel
-          </h4>
-          <div className="space-y-3.5">
-            <FunnelBar label="Applied" count={totalApps} total={totalApps} color="#d4af37" t={t} />
+
+        {/* Second Row — 3 columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <StatCard label="Total Users" value={s.totalUsers} icon={FaUsers} color="#3b82f6" delay={0.15} t={t} />
+          <StatCard label="Total Jobs" value={s.totalJobs} icon={FaBriefcase} color="#10b981" delay={0.2} t={t} />
+          <StatCard label="Interviews Done" value={completedInterviews} icon={FaCalendarAlt} color="#8b5cf6" delay={0.25} t={t} />
+        </div>
+
+        {/* Hiring Funnel */}
+        <div className="bg-white rounded-xl p-6" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+          <h3 className="text-[1.1rem] font-bold text-[#0f1729] mb-5">Hiring Funnel</h3>
+          <div className="space-y-4">
+            <FunnelBar label="Applied" count={totalApps} total={totalApps} color="#0d6e6e" t={t} />
             <FunnelBar label="Shortlisted" count={shortlisted} total={totalApps} color="#10b981" t={t} />
             <FunnelBar label="Interviewed" count={completedInterviews} total={totalApps} color="#3b82f6" t={t} />
             <FunnelBar label="Rejected" count={rejected} total={totalApps} color="#ef4444" t={t} />
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
-            <h4 className={`text-sm font-bold mb-4 ${t.cardText}`}>User Roles</h4>
-            {roleDist.length === 0 ? <p className={`text-sm ${t.textMutedDark}`}>No users</p> : (
-              <div className="space-y-2.5">
+
+        {/* User Roles & Recent Jobs — 2 columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="bg-white rounded-xl p-6" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+            <h3 className="text-[1.1rem] font-bold text-[#0f1729] mb-5">User Roles</h3>
+            {roleDist.length === 0 ? <p className="text-[0.9rem] text-gray-400">No users</p> : (
+              <div className="flex flex-col gap-3">
                 {roleDist.map(([role, count], idx) => {
-                  const barColors = ["bg-[#d4af37]", "bg-[#c5a059]", "bg-[#e5c158]", "bg-[#996515]", "bg-[#8B6914]", "bg-[#a07820]"];
+                  const barColors = ["#0d6e6e", "#3b82f6", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444"];
                   return (
-                    <div key={role} className="flex items-center justify-between py-1 text-sm">
-                      <span className={t.textMutedLight}>{role}</span>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-16 h-1.5 rounded-full overflow-hidden ${t.featureCard}`}>
-                          <div className={`h-full rounded-full ${barColors[idx % barColors.length]}`} style={{ width: `${(count / Math.max(...roleDist.map(r => r[1]))) * 100}%` }} />
+                    <div key={role} className="flex items-center justify-between text-[0.9rem]">
+                      <span className="text-gray-500">{role}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-20 h-[6px] rounded-full overflow-hidden bg-[#f4f7fa]">
+                          <div className="h-full rounded-full" style={{ width: `${(count / Math.max(...roleDist.map(r => r[1]))) * 100}%`, background: barColors[idx % barColors.length] }} />
                         </div>
-                        <span className={`font-semibold text-xs w-6 text-right ${t.cardText}`}>{count}</span>
+                        <span className="font-bold text-[0.8rem] w-6 text-right text-[#0f1729]">{count}</span>
                       </div>
                     </div>
                   );
@@ -540,31 +591,14 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
-            <h4 className={`text-sm font-bold mb-4 ${t.cardText}`}>Recent Jobs</h4>
-            {(stats?.recentJobs || []).length === 0 ? <p className={`text-sm ${t.textMutedDark}`}>No jobs</p> : (
-              <div className="space-y-2.5">
+          <div className="bg-white rounded-xl p-6" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+            <h3 className="text-[1.1rem] font-bold text-[#0f1729] mb-5">Recent Jobs</h3>
+            {(stats?.recentJobs || []).length === 0 ? <p className="text-[0.9rem] text-gray-400">No jobs</p> : (
+              <div className="flex flex-col gap-3">
                 {stats.recentJobs.map((job) => (
-                  <div key={job._id} className={`py-2.5 border-b ${t.tableBorderLight} last:border-0`}>
-                    <p className={`text-sm font-medium ${t.textBright}`}>{job.title}</p>
-                    <p className={`text-xs mt-0.5 ${t.textMutedDark}`}>by {job.postedBy?.name || "Unknown"}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className={`${t.surface} backdrop-blur-2xl rounded-3xl p-5 border transition-colors duration-300`}>
-            <h4 className={`text-sm font-bold mb-4 ${t.cardText}`}>Recent Applications</h4>
-            {(stats?.recentApps || []).length === 0 ? <p className={`text-sm ${t.textMutedDark}`}>No applications</p> : (
-              <div className="space-y-2.5">
-                {stats.recentApps.map((app) => (
-                  <div key={app._id} className={`py-2.5 border-b ${t.tableBorderLight} last:border-0`}>
-                    <p className={`text-sm ${t.textBright}`}>{app.student?.name} → {app.job?.title}</p>
-                    <span className={`inline-block text-[11px] px-2 py-0.5 rounded-lg mt-1 font-medium ${
-                      app.status === "shortlisted" ? `${t.accentBg} ${t.accentText}` :
-                      app.status === "rejected" ? `${t.dangerBg} ${t.dangerText}` :
-                      `${t.featureCard} ${t.textMuted}`
-                    }`}>{app.status}</span>
+                  <div key={job._id} className="py-3 border-b border-[#f4f7fa] last:border-0">
+                    <p className="text-[0.95rem] font-semibold text-[#333]">{job.title}</p>
+                    <p className="text-[0.8rem] mt-1 text-gray-400">by {job.postedBy?.name || "Unknown"}</p>
                   </div>
                 ))}
               </div>
@@ -703,7 +737,7 @@ export default function AdminDashboard() {
           <SearchBar value={search} onChange={setSearch} placeholder="Search users by name or email..."
             filter={filter} onFilterChange={setFilter} filterOptions={ROLES.map((r) => ({ value: r, label: r }))} resultCount={filtered.total} t={t} />
           <button onClick={() => setShowUserModal(true)}
-            className="bg-gradient-to-r from-[#d4af37] via-[#c5a059] to-[#996515] hover:brightness-110 text-[#070a12] px-5 py-3 rounded-2xl flex items-center gap-2 text-sm font-bold transition-all shrink-0 ml-3 shadow-lg shadow-[#d4af37]/15">
+            className="bg-gradient-to-r from-[#0d6e6e] via-[#0f7d7d] to-[#095454] hover:brightness-110 text-[#0f1729] px-5 py-3 rounded-2xl flex items-center gap-2 text-sm font-bold transition-all shrink-0 ml-3 shadow-lg shadow-[#0d6e6e]/15">
             <FaUserPlus size={14} /> Add User
           </button>
         </div>
@@ -721,14 +755,14 @@ export default function AdminDashboard() {
                       <td className={`px-6 py-4 text-sm ${t.textMuted}`}>{user.email}</td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <select value={user.role} onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                          className={`${t.input} border rounded-xl px-2.5 py-1.5 text-xs outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20`}>
+                          className={`${t.input} border rounded-xl px-2.5 py-1.5 text-xs outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20`}>
                           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                         </select>
                       </td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         {user.role === "HR" ? (
                           <select value={user.subscriptionPlan || "trial"} onChange={(e) => handleSubscriptionChange(user._id, e.target.value)}
-                            className={`${t.input} border rounded-xl px-2.5 py-1.5 text-xs outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20`}>
+                            className={`${t.input} border rounded-xl px-2.5 py-1.5 text-xs outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20`}>
                             {SUBSCRIPTION_PLANS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                           </select>
                         ) : <span className={`${t.textMutedDark} text-xs`}>—</span>}
@@ -799,8 +833,8 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Users" value={data.totalUsers ?? users.length} icon={FaUsers} color="#d4af37" delay={0} t={t} />
-          <StatCard label="Total Jobs" value={data.totalJobs ?? jobs.length} icon={FaBriefcase} color="#c5a059" delay={0.05} t={t} />
+          <StatCard label="Total Users" value={data.totalUsers ?? users.length} icon={FaUsers} color="#0d6e6e" delay={0} t={t} />
+          <StatCard label="Total Jobs" value={data.totalJobs ?? jobs.length} icon={FaBriefcase} color="#0f7d7d" delay={0.05} t={t} />
           <StatCard label="Applications" value={data.totalApplications ?? applications.length} icon={FaFileAlt} color="#e5c158" delay={0.1} t={t} />
           <StatCard label="Shortlist Rate" value={data.shortlistRate ? `${data.shortlistRate}%` : `${Math.round((totalShortlisted / Math.max(applications.length, 1)) * 100)}%`} icon={FaCheckCircle} color="#10b981" delay={0.15} t={t} />
         </div>
@@ -820,7 +854,7 @@ export default function AdminDashboard() {
                 (data.appsPerJob || []).map((job) => (
                   <div key={job.jobId || job.title} className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs"><span className={`truncate mr-3 ${t.textMutedLight}`}>{job.title}</span><span className={`shrink-0 font-medium ${t.cardText}`}>{job.applications || 0}</span></div>
-                    <div className={`h-2 rounded-full overflow-hidden ${t.featureCard}`}><div className="h-full rounded-full bg-[#d4af37]" style={{ width: `${((job.applications || 0) / maxApplications) * 100}%` }} /></div>
+                    <div className={`h-2 rounded-full overflow-hidden ${t.featureCard}`}><div className="h-full rounded-full bg-[#0d6e6e]" style={{ width: `${((job.applications || 0) / maxApplications) * 100}%` }} /></div>
                   </div>
                 ))}
             </div>
@@ -846,7 +880,7 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard label="Audit Logs" value="128" icon={FaFileAlt} color="#d4af37" delay={0} t={t} />
+          <StatCard label="Audit Logs" value="128" icon={FaFileAlt} color="#0d6e6e" delay={0} t={t} />
           <StatCard label="System Alerts" value="12" icon={FaExclamationTriangle} color="#f59e0b" delay={0.05} t={t} />
           <StatCard label="Backups" value="Healthy" icon={FaDownload} color="#10b981" delay={0.1} t={t} />
           <StatCard label="Notifications" value="09" icon={FaBell} color="#3b82f6" delay={0.15} t={t} />
@@ -950,11 +984,11 @@ export default function AdminDashboard() {
         <h2 className={`text-base font-bold mb-1 ${t.cardText}`}>Bulk Create Users</h2>
         <p className={`text-sm mb-5 ${t.textMuted}`}>CSV format: name, email, role, password, uid</p>
         <textarea value={bulkCsvText} onChange={(e) => setBulkCsvText(e.target.value)} rows={12}
-          className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 font-mono ${t.input}`}
+          className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 font-mono ${t.input}`}
           placeholder={"name,email,role,password,uid\nJohn Doe,john@example.com,Student,securePass123,"} />
         <div className="mt-4 flex justify-end">
           <button onClick={handleBulkUploadUsers} disabled={bulkUploading}
-            className={`rounded-2xl px-5 py-3 text-sm font-bold transition-all shadow-lg shadow-[#d4af37]/10 bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed`}>
+            className={`rounded-2xl px-5 py-3 text-sm font-bold transition-all shadow-lg shadow-[#0d6e6e]/10 bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed`}>
             {bulkUploading ? "Importing..." : "Import Users"}
           </button>
         </div>
@@ -980,16 +1014,16 @@ export default function AdminDashboard() {
         <section className={`${t.surface} backdrop-blur-2xl rounded-3xl p-6 border transition-colors duration-300`}>
           <div className="mb-5"><h2 className={`text-base font-bold ${t.cardText}`}>Change Password</h2><p className={`text-xs mt-0.5 ${t.textMutedDark}`}>Verify your old password before saving a new one.</p></div>
           <form onSubmit={handleAdminPasswordChange} className="space-y-4">
-            <input type="password" placeholder="Old password" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })} required className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`} />
-            <input type="password" placeholder="New password (minimum 8 characters)" minLength={8} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`} />
-            <button type="submit" className={`rounded-2xl px-5 py-3 text-sm font-bold transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#d4af37]/10`}>Update Password</button>
+            <input type="password" placeholder="Old password" value={passwordForm.oldPassword} onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })} required className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`} />
+            <input type="password" placeholder="New password (minimum 8 characters)" minLength={8} value={passwordForm.newPassword} onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} required className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`} />
+            <button type="submit" className={`rounded-2xl px-5 py-3 text-sm font-bold transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#0d6e6e]/10`}>Update Password</button>
           </form>
         </section>
         <section className={`${t.surface} backdrop-blur-2xl rounded-3xl p-6 border lg:col-span-2 transition-colors duration-300`}>
           <h2 className={`text-base font-bold ${t.cardText}`}>Appearance</h2>
           <p className={`mt-1 text-xs ${t.textMutedDark}`}>Toggle between light and dark themes.</p>
           <button type="button" onClick={() => setTheme((c) => c === "light" ? "dark" : "light")}
-            className={`mt-4 flex items-center gap-3 rounded-2xl border px-5 py-3 text-sm font-bold transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#d4af37]/10`}>
+            className={`mt-4 flex items-center gap-3 rounded-2xl border px-5 py-3 text-sm font-bold transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#0d6e6e]/10`}>
             {theme === "light" ? <FaMoon size={14} /> : <FaSun size={14} />} Switch to {theme === "light" ? "Dark" : "Light"} Theme
           </button>
         </section>
@@ -1029,7 +1063,7 @@ export default function AdminDashboard() {
               <DetailRow label="Applied" value={new Date(detailItem.createdAt).toLocaleString()} t={t} />
               {detailItem.status === "pending" && (
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => { handleStatusUpdate(detailItem._id, "shortlisted"); close(); }} className="flex-1 py-2.5 bg-gradient-to-r from-[#d4af37] to-[#c5a059] text-[#070a12] rounded-2xl text-sm font-bold hover:brightness-110 transition">Shortlist</button>
+                  <button onClick={() => { handleStatusUpdate(detailItem._id, "shortlisted"); close(); }} className="flex-1 py-2.5 bg-gradient-to-r from-[#0d6e6e] to-[#0f7d7d] text-[#0f1729] rounded-2xl text-sm font-bold hover:brightness-110 transition">Shortlist</button>
                   <button onClick={() => { handleStatusUpdate(detailItem._id, "rejected"); close(); }} className="flex-1 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl text-sm font-bold hover:brightness-110 transition">Reject</button>
                 </div>
               )}
@@ -1093,17 +1127,9 @@ export default function AdminDashboard() {
      MAIN RENDER
   ═══════════════════════════════════════════════════════════ */
   return (
-    <div className={`login-neo min-h-screen ${t.page} relative overflow-hidden font-sans transition-colors duration-500`} data-theme={theme}>
+    <div className="admin-layout min-h-screen bg-[#f4f7fa] text-[#333] font-['Montserrat',sans-serif] transition-colors duration-500" data-theme={theme}>
       <Toast toasts={toasts} remove={removeToast} t={t} />
       <ConfirmModal {...confirm} onCancel={() => setConfirm({ open: false })} t={t} />
-
-      {/* Ambient Glow Background */}
-      <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full blur-[140px] pointer-events-none transition-colors duration-500"
-        style={{ background: theme === "dark" ? "linear-gradient(to bottom right, rgba(212,175,55,0.08), rgba(139,26,26,0.08), transparent)" : "linear-gradient(to bottom right, rgba(212,175,55,0.10), rgba(139,26,26,0.05), transparent)" }} />
-      <div className="absolute -bottom-40 -right-40 w-[650px] h-[650px] rounded-full blur-[150px] pointer-events-none transition-colors duration-500"
-        style={{ background: theme === "dark" ? "linear-gradient(to top left, rgba(212,175,55,0.08), rgba(88,28,135,0.12), transparent)" : "linear-gradient(to top left, rgba(212,175,55,0.06), rgba(139,26,26,0.03), transparent)" }} />
-      <div className="absolute inset-0 bg-[size:32px_32px] opacity-30 pointer-events-none"
-        style={{ backgroundImage: `linear-gradient(to right, ${t.gridLine} 1px, transparent 1px), linear-gradient(to bottom, ${t.gridLine} 1px, transparent 1px)` }} />
 
       {/* Sidebar */}
       <DashboardSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)}
@@ -1111,44 +1137,34 @@ export default function AdminDashboard() {
         items={TABS.map((tab) => ({ ...tab, count: tabCounts[tab.key] }))}
         activeKey={activeTab} onSelect={(key) => { setActiveTab(key); setSidebarOpen(false); }}
         onLogout={handleLogout}
-        theme={{ background: t.sidebarBg, border: t.sidebarBorder, card: t.sidebarCard, text: t.cardText, muted: t.sidebarMuted, accent: "#d4af37", danger: t.sidebarDanger, dangerBackground: t.sidebarDangerBg, activeBackground: t.sidebarActive }}
+        theme={{ background: t.sidebarBg, border: t.sidebarBorder, card: t.sidebarCard, text: t.cardText, muted: t.sidebarMuted, accent: "#0d6e6e", danger: t.sidebarDanger, dangerBackground: t.sidebarDangerBg, activeBackground: t.sidebarActive }}
       />
 
       {/* Main Content */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-64"}`}>
         {/* Header */}
-        <header className={`sticky top-0 z-20 backdrop-blur-xl border-b transition-colors duration-300 ${t.surface}`}>
-          <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setSidebarOpen(true)} className={`p-2 rounded-xl border ${t.tableBorder} ${t.textMuted} ${t.hoverLight} transition-all lg:hidden`} aria-label="Open navigation">
-                <FaBars size={16} />
-              </button>
-              <div>
-                <h1 className={`text-lg font-bold ${t.cardText}`}>Dashboard</h1>
-                <p className={`text-[11px] mt-0.5 ${t.textMutedDark}`}>{TABS.find((tab) => tab.key === activeTab)?.label || "Overview"}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setTheme((c) => c === "dark" ? "light" : "dark")}
-                className="w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md border transition-all duration-300"
-                style={{
-                  background: theme === "dark" ? "rgba(30,35,50,0.8)" : "rgba(255,255,255,0.8)",
-                  borderColor: theme === "dark" ? "rgba(212,175,55,0.3)" : "rgba(139,105,20,0.3)",
-                  boxShadow: theme === "dark" ? "0 0 20px rgba(212,175,55,0.15)" : "0 0 20px rgba(139,105,20,0.10)",
-                }}
-                aria-label="Toggle theme">
-                {theme === "dark" ? <FaSun className="text-[#d4af37] text-sm" /> : <FaMoon className="text-[#8B6914] text-sm" />}
-              </button>
-              <button className={`relative p-2 rounded-xl border ${t.tableBorder} ${t.textMuted} ${t.hoverLight} transition-all`}>
-                <FaBell size={15} />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-            </div>
+        <header className="flex items-center justify-between px-[30px] py-5 bg-white border-b border-[#f4f7fa]">
+          <button type="button" onClick={() => setSidebarOpen(true)} className="text-[1.5rem] text-[#333] bg-none border-none cursor-pointer lg:hidden" aria-label="Open navigation">
+            <FaBars />
+          </button>
+          <h1 className="text-[1.5rem] font-bold text-[#0f1729]">
+            {TABS.find((tab) => tab.key === activeTab)?.label || "Dashboard"}
+          </h1>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setTheme((c) => c === "dark" ? "light" : "dark")}
+              className="px-4 py-2 bg-[#f4f7fa] rounded-lg text-[0.9rem] text-[#333] transition-all hover:bg-[#0d6e6e] hover:text-white cursor-pointer border-none"
+              aria-label="Toggle theme">
+              {theme === "dark" ? <FaSun className="text-sm" /> : <FaMoon className="text-sm" />}
+            </button>
+            <button className="relative p-2 rounded-lg bg-[#f4f7fa] text-[#333] hover:bg-[#0d6e6e] hover:text-white transition-all border-none cursor-pointer">
+              <FaBell size={15} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
+            </button>
           </div>
         </header>
 
         {/* Content */}
-        <div className="px-6 py-6">
+        <div className="px-[30px] py-[30px]">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               {activeTab === "overview" && renderOverview()}
@@ -1181,32 +1197,32 @@ export default function AdminDashboard() {
                   <div key={name}>
                     <label className={`block text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${t.label}`}>{ph}</label>
                     <input type={type} placeholder={ph} value={newUser[name]} onChange={(e) => setNewUser({ ...newUser, [name]: e.target.value })} required={req}
-                      className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`} />
+                      className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`} />
                   </div>
                 ))}
                 {newUser.role.startsWith("LPU") && (
                   <div>
                     <label className={`block text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${t.label}`}>University UID</label>
                     <input type="text" placeholder="University UID" value={newUser.uid || ""} onChange={(e) => setNewUser({ ...newUser, uid: e.target.value })} required
-                      className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`} />
+                      className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`} />
                   </div>
                 )}
                 <div>
                   <label className={`block text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${t.label}`}>Role</label>
                   <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value, uid: e.target.value.startsWith("LPU") ? newUser.uid : "" })}
-                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`}>
+                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`}>
                     {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className={`block text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${t.label}`}>Password</label>
                   <input type="password" placeholder="Password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required
-                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#d4af37]/20 ${t.input}`} />
+                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-[#0d6e6e]/20 ${t.input}`} />
                 </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setShowUserModal(false)} className={`px-5 py-2.5 text-sm border rounded-2xl transition-all ${t.tableBorder} ${t.textMuted} ${t.hoverLight}`}>Cancel</button>
-                <button type="submit" className={`px-6 py-2.5 text-sm font-bold rounded-2xl transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#d4af37]/15`}>Create</button>
+                <button type="submit" className={`px-6 py-2.5 text-sm font-bold rounded-2xl transition-all bg-gradient-to-r ${t.btnGold} hover:brightness-110 active:scale-[0.99] shadow-lg shadow-[#0d6e6e]/15`}>Create</button>
               </div>
             </form>
           </motion.div>
