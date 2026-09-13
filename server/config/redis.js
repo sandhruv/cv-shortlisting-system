@@ -11,6 +11,7 @@ function createRedisClient() {
     redis = new Redis(REDIS_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy(times) {
+        if (times > 10) return null;
         const delay = Math.min(times * 200, 5000);
         return delay;
       },
@@ -39,7 +40,6 @@ function createRedisClient() {
     });
 
     redis.on("close", () => {
-      console.log("⚠️ Redis connection closed");
       isConnected = false;
     });
 
